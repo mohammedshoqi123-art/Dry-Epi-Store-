@@ -1,0 +1,24 @@
+name: epi_features
+description: Feature modules for EPI Supervisor Platform
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.19.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  epi_core:
+    path: ../core
+  epi_shared:
+    path: ../shared
+  flutter_riverpod: ^2.5.1
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
