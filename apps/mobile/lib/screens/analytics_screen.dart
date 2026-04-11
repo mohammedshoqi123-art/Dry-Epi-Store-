@@ -12,7 +12,8 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 }
 
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
-  // ignore: unused_field — reserved for future period filtering
+  // Period filter (reserved for future use)
+  // ignore: unused_field
   String _selectedPeriod = '30d';
 
   @override
@@ -104,7 +105,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

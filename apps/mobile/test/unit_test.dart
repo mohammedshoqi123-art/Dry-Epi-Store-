@@ -101,7 +101,7 @@ void main() {
     });
 
     test('toJson and fromJson work correctly', () {
-      final state = AuthState(
+      const state = AuthState(
         isAuthenticated: true,
         userId: 'test-id',
         email: 'test@example.com',

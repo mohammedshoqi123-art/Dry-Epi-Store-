@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:epi_shared/epi_shared.dart';
-import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 class FormFillScreen extends ConsumerStatefulWidget {
@@ -74,10 +73,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 30),
-        ),
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 30),
       );
 
       setState(() {

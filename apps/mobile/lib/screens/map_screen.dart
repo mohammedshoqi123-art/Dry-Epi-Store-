@@ -3,7 +3,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:epi_shared/epi_shared.dart';
-import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -113,7 +112,6 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           if (lat == null || lng == null) continue;
 
           final status = sub['status'] as String? ?? 'draft';
-          final formTitle = sub['forms']?['title_ar'] ?? 'نموذج';
 
           markers.add(Marker(
             point: LatLng(lat, lng),
@@ -126,7 +124,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   color: AppTheme.statusColor(status),
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
+                    BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
                   ],
                 ),
                 child: const Icon(Icons.description, color: Colors.white, size: 20),
@@ -154,10 +152,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       data: (shortages) {
         final markers = <Marker>[];
 
-        for (final shortage in shortages) {
-          // Shortages might not have direct GPS, so we skip those without coordinates
-          // In a real app, you'd derive location from district/governorate
-        }
+        // Shortages might not have direct GPS, so we skip those without coordinates
+        // In a real app, you'd derive location from district/governorate
 
         if (markers.isEmpty) {
           return _buildGovernorateMarkers(severityMode: true);
@@ -195,7 +191,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       color: severityMode ? AppTheme.warningColor : AppTheme.primaryColor,
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
+                        BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
                       ],
                     ),
                     child: Text(

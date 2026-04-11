@@ -141,7 +141,7 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
                 const SizedBox(height: 4),
                 Text(
                   'ID: ${widget.id.substring(0, 8)}...',
-                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white.withOpacity(0.7), fontSize: 12),
                 ),
               ],
             ),
@@ -158,7 +158,7 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
