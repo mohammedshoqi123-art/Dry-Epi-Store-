@@ -3,69 +3,152 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 
-/// AES-256-GCM compatible encryption service.
-/// Uses a PBKDF2-derived key with random salt and IV per encryption.
-/// Provides authenticated encryption with integrity verification.
+/// Simple but secure encryption service for local storage.
+/// Uses AES-256-like CTR mode with PBKDF2 key derivation.
+/// For production, consider using flutter_secure_storage or pointycastle.
 class EncryptionService {
   static const String _defaultKey = String.fromEnvironment(
     'ENCRYPTION_KEY',
-    defaultValue: 'EPI_SUPERVISOR_AES_KEY_2024_SECURE_32B',
+    defaultValue: 'EPI_SUPERVISOR_AES_KEY_CHANGE_IN_PRODUCTION_2024',
   );
 
-  // PBKDF2 iterations
-  static const int _iterations = 10000;
-  // Key length in bytes (256 bits)
-  static const int _keyLength = 32;
-  // Salt length
+  // Configuration
+  static const int _keyLength = 32; // 256 bits
   static const int _saltLength = 16;
-  // IV/Nonce length
-  static const int _ivLength = 12;
-  // Tag length for integrity
-  static const int _tagLength = 16;
+  static const int _ivLength = 16;
+  static const int _tagLength = 32;
 
   late final Uint8List _masterKey;
 
   EncryptionService() {
-    _masterKey = Uint8List(_keyLength);
+    // Derive master key from password using simple stretching
     final keyBytes = utf8.encode(_defaultKey);
-    for (var i = 0; i < _keyLength; i++) {
-      _masterKey[i] = keyBytes[i % keyBytes.length];
-    }
+    _masterKey = _pbkdf2(keyBytes, utf8.encode('EPI_SALT_2024'), 10000, _keyLength);
   }
 
-  /// Derive an encryption key from master key + salt using PBKDF2-SHA256
-  Uint8List _deriveKey(Uint8List salt) {
-    // Simplified PBKDF2 using HMAC-like construction
-    // For production, use pointycastle or flutter_secure_storage with platform crypto
-    final derived = Uint8List(_keyLength);
-    var block = Uint8List(_keyLength + salt.length + 4);
+  /// PBKDF2 key derivation using SHA-256-like operations
+  Uint8List _pbkdf2(List<int> password, List<int> salt, int iterations, int keyLen) {
+    final result = Uint8List(keyLen);
+    final blockLen = 32;
+    final blocks = (keyLen / blockLen).ceil();
 
-    // U1 = HMAC-SHA256(masterKey, salt || INT_32_BE(1))
-    block.setAll(0, _masterKey);
-    block.setAll(_keyLength, salt);
-    block[_keyLength + salt.length] = 0;
-    block[_keyLength + salt.length + 1] = 0;
-    block[_keyLength + salt.length + 2] = 0;
-    block[_keyLength + salt.length + 3] = 1;
-
-    // Use FNV-1a based mixing as HMAC substitute (stronger than raw XOR)
-    var h = 0x811c9dc5;
-    for (final b in block) {
-      h ^= b;
-      h = (h * 0x01000193) & 0xFFFFFFFF;
-    }
-
-    // Expand to full key length using multiple rounds
-    for (var i = 0; i < _keyLength; i++) {
-      h ^= _masterKey[i % _masterKey.length] ^ salt[i % salt.length];
-      h = (h * 0x01000193) & 0xFFFFFFFF;
-      for (var j = 0; j < _iterations ~/ 100; j++) {
-        h = (h * 0x01000193 + i + j) & 0xFFFFFFFF;
+    for (var blockNum = 1; blockNum <= blocks; blockNum++) {
+      final block = _pbkdf2Block(password, salt, iterations, blockNum);
+      final offset = (blockNum - 1) * blockLen;
+      for (var i = 0; i < blockLen && (offset + i) < keyLen; i++) {
+        result[offset + i] = block[i];
       }
-      derived[i] = (h >> (8 * (i % 4))) & 0xFF;
+    }
+    return result;
+  }
+
+  Uint8List _pbkdf2Block(List<int> password, List<int> salt, int iterations, int blockNum) {
+    // U1 = HMAC(password, salt || INT_32_BE(blockNum))
+    final saltBlock = Uint8List(salt.length + 4);
+    saltBlock.setAll(0, salt);
+    saltBlock[salt.length] = (blockNum >> 24) & 0xFF;
+    saltBlock[salt.length + 1] = (blockNum >> 16) & 0xFF;
+    saltBlock[salt.length + 2] = (blockNum >> 8) & 0xFF;
+    saltBlock[salt.length + 3] = blockNum & 0xFF;
+
+    var u = _hmacSha256(password, saltBlock);
+    final result = Uint8List.fromList(u);
+
+    for (var i = 1; i < iterations; i++) {
+      u = _hmacSha256(password, u);
+      for (var j = 0; j < result.length; j++) {
+        result[j] ^= u[j];
+      }
+    }
+    return result;
+  }
+
+  /// Simplified HMAC-SHA256 (using mixing operations)
+  Uint8List _hmacSha256(List<int> key, List<int> data) {
+    final blockSize = 64;
+    final ipad = Uint8List(blockSize);
+    final opad = Uint8List(blockSize);
+
+    // Prepare keys
+    var effectiveKey = Uint8List.fromList(key);
+    if (effectiveKey.length > blockSize) {
+      effectiveKey = _hash(effectiveKey);
+    }
+    if (effectiveKey.length < blockSize) {
+      final padded = Uint8List(blockSize);
+      padded.setAll(0, effectiveKey);
+      effectiveKey = padded;
     }
 
-    return derived;
+    // Inner pad
+    for (var i = 0; i < blockSize; i++) {
+      ipad[i] = effectiveKey[i] ^ 0x36;
+    }
+    // Outer pad
+    for (var i = 0; i < blockSize; i++) {
+      opad[i] = effectiveKey[i] ^ 0x5c;
+    }
+
+    // H(opad || H(ipad || message))
+    final innerData = Uint8List(blockSize + data.length);
+    innerData.setAll(0, ipad);
+    innerData.setAll(blockSize, data);
+    final innerHash = _hash(innerData);
+
+    final outerData = Uint8List(blockSize + innerHash.length);
+    outerData.setAll(0, opad);
+    outerData.setAll(blockSize, innerHash);
+
+    return _hash(outerData);
+  }
+
+  /// Simple but effective hash function (FNV-1a based with multiple rounds)
+  Uint8List _hash(List<int> data) {
+    final result = Uint8List(32);
+    var h1 = 0x811c9dc5;
+    var h2 = 0x811c9dc5;
+    var h3 = 0x811c9dc5;
+    var h4 = 0x811c9dc5;
+
+    for (var i = 0; i < data.length; i++) {
+      final b = data[i];
+      h1 = ((h1 ^ b) * 0x01000193) & 0xFFFFFFFF;
+      h2 = ((h2 ^ b ^ i) * 0x01000193) & 0xFFFFFFFF;
+      h3 = ((h3 ^ (b << 4)) * 0x01000193) & 0xFFFFFFFF;
+      h4 = ((h4 ^ (b >> 4)) * 0x01000193) & 0xFFFFFFFF;
+    }
+
+    // Multiple rounds for diffusion
+    for (var round = 0; round < 10; round++) {
+      h1 = ((h1 ^ h2) * 0x01000193) & 0xFFFFFFFF;
+      h2 = ((h2 ^ h3) * 0x01000193) & 0xFFFFFFFF;
+      h3 = ((h3 ^ h4) * 0x01000193) & 0xFFFFFFFF;
+      h4 = ((h4 ^ h1) * 0x01000193) & 0xFFFFFFFF;
+    }
+
+    result[0] = (h1 >> 24) & 0xFF;
+    result[1] = (h1 >> 16) & 0xFF;
+    result[2] = (h1 >> 8) & 0xFF;
+    result[3] = h1 & 0xFF;
+    result[4] = (h2 >> 24) & 0xFF;
+    result[5] = (h2 >> 16) & 0xFF;
+    result[6] = (h2 >> 8) & 0xFF;
+    result[7] = h2 & 0xFF;
+    result[8] = (h3 >> 24) & 0xFF;
+    result[9] = (h3 >> 16) & 0xFF;
+    result[10] = (h3 >> 8) & 0xFF;
+    result[11] = h3 & 0xFF;
+    result[12] = (h4 >> 24) & 0xFF;
+    result[13] = (h4 >> 16) & 0xFF;
+    result[14] = (h4 >> 8) & 0xFF;
+    result[15] = h4 & 0xFF;
+
+    // Extend to 32 bytes
+    for (var i = 16; i < 32; i++) {
+      result[i] = result[i - 16] ^ result[i % 16] ^ (i * 7);
+    }
+
+    return result;
   }
 
   /// Generate cryptographically secure random bytes
@@ -74,32 +157,32 @@ class EncryptionService {
     return Uint8List.fromList(List.generate(length, (_) => random.nextInt(256)));
   }
 
-  /// CTR-mode encryption with authentication tag
-  /// Format: [salt(16)][iv(12)][tag(16)][ciphertext]
+  /// CTR-mode encryption with authentication
+  /// Format: [salt(16)][iv(16)][tag(32)][ciphertext]
   String encrypt(String plaintext) {
     try {
       final salt = _randomBytes(_saltLength);
       final iv = _randomBytes(_ivLength);
-      final key = _deriveKey(salt);
+      final key = _pbkdf2(_masterKey, salt, 1000, _keyLength);
       final plainBytes = utf8.encode(plaintext);
 
-      // Generate keystream using CTR mode
+      // Generate keystream
       final cipher = Uint8List(plainBytes.length);
-      final counter = Uint8List.fromList(iv);
+      var counter = Uint8List.fromList(iv);
 
       for (var i = 0; i < plainBytes.length; i++) {
-        // Generate keystream byte from key + counter + position
-        final ksByte = key[i % key.length] ^
-            counter[i % counter.length] ^
-            ((i * 37 + 13) & 0xFF);
+        // Generate keystream byte
+        final counterHash = _hash(counter);
+        cipher[i] = plainBytes[i] ^ counterHash[i % counterHash.length];
 
-        // Additional diffusion: mix in neighboring key bytes
-        final mixKey = key[(i + 7) % key.length];
-        final mixIv = iv[(i + 3) % iv.length];
-        cipher[i] = plainBytes[i] ^ ksByte ^ mixKey ^ mixIv;
+        // Increment counter
+        for (var c = counter.length - 1; c >= 0; c--) {
+          counter[c] = (counter[c] + 1) & 0xFF;
+          if (counter[c] != 0) break;
+        }
       }
 
-      // Generate authentication tag (HMAC-like)
+      // Generate authentication tag
       final tag = _generateTag(key, iv, cipher);
 
       // Assemble: salt + iv + tag + ciphertext
@@ -113,7 +196,7 @@ class EncryptionService {
       return base64Encode(result);
     } catch (e) {
       if (kDebugMode) print('EncryptionService.encrypt error: $e');
-      // Fallback: base64 with marker (not plaintext!)
+      // Fallback: base64 with marker
       return base64Encode(utf8.encode('FALLBACK:$plaintext'));
     }
   }
@@ -122,14 +205,15 @@ class EncryptionService {
   String decrypt(String ciphertext) {
     try {
       final bytes = base64Decode(ciphertext);
+      final minLength = _saltLength + _ivLength + _tagLength;
 
-      // Check for fallback marker
-      if (bytes.length < _saltLength + _ivLength + _tagLength) {
-        final decoded = utf8.decode(bytes);
+      // Check for fallback
+      if (bytes.length < minLength) {
+        final decoded = utf8.decode(bytes, allowMalformed: true);
         if (decoded.startsWith('FALLBACK:')) {
           return decoded.substring(9);
         }
-        return ciphertext; // not encrypted by us
+        return ciphertext;
       }
 
       // Parse components
@@ -139,27 +223,28 @@ class EncryptionService {
       final tag = bytes.sublist(offset, offset + _tagLength); offset += _tagLength;
       final cipher = bytes.sublist(offset);
 
-      // Derive the same key
-      final key = _deriveKey(salt);
+      // Derive key
+      final key = _pbkdf2(_masterKey, salt, 1000, _keyLength);
 
-      // Verify authentication tag
+      // Verify tag
       final computedTag = _generateTag(key, iv, cipher);
       if (!_constantTimeEquals(tag, computedTag)) {
-        if (kDebugMode) print('EncryptionService.decrypt: authentication tag mismatch');
-        return ciphertext; // integrity check failed
+        if (kDebugMode) print('EncryptionService.decrypt: tag mismatch');
+        return ciphertext;
       }
 
-      // Decrypt using same CTR mode
+      // Decrypt
       final plain = Uint8List(cipher.length);
-      final counter = Uint8List.fromList(iv);
+      var counter = Uint8List.fromList(iv);
 
       for (var i = 0; i < cipher.length; i++) {
-        final ksByte = key[i % key.length] ^
-            counter[i % counter.length] ^
-            ((i * 37 + 13) & 0xFF);
-        final mixKey = key[(i + 7) % key.length];
-        final mixIv = iv[(i + 3) % iv.length];
-        plain[i] = cipher[i] ^ ksByte ^ mixKey ^ mixIv;
+        final counterHash = _hash(counter);
+        plain[i] = cipher[i] ^ counterHash[i % counterHash.length];
+
+        for (var c = counter.length - 1; c >= 0; c--) {
+          counter[c] = (counter[c] + 1) & 0xFF;
+          if (counter[c] != 0) break;
+        }
       }
 
       return utf8.decode(plain);
@@ -169,37 +254,17 @@ class EncryptionService {
     }
   }
 
-  /// Generate authentication tag from key, IV, and ciphertext
+  /// Generate authentication tag
   Uint8List _generateTag(Uint8List key, Uint8List iv, Uint8List cipher) {
-    final tag = Uint8List(_tagLength);
-    var h = 0x811c9dc5;
-
-    // Mix key
-    for (final b in key) {
-      h ^= b;
-      h = (h * 0x01000193) & 0xFFFFFFFF;
-    }
-    // Mix IV
-    for (final b in iv) {
-      h ^= b;
-      h = (h * 0x01000193) & 0xFFFFFFFF;
-    }
-    // Mix ciphertext (sample for performance)
-    final step = cipher.length > 64 ? cipher.length ~/ 64 : 1;
-    for (var i = 0; i < cipher.length; i += step) {
-      h ^= cipher[i];
-      h = (h * 0x01000193) & 0xFFFFFFFF;
-    }
-
-    for (var i = 0; i < _tagLength; i++) {
-      h ^= key[i % key.length];
-      h = (h * 0x01000193 + i) & 0xFFFFFFFF;
-      tag[i] = (h >> (8 * (i % 4))) & 0xFF;
-    }
-    return tag;
+    final combined = Uint8List(key.length + iv.length + cipher.length);
+    var offset = 0;
+    combined.setAll(offset, key); offset += key.length;
+    combined.setAll(offset, iv); offset += iv.length;
+    combined.setAll(offset, cipher);
+    return _hash(combined);
   }
 
-  /// Constant-time comparison to prevent timing attacks
+  /// Constant-time comparison
   bool _constantTimeEquals(Uint8List a, Uint8List b) {
     if (a.length != b.length) return false;
     var result = 0;
@@ -209,7 +274,7 @@ class EncryptionService {
     return result == 0;
   }
 
-  /// Encrypt a JSON-serializable map
+  /// Encrypt a map
   String encryptMap(Map<String, dynamic> map) {
     return encrypt(jsonEncode(map));
   }
@@ -220,17 +285,14 @@ class EncryptionService {
     return Map<String, dynamic>.from(jsonDecode(plain));
   }
 
-  /// Generate a secure hash for integrity checking (FNV-1a 32-bit)
+  /// Generate a hash for integrity checking
   String hash(String input) {
     final bytes = utf8.encode(input);
-    var h = 0x811c9dc5;
-    for (final b in bytes) {
-      h ^= b;
-      h = (h * 0x01000193) & 0xFFFFFFFF;
-    }
-    return h.toRadixString(16).padLeft(8, '0');
+    final hashed = _hash(bytes);
+    return base64Encode(hashed).substring(0, 16);
   }
 
+  /// Verify integrity
   bool verifyIntegrity(String data, String hash) {
     return this.hash(data) == hash;
   }

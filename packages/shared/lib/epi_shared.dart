@@ -11,6 +11,14 @@ export 'src/constants/app_strings.dart';
 export 'src/extensions/string_extensions.dart';
 export 'src/extensions/context_extensions.dart';
 
+// ─── Models ───────────────────────────────────────────────────────────────
+export 'src/models/district_model.dart';
+export 'src/models/form_model.dart';
+export 'src/models/governorate_model.dart';
+export 'src/models/shortage_model.dart';
+export 'src/models/submission_model.dart';
+export 'src/models/user_profile_model.dart';
+
 // ─── Widgets ──────────────────────────────────────────────────────────────
 export 'src/widgets/epi_app_bar.dart';
 export 'src/widgets/epi_bottom_nav.dart';
