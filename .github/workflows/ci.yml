@@ -5,6 +5,16 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 env:
   FLUTTER_VERSION: '3.22.0'
@@ -81,10 +91,14 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          GEMINI_FLAG=""
+          if [ "$GEMINI_API_KEY" != "NOT_SET" ] && [ -n "$GEMINI_API_KEY" ]; then
+            GEMINI_FLAG="--dart-define=GEMINI_API_KEY=$GEMINI_API_KEY"
+          fi
           flutter build apk --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY
+            $GEMINI_FLAG
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -120,10 +134,17 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          GEMINI_FLAG=""
+          if [ "$GEMINI_API_KEY" != "NOT_SET" ] && [ -n "$GEMINI_API_KEY" ]; then
+            GEMINI_FLAG="--dart-define=GEMINI_API_KEY=$GEMINI_API_KEY"
+          fi
           flutter build web --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
-            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            $GEMINI_FLAG \
+            --base-href "/EPI-Supervisor/"
 
       - name: Upload Web artifact
         uses: actions/upload-artifact@v4
@@ -131,6 +152,34 @@ jobs:
           name: epi-supervisor-web
           path: apps/mobile/build/web/
           retention-days: 30
+
+  # ─── Deploy to GitHub Pages ─────────────────────────────
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-web
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: epi-supervisor-web
+          path: _site/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   # ─── Deploy Edge Functions ───────────────────────────────
   deploy-functions:
@@ -150,6 +199,10 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ "$SUPABASE_ACCESS_TOKEN" = "NOT_SET" ]; then
+            echo "⚠️ SUPABASE_ACCESS_TOKEN not set, skipping function deployment"
+            exit 0
+          fi
           supabase functions deploy --project-ref $SUPABASE_PROJECT_REF
 
   # ─── Create Release ──────────────────────────────────────
@@ -166,12 +219,6 @@ jobs:
         with:
           name: epi-supervisor-apk
           path: dist/
-
-      - name: Download Web
-        uses: actions/download-artifact@v4
-        with:
-          name: epi-supervisor-web
-          path: dist/web/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
