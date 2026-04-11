@@ -48,16 +48,37 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Fetch user profile ONCE (not N times in the loop)
+    const { data: profile } = await adminSupabase
+      .from('profiles')
+      .select('governorate_id, district_id, role')
+      .eq('id', user.id)
+      .single()
+
+    // Pre-check: collect all offline_ids to detect duplicates in one query
+    const offlineIds = items.filter(i => i.offline_id).map(i => i.offline_id)
+    const existingMap = new Map<string, string>()
+    if (offlineIds.length > 0) {
+      const { data: existing } = await adminSupabase
+        .from('form_submissions')
+        .select('offline_id, id')
+        .in('offline_id', offlineIds)
+      if (existing) {
+        for (const row of existing) {
+          existingMap.set(row.offline_id, row.id)
+        }
+      }
+    }
+
     for (const item of items) {
       const offlineId = item.offline_id as string | undefined
 
       try {
-        // Get user profile for governorate/district enrichment
-        const { data: profile } = await adminSupabase
-          .from('profiles')
-          .select('governorate_id, district_id, role')
-          .eq('id', user.id)
-          .single()
+        // Check for duplicate using pre-fetched map (no DB query)
+        if (offlineId && existingMap.has(offlineId)) {
+          results.push({ offline_id: offlineId, status: 'duplicate', submission_id: existingMap.get(offlineId) })
+          continue
+        }
 
         const submissionData = {
           form_id: item.form_id,
@@ -77,20 +98,6 @@ serve(async (req) => {
           is_offline: true,
           submitted_at: item.created_at || new Date().toISOString(),
           synced_at: new Date().toISOString(),
-        }
-
-        // Check for existing submission with same offline_id
-        if (offlineId) {
-          const { data: existing } = await adminSupabase
-            .from('form_submissions')
-            .select('id, status')
-            .eq('offline_id', offlineId)
-            .maybeSingle()
-
-          if (existing) {
-            results.push({ offline_id: offlineId, status: 'duplicate', submission_id: existing.id })
-            continue
-          }
         }
 
         // Insert submission

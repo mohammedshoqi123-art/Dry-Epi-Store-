@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
@@ -13,9 +12,6 @@ import 'router/app_router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Hive for offline storage
-  await Hive.initFlutter();
 
   // Initialize connectivity monitoring
   await ConnectivityUtils.initialize();
