@@ -1,8 +1,5 @@
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-}
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
@@ -17,6 +14,9 @@ if (flutterVersionCode == null) flutterVersionCode = '1'
 
 def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) flutterVersionName = '1.0.0'
+
+def flutterSdkPath = localProperties.getProperty('flutter.sdk')
+apply from: "$flutterSdkPath/packages/flutter_tools/gradle/flutter.gradle"
 
 // Load env variables for build
 def supabaseUrl = System.getenv('SUPABASE_URL') ?: localProperties.getProperty('SUPABASE_URL') ?: 'https://your-project.supabase.co'
