@@ -8,7 +8,6 @@ on:
 
 env:
   FLUTTER_VERSION: '3.22.0'
-  DART_VERSION: '3.3.0'
 
 jobs:
   # ─── Analyze & Test ──────────────────────────────────────
@@ -39,14 +38,6 @@ jobs:
       - name: Install dependencies (mobile)
         working-directory: apps/mobile
         run: flutter pub get
-
-      - name: Generate code (core)
-        working-directory: packages/core
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Generate code (shared)
-        working-directory: packages/shared
-        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Analyze code
         working-directory: apps/mobile
@@ -82,11 +73,6 @@ jobs:
           cd ../shared && flutter pub get
           cd ../features && flutter pub get
           cd ../../apps/mobile && flutter pub get
-
-      - name: Generate code
-        run: |
-          cd packages/core && dart run build_runner build --delete-conflicting-outputs
-          cd ../shared && dart run build_runner build --delete-conflicting-outputs
 
       - name: Build APK (release)
         working-directory: apps/mobile
@@ -126,11 +112,6 @@ jobs:
           cd ../shared && flutter pub get
           cd ../features && flutter pub get
           cd ../../apps/mobile && flutter pub get
-
-      - name: Generate code
-        run: |
-          cd packages/core && dart run build_runner build --delete-conflicting-outputs
-          cd ../shared && dart run build_runner build --delete-conflicting-outputs
 
       - name: Build Web (release)
         working-directory: apps/mobile
