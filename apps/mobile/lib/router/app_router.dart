@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/epi_core.dart';
 
 import '../providers/app_providers.dart';
 import '../screens/splash_screen.dart';
@@ -17,17 +19,18 @@ import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final authAsync = ref.watch(authStateProvider);
 
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isAuthenticated = authState.isAuthenticated;
       final isLoginRoute = state.matchedLocation == '/login';
       final isSplash = state.matchedLocation == '/splash';
 
       if (isSplash) return null;
+
+      final isAuthenticated = authAsync.valueOrNull?.isAuthenticated ?? false;
 
       if (!isAuthenticated && !isLoginRoute) return '/login';
       if (isAuthenticated && isLoginRoute) return '/dashboard';
@@ -142,11 +145,12 @@ class AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
+    final authAsync = ref.watch(authStateProvider);
+    final authState = authAsync.valueOrNull;
     return EpiDrawer(
       currentRoute: GoRouterState.of(context).matchedLocation,
-      userName: authState.fullName ?? 'مستخدم',
-      userRole: authState.role?.name,
+      userName: authState?.fullName ?? 'مستخدم',
+      userRole: authState?.role?.name,
     );
   }
 }

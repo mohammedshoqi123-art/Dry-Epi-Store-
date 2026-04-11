@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:epi_shared/epi_shared.dart';
-import 'package:epi_core/epi_core.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});

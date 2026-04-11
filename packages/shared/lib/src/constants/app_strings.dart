@@ -52,6 +52,10 @@ class AppStrings {
   static const String captureLocation = 'التقاط الموقع';
   static const String addPhoto = 'إضافة صورة';
   static const String requiredField = 'هذا الحقل مطلوب';
+  static const String required = 'مطلوب';
+  static const String submit = 'إرسال';
+  static const String submitSuccess = 'تم الإرسال بنجاح';
+  static const String draftSaved = 'تم حفظ المسودة';
   static const String draft = 'مسودة';
   static const String submitted = 'مُرسَل';
   static const String reviewed = 'قيد المراجعة';
@@ -100,7 +104,9 @@ class AppStrings {
   // ─── AI ───────────────────────────────────────────────────────────────────
   static const String aiWelcome = 'مرحباً! أنا مساعدك الذكي لتحليل بيانات حملة التطعيم. كيف يمكنني مساعدتك؟';
   static const String aiTyping = 'جاري الكتابة...';
+  static const String aiThinking = 'جاري التفكير...';
   static const String aiInputHint = 'اسألني عن البيانات والإحصائيات...';
+  static const String askQuestion = 'اسألني أي شيء...';
   static const String aiSend = 'إرسال';
   static const String aiClearHistory = 'مسح المحادثة';
   static const String aiInsights = 'رؤى AI';

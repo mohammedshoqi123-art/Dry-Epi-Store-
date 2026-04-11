@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:epi_shared/epi_shared.dart';
-import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
+
+class ChatMessage {
+  final String role;
+  final String content;
+  const ChatMessage({required this.role, required this.content});
+}
 
 class AiChatScreen extends ConsumerStatefulWidget {
   const AiChatScreen({super.key});
@@ -37,10 +42,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
     try {
       final gemini = ref.read(geminiServiceProvider);
-      final response = await gemini.sendMessage(text);
+      final response = await gemini.chat(text);
 
       setState(() {
-        _messages.add(ChatMessage(role: 'assistant', content: response.message));
+        _messages.add(ChatMessage(role: 'assistant', content: response));
         _isLoading = false;
       });
     } catch (e) {
@@ -220,7 +225,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(

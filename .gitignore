@@ -68,3 +68,7 @@ logs/
 
 # ─── Coverage ──────────────────────────────────────────────
 coverage/
+
+# Local properties
+**/android/local.properties
+*.pubspec.lock

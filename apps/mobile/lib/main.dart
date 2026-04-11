@@ -10,7 +10,6 @@ import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
 
 import '../router/app_router.dart';
-import '../providers/app_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +48,7 @@ Future<void> main() async {
       (options) {
         options.dsn = sentryDsn;
         options.tracesSampleRate = AppConfig.isProduction ? 0.2 : 1.0;
+        // ignore: invalid_use_of_protected_member
         options.profilesSampleRate = AppConfig.isProduction ? 0.1 : 1.0;
         options.environment = AppConfig.environment;
         options.release = 'epi-supervisor@${AppConfig.appVersion}+${AppConfig.buildNumber}';
