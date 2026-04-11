@@ -112,7 +112,7 @@ class _MapScreenState extends State<MapScreen> {
                   color: AppTheme.primaryColor,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
                   ],
                 ),
                 child: Text(

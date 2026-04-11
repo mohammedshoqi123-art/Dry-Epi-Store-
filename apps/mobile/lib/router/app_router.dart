@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:epi_shared/epi_shared.dart';
-import 'package:epi_core/epi_core.dart';
 
 import '../providers/app_providers.dart';
 import '../screens/splash_screen.dart';

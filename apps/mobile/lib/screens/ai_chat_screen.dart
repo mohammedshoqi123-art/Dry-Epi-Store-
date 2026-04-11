@@ -126,7 +126,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.secondaryColor.withOpacity(0.1),
+                color: AppTheme.secondaryColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.smart_toy, size: 48, color: AppTheme.secondaryColor),
@@ -169,7 +169,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           if (!isUser) ...[
             CircleAvatar(
               radius: 16,
-              backgroundColor: AppTheme.secondaryColor.withOpacity(0.1),
+              backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.1),
               child: const Icon(Icons.smart_toy, size: 16, color: AppTheme.secondaryColor),
             ),
             const SizedBox(width: 8),
@@ -215,7 +215,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: AppTheme.secondaryColor.withOpacity(0.1),
+            backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.1),
             child: const Icon(Icons.smart_toy, size: 16, color: AppTheme.secondaryColor),
           ),
           const SizedBox(width: 8),
@@ -247,7 +247,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -2))],
       ),
       child: SafeArea(
         child: Row(

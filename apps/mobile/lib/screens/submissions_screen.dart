@@ -13,7 +13,7 @@ class SubmissionsScreen extends ConsumerStatefulWidget {
 
 class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
   String? _statusFilter;
-  String? _searchQuery;
+  
   final _searchController = TextEditingController();
 
   @override
@@ -44,7 +44,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             child: EpiSearchBar(
               controller: _searchController,
               hint: 'بحث في الإرساليات...',
-              onChanged: (v) => setState(() => _searchQuery = v),
+              onChanged: (_){},
             ),
           ),
           if (_statusFilter != null)
@@ -162,7 +162,7 @@ class _SubmissionTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.statusColor(status).withOpacity(0.1),
+              color: AppTheme.statusColor(status).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.description, color: AppTheme.statusColor(status)),
