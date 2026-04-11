@@ -6,6 +6,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// In-memory rate limiter (per instance, sufficient for Edge Functions)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
+
+function checkRateLimit(userId: string, limit = 10, windowMs = 60000): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(userId)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + windowMs })
+    return true
+  }
+
+  if (entry.count >= limit) {
+    return false
+  }
+
+  entry.count++
+  return true
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -23,11 +43,22 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    // Rate limiting: check recent submissions (5 per minute per user)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // ─── Rate Limiting ────────────────────────────────────────
+    if (!checkRateLimit(user.id)) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 submissions per minute.' }), {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Retry-After': '60',
+        }
       })
     }
 
@@ -38,19 +69,44 @@ serve(async (req) => {
       offline_id, device_id, app_version, is_offline = false
     } = body
 
-    // Validate required fields
-    if (!form_id) {
-      return new Response(JSON.stringify({ error: 'form_id is required' }), {
+    // ─── Validate Required Fields ─────────────────────────────
+    if (!form_id || typeof form_id !== 'string') {
+      return new Response(JSON.stringify({ error: 'form_id is required and must be a string' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // Verify form exists and is active
+    // Validate status enum
+    const validStatuses = ['draft', 'submitted', 'reviewed', 'approved', 'rejected']
+    if (!validStatuses.includes(status)) {
+      return new Response(JSON.stringify({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Validate GPS coordinates if provided
+    if (gps_lat !== undefined && gps_lat !== null) {
+      if (typeof gps_lat !== 'number' || gps_lat < -90 || gps_lat > 90) {
+        return new Response(JSON.stringify({ error: 'Invalid gps_lat: must be between -90 and 90' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+    }
+    if (gps_lng !== undefined && gps_lng !== null) {
+      if (typeof gps_lng !== 'number' || gps_lng < -180 || gps_lng > 180) {
+        return new Response(JSON.stringify({ error: 'Invalid gps_lng: must be between -180 and 180' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+    }
+
+    // ─── Verify Form Exists ───────────────────────────────────
     const { data: form, error: formError } = await supabase
       .from('forms')
-      .select('id, requires_gps, requires_photo, schema, allowed_roles')
+      .select('id, requires_gps, requires_photo, allowed_roles, schema')
       .eq('id', form_id)
       .eq('is_active', true)
+      .is('deleted_at', null)
       .single()
 
     if (formError || !form) {
@@ -59,32 +115,46 @@ serve(async (req) => {
       })
     }
 
-    // Check if GPS is required
-    if (form.requires_gps && (!gps_lat || !gps_lng)) {
+    // Check GPS requirement
+    if (form.requires_gps && (gps_lat === undefined || gps_lat === null || gps_lng === undefined || gps_lng === null)) {
       return new Response(JSON.stringify({ error: 'GPS location is required for this form' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // Get user profile for governorate/district
+    // Check photo requirement
+    if (form.requires_photo && (!photos || photos.length === 0)) {
+      return new Response(JSON.stringify({ error: 'At least one photo is required for this form' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Get user profile for role + governorate/district
     const { data: profile } = await supabase
       .from('profiles')
       .select('governorate_id, district_id, role')
       .eq('id', user.id)
       .single()
 
+    // Check role permission
+    if (form.allowed_roles && profile?.role && !form.allowed_roles.includes(profile.role)) {
+      return new Response(JSON.stringify({ error: 'Your role does not have permission to submit this form' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     const submissionData = {
       form_id,
       submitted_by: user.id,
-      governorate_id: governorate_id || profile?.governorate_id,
-      district_id: district_id || profile?.district_id,
+      governorate_id: governorate_id || profile?.governorate_id || null,
+      district_id: district_id || profile?.district_id || null,
       status,
       data: formData || {},
       gps_lat: gps_lat || null,
       gps_lng: gps_lng || null,
       gps_accuracy: gps_accuracy || null,
-      photos,
-      notes,
+      photos: Array.isArray(photos) ? photos : [],
+      notes: notes || null,
       offline_id: offline_id || null,
       device_id: device_id || null,
       app_version: app_version || null,
