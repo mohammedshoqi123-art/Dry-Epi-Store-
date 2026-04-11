@@ -9,7 +9,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
 
-import '../router/app_router.dart';
+import 'router/app_router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,6 +1,6 @@
 -- ============================================================
 -- EPI Supervisor Platform - Complete Database Schema
--- Version: 1.0.0
+-- Version: 1.0.1
 -- Database: PostgreSQL (Supabase)
 -- ============================================================
 
@@ -50,6 +50,61 @@ CREATE TYPE audit_action AS ENUM (
 );
 
 -- ============================================================
+-- TABLE: governorates (must be BEFORE profiles due to FK)
+-- ============================================================
+
+CREATE TABLE governorates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name_ar TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  geometry GEOMETRY(MultiPolygon, 4326),
+  center_lat DOUBLE PRECISION,
+  center_lng DOUBLE PRECISION,
+  population INTEGER,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ,
+
+  CONSTRAINT governorates_code_check CHECK (length(code) >= 2)
+);
+
+CREATE INDEX idx_governorates_code ON governorates(code) WHERE deleted_at IS NULL;
+CREATE INDEX idx_governorates_geom ON governorates USING GIST(geometry);
+CREATE INDEX idx_governorates_name_ar ON governorates USING gin(name_ar gin_trgm_ops);
+
+COMMENT ON TABLE governorates IS 'Administrative governorate divisions';
+
+-- ============================================================
+-- TABLE: districts (must be BEFORE profiles due to FK)
+-- ============================================================
+
+CREATE TABLE districts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  governorate_id UUID NOT NULL REFERENCES governorates(id) ON DELETE RESTRICT,
+  name_ar TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  geometry GEOMETRY(MultiPolygon, 4326),
+  center_lat DOUBLE PRECISION,
+  center_lng DOUBLE PRECISION,
+  population INTEGER,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ,
+
+  CONSTRAINT districts_code_check CHECK (length(code) >= 2)
+);
+
+CREATE INDEX idx_districts_governorate ON districts(governorate_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_districts_code ON districts(code) WHERE deleted_at IS NULL;
+CREATE INDEX idx_districts_geom ON districts USING GIST(geometry);
+
+COMMENT ON TABLE districts IS 'Administrative district divisions within governorates';
+
+-- ============================================================
 -- TABLE: profiles
 -- ============================================================
 
@@ -79,61 +134,6 @@ CREATE INDEX idx_profiles_email ON profiles(email) WHERE deleted_at IS NULL;
 CREATE INDEX idx_profiles_active ON profiles(is_active) WHERE deleted_at IS NULL;
 
 COMMENT ON TABLE profiles IS 'User profiles with role-based access control';
-
--- ============================================================
--- TABLE: governorates
--- ============================================================
-
-CREATE TABLE governorates (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name_ar TEXT NOT NULL,
-  name_en TEXT NOT NULL,
-  code TEXT NOT NULL UNIQUE,
-  geometry GEOMETRY(MultiPolygon, 4326),
-  center_lat DOUBLE PRECISION,
-  center_lng DOUBLE PRECISION,
-  population INTEGER,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ,
-
-  CONSTRAINT governorates_code_check CHECK (length(code) >= 2)
-);
-
-CREATE INDEX idx_governorates_code ON governorates(code) WHERE deleted_at IS NULL;
-CREATE INDEX idx_governorates_geom ON governorates USING GIST(geometry);
-CREATE INDEX idx_governorates_name_ar ON governorates USING gin(name_ar gin_trgm_ops);
-
-COMMENT ON TABLE governorates IS 'Administrative governorate divisions';
-
--- ============================================================
--- TABLE: districts
--- ============================================================
-
-CREATE TABLE districts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  governorate_id UUID NOT NULL REFERENCES governorates(id) ON DELETE RESTRICT,
-  name_ar TEXT NOT NULL,
-  name_en TEXT NOT NULL,
-  code TEXT NOT NULL UNIQUE,
-  geometry GEOMETRY(MultiPolygon, 4326),
-  center_lat DOUBLE PRECISION,
-  center_lng DOUBLE PRECISION,
-  population INTEGER,
-  is_active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deleted_at TIMESTAMPTZ,
-
-  CONSTRAINT districts_code_check CHECK (length(code) >= 2)
-);
-
-CREATE INDEX idx_districts_governorate ON districts(governorate_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_districts_code ON districts(code) WHERE deleted_at IS NULL;
-CREATE INDEX idx_districts_geom ON districts USING GIST(geometry);
-
-COMMENT ON TABLE districts IS 'Administrative district divisions within governorates';
 
 -- ============================================================
 -- TABLE: forms
@@ -529,14 +529,6 @@ CREATE POLICY "audit_insert_system" ON audit_logs
   FOR INSERT WITH CHECK (true);
 
 -- No update/delete on audit logs (immutable)
-
--- ============================================================
--- SEED DATA: Admin User Profile
--- ============================================================
-
--- NOTE: The auth user must be created via Supabase Auth first.
--- This creates the profile for the admin user after auth signup.
--- Run the Edge Function 'create-admin' or use the seed script.
 
 -- ============================================================
 -- END OF SCHEMA

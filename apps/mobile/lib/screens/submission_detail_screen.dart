@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:epi_shared/epi_shared.dart';
 import '../providers/app_providers.dart';
 
@@ -47,7 +49,8 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'approve', child: Text('اعتماد')),
                 const PopupMenuItem(value: 'reject', child: Text('رفض')),
-                const PopupMenuItem(value: 'export', child: Text('تصدير PDF')),
+                const PopupMenuItem(value: 'share', child: Text('مشاركة')),
+                const PopupMenuItem(value: 'copy', child: Text('نسخ البيانات')),
               ],
             ),
         ],
@@ -211,8 +214,11 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
       case 'reject':
         _updateStatus('rejected');
         break;
-      case 'export':
-        context.showSuccess('جاري تصدير PDF...');
+      case 'share':
+        _shareSubmission();
+        break;
+      case 'copy':
+        _copyData();
         break;
     }
   }
@@ -226,5 +232,43 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
     } catch (e) {
       if (mounted) context.showError('فشل التحديث');
     }
+  }
+
+  void _shareSubmission() {
+    final data = _submission!['data'] as Map<String, dynamic>? ?? {};
+    final formTitle = _submission!['forms']?['title_ar'] ?? 'نموذج';
+    final status = _submission!['status'] ?? 'draft';
+    final userName = _submission!['profiles']?['full_name'] ?? '-';
+    final date = _formatDate(_submission!['created_at']);
+
+    final text = StringBuffer();
+    text.writeln('📋 $formTitle');
+    text.writeln('━━━━━━━━━━━━━━━');
+    text.writeln('الحالة: $status');
+    text.writeln('المُرسل: $userName');
+    text.writeln('التاريخ: $date');
+    text.writeln('');
+    if (data.isNotEmpty) {
+      text.writeln('📊 البيانات:');
+      data.forEach((key, value) {
+        text.writeln('  • $key: $value');
+      });
+    }
+    if (_submission!['gps_lat'] != null) {
+      text.writeln('');
+      text.writeln('📍 الموقع: ${_submission!['gps_lat']}, ${_submission!['gps_lng']}');
+    }
+    text.writeln('');
+    text.writeln('━━━━ EPI Supervisor ━━━━');
+
+    Share.share(text.toString());
+  }
+
+  void _copyData() {
+    final data = _submission!['data'] as Map<String, dynamic>? ?? {};
+    final text = data.entries.map((e) => '${e.key}: ${e.value}').join('\n');
+
+    Clipboard.setData(ClipboardData(text: text));
+    if (mounted) context.showSuccess('تم نسخ البيانات');
   }
 }

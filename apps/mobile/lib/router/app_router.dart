@@ -149,7 +149,8 @@ class AppDrawer extends ConsumerWidget {
     return EpiDrawer(
       currentRoute: GoRouterState.of(context).matchedLocation,
       userName: authState?.fullName ?? 'مستخدم',
-      userRole: authState?.role?.name,
+      userRole: authState?.role?.nameAr,
+      onNavigate: (route) => context.go(route),
     );
   }
 }

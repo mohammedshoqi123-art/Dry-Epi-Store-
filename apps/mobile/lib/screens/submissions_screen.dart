@@ -13,7 +13,7 @@ class SubmissionsScreen extends ConsumerStatefulWidget {
 
 class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
   String? _statusFilter;
-  
+  String _searchQuery = '';
   final _searchController = TextEditingController();
 
   @override
@@ -44,7 +44,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             child: EpiSearchBar(
               controller: _searchController,
               hint: 'بحث في الإرساليات...',
-              onChanged: (_){},
+              onChanged: (query) => setState(() => _searchQuery = query.toLowerCase()),
             ),
           ),
           if (_statusFilter != null)
@@ -71,18 +71,30 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
                   onRetry: () => ref.invalidate(submissionsProvider),
                 ),
                 data: (data) {
-                  if (data.isEmpty) {
-                    return const EpiEmptyState(
+                  // Apply search filter
+                  final filtered = _searchQuery.isEmpty
+                      ? data
+                      : data.where((sub) {
+                          final formTitle = (sub['forms']?['title_ar'] ?? '').toString().toLowerCase();
+                          final userName = (sub['profiles']?['full_name'] ?? '').toString().toLowerCase();
+                          final status = (sub['status'] ?? '').toString().toLowerCase();
+                          return formTitle.contains(_searchQuery) ||
+                              userName.contains(_searchQuery) ||
+                              status.contains(_searchQuery);
+                        }).toList();
+
+                  if (filtered.isEmpty) {
+                    return EpiEmptyState(
                       icon: Icons.upload_file,
-                      title: 'لا توجد إرساليات',
-                      subtitle: 'لم يتم إرسال أي نماذج بعد',
+                      title: _searchQuery.isNotEmpty ? 'لا توجد نتائج للبحث' : 'لا توجد إرساليات',
+                      subtitle: _searchQuery.isNotEmpty ? 'جرّب كلمات بحث مختلفة' : 'لم يتم إرسال أي نماذج بعد',
                     );
                   }
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: data.length,
+                    itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final sub = data[index];
+                      final sub = filtered[index];
                       return _SubmissionTile(
                         title: sub['forms']?['title_ar'] ?? 'نموذج',
                         status: sub['status'] ?? 'draft',
