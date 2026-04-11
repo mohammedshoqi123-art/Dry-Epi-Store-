@@ -34,9 +34,10 @@ fi
 
 # Create admin user
 echo -e "${YELLOW}Creating admin user...${NC}"
-echo "  Email: admin@epi.local"
-echo "  Password: Admin@123"
-echo -e "${YELLOW}Run the create-admin Edge Function after deploying.${NC}"
+ADMIN_PASS=$(openssl rand -base64 16 2>/dev/null || head -c 16 /dev/urandom | base64 | head -c 16)
+echo "  Email: ${ADMIN_EMAIL:-admin@epi.local}"
+echo "  Password: (generated randomly — check .env or re-create via Edge Function)"
+echo -e "${YELLOW}Run the create-admin Edge Function after deploying to set up your admin.${NC}"
 
 # Setup Flutter
 echo -e "${YELLOW}Setting up Flutter dependencies...${NC}"
