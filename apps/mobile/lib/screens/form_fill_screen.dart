@@ -20,7 +20,11 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   bool _isSavingDraft = false;
   bool _isGettingLocation = false;
   Map<String, dynamic>? _formSchema;
-  List<dynamic> _fields = [];
+  
+  // Support both formats: sections (new) and flat fields (old)
+  List<dynamic> _sections = [];
+  List<dynamic> _flatFields = [];
+  
   double? _gpsLat;
   double? _gpsLng;
 
@@ -35,15 +39,29 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     try {
       final db = ref.read(databaseServiceProvider);
       final form = await db.getForm(widget.formId);
+      final schema = form['schema'] as Map<String, dynamic>? ?? {};
+      
       setState(() {
         _formSchema = form;
-        _fields = (form['schema']?['fields'] as List?) ?? [];
+        _sections = (schema['sections'] as List?) ?? [];
+        _flatFields = (schema['fields'] as List?) ?? [];
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) context.showError('فشل تحميل النموذج');
     }
+  }
+
+  /// Get all fields (flattened) for GPS and validation
+  List<Map<String, dynamic>> get _allFields {
+    if (_sections.isNotEmpty) {
+      return _sections
+          .expand((s) => (s['fields'] as List? ?? []))
+          .cast<Map<String, dynamic>>()
+          .toList();
+    }
+    return _flatFields.cast<Map<String, dynamic>>().toList();
   }
 
   Future<void> _getLocation() async {
@@ -83,8 +101,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         _isGettingLocation = false;
       });
 
-      // Update GPS fields in form data
-      for (final field in _fields) {
+      // Update GPS fields
+      for (final field in _allFields) {
         if (field['type'] == 'gps') {
           final key = field['key'] as String;
           _formData[key] = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
@@ -101,7 +119,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Check if GPS is required
+    // Check GPS
     final requiresGps = _formSchema?['requires_gps'] == true;
     if (requiresGps && _gpsLat == null) {
       final shouldGetLocation = await context.showConfirmDialog(
@@ -134,7 +152,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           context.pop();
         }
       } else {
-        // Save to offline queue
         await offline.addToSyncQueue({
           'form_id': widget.formId,
           'data': _formData,
@@ -184,7 +201,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       ),
       body: _isLoading && _formSchema == null
           ? const EpiLoading()
-          : _fields.isEmpty
+          : _allFields.isEmpty
               ? const EpiEmptyState(icon: Icons.description, title: 'لا توجد حقول في النموذج')
               : Form(
                   key: _formKey,
@@ -199,7 +216,11 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                             style: const TextStyle(fontFamily: 'Tajawal', color: AppTheme.textSecondary),
                           ),
                         ),
-                      ..._fields.map((field) => _buildField(field)),
+                      // Build sections or flat fields
+                      if (_sections.isNotEmpty)
+                        ..._buildSections()
+                      else
+                        ..._flatFields.map((field) => _buildField(field as Map<String, dynamic>)),
                       const SizedBox(height: 24),
                       EpiButton(
                         text: AppStrings.submit,
@@ -212,6 +233,65 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                   ),
                 ),
     );
+  }
+
+  List<Widget> _buildSections() {
+    final widgets = <Widget>[];
+    
+    // Sort sections by order
+    final sortedSections = List.from(_sections);
+    sortedSections.sort((a, b) => (a['order'] as int? ?? 0).compareTo(b['order'] as int? ?? 0));
+    
+    for (final section in sortedSections) {
+      final title = section['title_ar'] as String? ?? '';
+      final fields = (section['fields'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      
+      // Section header
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 12, top: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      
+      // Section fields
+      for (final field in fields) {
+        widgets.add(_buildField(field));
+      }
+      
+      widgets.add(const SizedBox(height: 8));
+    }
+    
+    return widgets;
   }
 
   Widget _buildField(Map<String, dynamic> field) {
@@ -228,7 +308,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         children: [
           Row(
             children: [
-              Text(label, style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600)),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600),
+                ),
+              ),
               if (isRequired) const Text(' *', style: TextStyle(color: AppTheme.errorColor)),
             ],
           ),
@@ -247,6 +332,21 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           onChanged: (v) => _formData[key] = v,
           validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
         );
+
+      case 'phone':
+        return EpiTextField(
+          hint: hint ?? '07XXXXXXXXX',
+          keyboardType: TextInputType.phone,
+          onChanged: (v) => _formData[key] = v,
+          validator: isRequired
+              ? (v) {
+                  if (v == null || v.isEmpty) return AppStrings.required;
+                  if (!RegExp(r'^07\d{9}$').hasMatch(v)) return 'رقم الجوال غير صحيح';
+                  return null;
+                }
+              : null,
+        );
+
       case 'textarea':
         return EpiTextField(
           hint: hint,
@@ -254,6 +354,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           onChanged: (v) => _formData[key] = v,
           validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
         );
+
       case 'number':
         return EpiTextField(
           hint: hint,
@@ -261,15 +362,17 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           onChanged: (v) => _formData[key] = num.tryParse(v),
           validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
         );
+
       case 'select':
         final options = (field['options'] as List?)?.cast<String>() ?? [];
         return EpiDropdown<String>(
           hint: hint,
           value: _formData[key],
-          items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+          items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontFamily: 'Tajawal')))).toList(),
           onChanged: (v) => setState(() => _formData[key] = v),
           validator: isRequired ? (v) => v == null ? AppStrings.required : null : null,
         );
+
       case 'multiselect':
         final options = (field['options'] as List?)?.cast<String>() ?? [];
         final selected = (_formData[key] as List?)?.cast<String>() ?? [];
@@ -281,6 +384,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             return FilterChip(
               label: Text(o, style: const TextStyle(fontFamily: 'Tajawal')),
               selected: isSelected,
+              selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+              checkmarkColor: AppTheme.primaryColor,
               onSelected: (sel) {
                 setState(() {
                   if (sel) {
@@ -294,30 +399,153 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             );
           }).toList(),
         );
+
+      case 'yesno':
+        final currentValue = _formData[key] as bool?;
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _formData[key] = true),
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: currentValue == true ? AppTheme.successColor.withOpacity(0.15) : null,
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(11)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          currentValue == true ? Icons.check_circle : Icons.circle_outlined,
+                          color: currentValue == true ? AppTheme.successColor : Colors.grey,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'نعم',
+                          style: TextStyle(
+                            fontFamily: 'Tajawal',
+                            fontWeight: currentValue == true ? FontWeight.bold : FontWeight.normal,
+                            color: currentValue == true ? AppTheme.successColor : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Container(width: 1, height: 40, color: Colors.grey.shade300),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _formData[key] = false),
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: currentValue == false ? AppTheme.errorColor.withOpacity(0.15) : null,
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(11)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          currentValue == false ? Icons.cancel : Icons.circle_outlined,
+                          color: currentValue == false ? AppTheme.errorColor : Colors.grey,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'لا',
+                          style: TextStyle(
+                            fontFamily: 'Tajawal',
+                            fontWeight: currentValue == false ? FontWeight.bold : FontWeight.normal,
+                            color: currentValue == false ? AppTheme.errorColor : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+
       case 'date':
-        return EpiTextField(
-          hint: hint ?? 'اختر التاريخ',
-          prefixIcon: Icons.calendar_today,
-          readOnly: true,
-          controller: TextEditingController(text: _formData[key]?.toString() ?? ''),
+        final dateValue = _formData[key] as String?;
+        return InkWell(
           onTap: () async {
             final date = await showDatePicker(
               context: context,
               initialDate: DateTime.now(),
               firstDate: DateTime(2020),
               lastDate: DateTime(2030),
+              locale: const Locale('ar'),
             );
             if (date != null) {
               setState(() => _formData[key] = date.toIso8601String().split('T')[0]);
             }
           },
+          child: InputDecorator(
+            decoration: InputDecoration(
+              hintText: hint ?? 'اختر التاريخ',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              suffixIcon: const Icon(Icons.calendar_today, size: 20),
+            ),
+            child: Text(
+              dateValue ?? hint ?? 'اختر التاريخ',
+              style: TextStyle(
+                fontFamily: 'Tajawal',
+                color: dateValue != null ? Colors.black : Colors.grey,
+              ),
+            ),
+          ),
         );
+
+      case 'time':
+        final timeValue = _formData[key] as String?;
+        return InkWell(
+          onTap: () async {
+            final time = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.now(),
+            );
+            if (time != null) {
+              setState(() => _formData[key] = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
+            }
+          },
+          child: InputDecorator(
+            decoration: InputDecoration(
+              hintText: hint ?? 'اختر الوقت',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              suffixIcon: const Icon(Icons.access_time, size: 20),
+            ),
+            child: Text(
+              timeValue ?? hint ?? 'اختر الوقت',
+              style: TextStyle(
+                fontFamily: 'Tajawal',
+                color: timeValue != null ? Colors.black : Colors.grey,
+              ),
+            ),
+          ),
+        );
+
       case 'gps':
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppTheme.primarySurface,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
           ),
           child: Row(
             children: [
@@ -328,7 +556,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _gpsLat != null ? 'تم تحديد الموقع' : 'انقر لتحديد الموقع',
+                      _gpsLat != null ? 'تم تحديد الموقع ✓' : 'انقر لتحديد الموقع',
                       style: const TextStyle(fontFamily: 'Tajawal'),
                     ),
                     if (_gpsLat != null)
@@ -353,11 +581,160 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             ],
           ),
         );
+
+      case 'governorate':
+        return _GovernorateDropdown(
+          value: _formData[key],
+          onChanged: (v) => setState(() => _formData[key] = v),
+          isRequired: isRequired,
+        );
+
+      case 'district':
+        return _DistrictDropdown(
+          governorateId: _formData['governorate_id'] as String?,
+          value: _formData[key],
+          onChanged: (v) => setState(() => _formData[key] = v),
+          isRequired: isRequired,
+        );
+
+      case 'photo':
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.camera_alt, size: 40, color: AppTheme.primaryColor),
+              const SizedBox(height: 8),
+              Text(
+                'انقر لإرفاق صورة',
+                style: TextStyle(fontFamily: 'Tajawal', color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        );
+
+      case 'signature':
+        return Container(
+          height: 120,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.draw, size: 32, color: Colors.grey.shade400),
+                const SizedBox(height: 8),
+                Text(
+                  'انقر للتوقيع',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.grey.shade600),
+                ),
+              ],
+            ),
+          ),
+        );
+
       default:
         return EpiTextField(
           hint: hint,
           onChanged: (v) => _formData[key] = v,
         );
     }
+  }
+}
+
+// ─── Governorate Dropdown ───────────────────────────────────────────────────
+
+class _GovernorateDropdown extends ConsumerWidget {
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  final bool isRequired;
+
+  const _GovernorateDropdown({
+    required this.value,
+    required this.onChanged,
+    required this.isRequired,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final governoratesAsync = ref.watch(governoratesProvider);
+
+    return governoratesAsync.when(
+      loading: () => const LinearProgressIndicator(),
+      error: (e, _) => Text('خطأ: $e', style: const TextStyle(color: Colors.red)),
+      data: (governorates) {
+        return EpiDropdown<String>(
+          hint: 'اختر المحافظة',
+          value: value,
+          items: governorates.map((g) {
+            return DropdownMenuItem(
+              value: g['id'] as String,
+              child: Text(g['name_ar'] as String, style: const TextStyle(fontFamily: 'Tajawal')),
+            );
+          }).toList(),
+          onChanged: onChanged,
+          validator: isRequired ? (v) => v == null ? AppStrings.required : null : null,
+        );
+      },
+    );
+  }
+}
+
+// ─── District Dropdown ──────────────────────────────────────────────────────
+
+class _DistrictDropdown extends ConsumerWidget {
+  final String? governorateId;
+  final String? value;
+  final ValueChanged<String?> onChanged;
+  final bool isRequired;
+
+  const _DistrictDropdown({
+    required this.governorateId,
+    required this.value,
+    required this.onChanged,
+    required this.isRequired,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (governorateId == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          'اختر المحافظة أولاً',
+          style: TextStyle(fontFamily: 'Tajawal', color: Colors.grey.shade500),
+        ),
+      );
+    }
+
+    final districtsAsync = ref.watch(districtsProvider(governorateId));
+
+    return districtsAsync.when(
+      loading: () => const LinearProgressIndicator(),
+      error: (e, _) => Text('خطأ: $e', style: const TextStyle(color: Colors.red)),
+      data: (districts) {
+        return EpiDropdown<String>(
+          hint: 'اختر المديرية',
+          value: value,
+          items: districts.map((d) {
+            return DropdownMenuItem(
+              value: d['id'] as String,
+              child: Text(d['name_ar'] as String, style: const TextStyle(fontFamily: 'Tajawal')),
+            );
+          }).toList(),
+          onChanged: onChanged,
+          validator: isRequired ? (v) => v == null ? AppStrings.required : null : null,
+        );
+      },
+    );
   }
 }
