@@ -1,9 +1,9 @@
 -- ============================================================
 -- EPI Supervisor Platform - Seed Data
--- Run AFTER creating the admin auth user via Edge Function
+-- Version: 1.0.2 (Fixed - independent of admin user)
 -- ============================================================
 
--- Insert sample governorates (Iraq)
+-- Insert Iraqi governorates (19)
 INSERT INTO governorates (id, name_ar, name_en, code, center_lat, center_lng) VALUES
   (uuid_generate_v4(), 'بغداد', 'Baghdad', 'BGD', 33.3152, 44.3661),
   (uuid_generate_v4(), 'البصرة', 'Basra', 'BSR', 30.5085, 47.7804),
@@ -48,9 +48,30 @@ CROSS JOIN (
 WHERE g.code = 'BGD'
 ON CONFLICT (code) DO NOTHING;
 
--- Insert sample form
-INSERT INTO forms (id, title_ar, title_en, description_ar, description_en, schema, is_active, requires_gps, created_by)
+-- Insert districts for Basra
+INSERT INTO districts (id, governorate_id, name_ar, name_en, code, center_lat, center_lng)
 SELECT
+  uuid_generate_v4(),
+  g.id,
+  d.name_ar,
+  d.name_en,
+  d.code,
+  d.lat,
+  d.lng
+FROM governorates g
+CROSS JOIN (
+  VALUES
+    ('البصرة المركز', 'Basra Center', 'CTR-BSR', 30.5085, 47.7804),
+    ('الزبير', 'Zubayr', 'ZBR-BSR', 30.3833, 47.7000),
+    ('القرنة', 'Qurna', 'QRN-BSR', 31.0167, 47.4333),
+    ('أبو الخصيب', 'Abu Al-Khaseeb', 'AKS-BSR', 30.0500, 48.0167)
+) AS d(name_ar, name_en, code, lat, lng)
+WHERE g.code = 'BSR'
+ON CONFLICT (code) DO NOTHING;
+
+-- Insert sample form (without created_by - will be set when admin exists)
+INSERT INTO forms (id, title_ar, title_en, description_ar, description_en, schema, is_active, requires_gps)
+VALUES (
   uuid_generate_v4(),
   'نموذج فحص مراكز التطعيم',
   'Vaccination Center Inspection Form',
@@ -63,12 +84,14 @@ SELECT
       {"key": "staff_count", "type": "number", "label_ar": "عدد الموظفين", "required": true},
       {"key": "vaccines_available", "type": "multiselect", "label_ar": "اللقاحات المتوفرة", "options": ["BCG", "OPV", "DPT", "Hepatitis B", "Measles", "MMR"]},
       {"key": "cold_chain_status", "type": "select", "label_ar": "حالة سلسلة التبريد", "options": ["ممتاز", "جيد", "يحتاج صيانة", "معطل"], "required": true},
-      {"key": "notes", "type": "textarea", "label_ar": "ملاحظات"},
-      {"key": "location", "type": "gps", "label_ar": "الموقع"}
+      {"key": "notes", "type": "textarea", "label_ar": "ملاحظات"}
     ]
   }'::jsonb,
   true,
-  true,
-  (SELECT id FROM profiles WHERE email = 'admin@epi.local' LIMIT 1)
-WHERE EXISTS (SELECT 1 FROM profiles WHERE email = 'admin@epi.local')
+  true
+)
 ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- END OF SEED DATA
+-- ============================================================
