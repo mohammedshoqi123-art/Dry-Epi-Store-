@@ -42,7 +42,7 @@ Future<void> main() async {
   );
 
   // Initialize Sentry monitoring
-  final sentryDsn = const String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
   if (sentryDsn.isNotEmpty) {
     await SentryFlutter.init(
       (options) {

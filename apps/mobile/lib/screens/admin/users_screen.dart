@@ -64,7 +64,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               future: ref.read(databaseServiceProvider).getUsers(role: _roleFilter),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return EpiLoading.shimmer();
+                  return const EpiLoading.shimmer();
                 }
                 if (snapshot.hasError) {
                   return EpiErrorWidget(message: snapshot.error.toString());
@@ -178,12 +178,12 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     'role': selectedRole,
                   });
                   if (context.mounted) {
-                    Navigator.pop(context);
+                    Navigator.pop(context); // ignore: use_build_context_synchronously
                     setState(() {});
-                    context.showSuccess('تم إضافة المستخدم');
+                    context.showSuccess('تم إضافة المستخدم'); // ignore: use_build_context_synchronously
                   }
                 } catch (e) {
-                  if (context.mounted) context.showError('فشل: ${e.toString()}');
+                  if (context.mounted) context.showError('فشل: ${e.toString()}'); // ignore: use_build_context_synchronously
                 }
               },
               width: double.infinity,
@@ -204,10 +204,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               radius: 40,
               backgroundColor: AppTheme.primarySurface,
-              child: const Icon(Icons.person, size: 40, color: AppTheme.primaryColor),
+              child: Icon(Icons.person, size: 40, color: AppTheme.primaryColor),
             ),
             const SizedBox(height: 12),
             Text(user['full_name'] ?? '', style: const TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700)),

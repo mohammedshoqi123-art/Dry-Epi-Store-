@@ -65,7 +65,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             child: RefreshIndicator(
               onRefresh: () async => ref.invalidate(submissionsProvider),
               child: submissions.when(
-                loading: () => EpiLoading.shimmer(),
+                loading: () => const EpiLoading.shimmer(),
                 error: (e, _) => EpiErrorWidget(
                   message: e.toString(),
                   onRetry: () => ref.invalidate(submissionsProvider),

@@ -45,7 +45,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(dashboardAnalyticsProvider),
         child: analytics.when(
-          loading: () => EpiLoading.shimmer(),
+          loading: () => const EpiLoading.shimmer(),
           error: (e, _) => EpiErrorWidget(
             message: e.toString(),
             onRetry: () => ref.invalidate(dashboardAnalyticsProvider),

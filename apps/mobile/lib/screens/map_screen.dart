@@ -149,7 +149,7 @@ class _MapScreenState extends State<MapScreen> {
             Text(name,
                 style: const TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            Text('انقر لعرض التفاصيل',
+            const Text('انقر لعرض التفاصيل',
                 style: TextStyle(fontFamily: 'Tajawal', color: AppTheme.textSecondary)),
             const SizedBox(height: 16),
           ],

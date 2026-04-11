@@ -197,10 +197,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           ),
           if (isUser) ...[
             const SizedBox(width: 8),
-            CircleAvatar(
+            const CircleAvatar(
               radius: 16,
               backgroundColor: AppTheme.primarySurface,
-              child: const Icon(Icons.person, size: 16, color: AppTheme.primaryColor),
+              child: Icon(Icons.person, size: 16, color: AppTheme.primaryColor),
             ),
           ],
         ],
@@ -225,7 +225,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(

@@ -42,7 +42,7 @@ class DashboardScreen extends ConsumerWidget {
 
               // Stats Grid
               analytics.when(
-                loading: () => EpiLoading.shimmer(),
+                loading: () => const EpiLoading.shimmer(),
                 error: (e, _) => EpiErrorWidget(
                   message: e.toString(),
                   onRetry: () => ref.invalidate(dashboardAnalyticsProvider),

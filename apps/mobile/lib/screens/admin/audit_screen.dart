@@ -12,7 +12,7 @@ class AuditScreen extends ConsumerStatefulWidget {
 
 class _AuditScreenState extends ConsumerState<AuditScreen> {
   String? _actionFilter;
-  int _page = 0;
+  final int _page = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                   ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return EpiLoading.shimmer();
+                  return const EpiLoading.shimmer();
                 }
                 if (snapshot.hasError) {
                   return EpiErrorWidget(message: snapshot.error.toString());

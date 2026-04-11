@@ -12,14 +12,14 @@ class FormsScreen extends ConsumerWidget {
     final forms = ref.watch(formsProvider);
 
     return Scaffold(
-      appBar: EpiAppBar(
+      appBar: const EpiAppBar(
         title: AppStrings.forms,
         showBackButton: false,
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(formsProvider),
         child: forms.when(
-          loading: () => EpiLoading.shimmer(),
+          loading: () => const EpiLoading.shimmer(),
           error: (e, _) => EpiErrorWidget(
             message: e.toString(),
             onRetry: () => ref.invalidate(formsProvider),
