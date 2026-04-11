@@ -1,0 +1,202 @@
+name: EPI Supervisor CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  FLUTTER_VERSION: '3.22.0'
+  DART_VERSION: '3.3.0'
+
+jobs:
+  # ─── Analyze & Test ──────────────────────────────────────
+  analyze:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies (core)
+        working-directory: packages/core
+        run: flutter pub get
+
+      - name: Install dependencies (shared)
+        working-directory: packages/shared
+        run: flutter pub get
+
+      - name: Install dependencies (features)
+        working-directory: packages/features
+        run: flutter pub get
+
+      - name: Install dependencies (mobile)
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Generate code (core)
+        working-directory: packages/core
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate code (shared)
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze code
+        working-directory: apps/mobile
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        working-directory: apps/mobile
+        run: flutter test --coverage
+
+  # ─── Build APK ───────────────────────────────────────────
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Setup project
+        run: |
+          cd packages/core && flutter pub get
+          cd ../shared && flutter pub get
+          cd ../features && flutter pub get
+          cd ../../apps/mobile && flutter pub get
+
+      - name: Generate code
+        run: |
+          cd packages/core && dart run build_runner build --delete-conflicting-outputs
+          cd ../shared && dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build APK (release)
+        working-directory: apps/mobile
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build apk --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: epi-supervisor-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+  # ─── Build Web ───────────────────────────────────────────
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Setup project
+        run: |
+          cd packages/core && flutter pub get
+          cd ../shared && flutter pub get
+          cd ../features && flutter pub get
+          cd ../../apps/mobile && flutter pub get
+
+      - name: Generate code
+        run: |
+          cd packages/core && dart run build_runner build --delete-conflicting-outputs
+          cd ../shared && dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Web (release)
+        working-directory: apps/mobile
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build web --release \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: epi-supervisor-web
+          path: apps/mobile/build/web/
+          retention-days: 30
+
+  # ─── Deploy Edge Functions ───────────────────────────────
+  deploy-functions:
+    name: Deploy Supabase Functions
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          supabase functions deploy --project-ref $SUPABASE_PROJECT_REF
+
+  # ─── Create Release ──────────────────────────────────────
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-apk, build-web]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: epi-supervisor-apk
+          path: dist/
+
+      - name: Download Web
+        uses: actions/download-artifact@v4
+        with:
+          name: epi-supervisor-web
+          path: dist/web/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: EPI Supervisor v1.0.${{ github.run_number }}
+          files: |
+            dist/app-release.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

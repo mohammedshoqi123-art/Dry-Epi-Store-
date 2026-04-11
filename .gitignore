@@ -1,0 +1,70 @@
+# ============================================================
+# EPI Supervisor Platform — .gitignore
+# ============================================================
+
+# ─── Flutter / Dart ────────────────────────────────────────
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Generated Files ───────────────────────────────────────
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# ─── Android ───────────────────────────────────────────────
+**/android/**/gradle-wrapper.jar
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/key.properties
+*.jks
+*.keystore
+
+# ─── iOS ───────────────────────────────────────────────────
+**/ios/**/*.symlink
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# ─── Web ───────────────────────────────────────────────────
+**/web/favicon.png
+**/web/icons/
+
+# ─── Environment & Secrets ─────────────────────────────────
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# ─── Supabase ──────────────────────────────────────────────
+supabase/.branches/
+supabase/.temp/
+
+# ─── OS Files ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs ──────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Coverage ──────────────────────────────────────────────
+coverage/

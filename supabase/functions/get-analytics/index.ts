@@ -26,11 +26,6 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const { governorate_id, district_id, start_date, end_date } = body
 
-    // Build filters
-    const submissionFilters: Record<string, unknown> = {}
-    if (governorate_id) submissionFilters.governorate_id = governorate_id
-    if (district_id) submissionFilters.district_id = district_id
-
     // Fetch submissions
     let submissionsQuery = supabase
       .from('form_submissions')
