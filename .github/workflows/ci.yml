@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -76,6 +76,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      - name: Setup local.properties
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > apps/mobile/android/local.properties
 
       - name: Setup project
         run: |

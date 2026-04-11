@@ -16,11 +16,14 @@ def flutterVersionName = localProperties.getProperty('flutter.versionName')
 if (flutterVersionName == null) flutterVersionName = '1.0.0'
 
 def flutterSdkPath = localProperties.getProperty('flutter.sdk')
+if (flutterSdkPath == null) {
+    flutterSdkPath = System.getenv("FLUTTER_SDK") ?: System.getenv("FLUTTER_ROOT")
+}
 apply from: "$flutterSdkPath/packages/flutter_tools/gradle/flutter.gradle"
 
 // Load env variables for build
-def supabaseUrl = System.getenv('SUPABASE_URL') ?: localProperties.getProperty('SUPABASE_URL') ?: 'https://your-project.supabase.co'
-def supabaseAnonKey = System.getenv('SUPABASE_ANON_KEY') ?: localProperties.getProperty('SUPABASE_ANON_KEY') ?: 'your-anon-key'
+def supabaseUrl = System.getenv('SUPABASE_URL') ?: localProperties.getProperty('SUPABASE_URL') ?: ''
+def supabaseAnonKey = System.getenv('SUPABASE_ANON_KEY') ?: localProperties.getProperty('SUPABASE_ANON_KEY') ?: ''
 def geminiApiKey = System.getenv('GEMINI_API_KEY') ?: localProperties.getProperty('GEMINI_API_KEY') ?: ''
 def sentryDsn = System.getenv('SENTRY_DSN') ?: localProperties.getProperty('SENTRY_DSN') ?: ''
 
@@ -44,7 +47,7 @@ android {
 
     defaultConfig {
         applicationId "com.epi.supervisor"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

@@ -1,0 +1,4 @@
+# Local Android SDK configuration
+# Copy this to local.properties and fill in your paths
+flutter.sdk=/path/to/your/flutter/sdk
+sdk.dir=/path/to/your/Android/Sdk

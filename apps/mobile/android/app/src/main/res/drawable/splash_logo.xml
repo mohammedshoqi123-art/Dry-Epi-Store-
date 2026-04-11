@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- Background circle -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M100,100m-90,0a90,90 0,1 1,180 0a90,90 0,1 1,-180 0" />
+    
+    <!-- Shield icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M100,30 L150,55 L150,110 C150,145 130,165 100,175 C70,165 50,145 50,110 L50,55 Z" />
+    
+    <!-- Cross icon inside shield -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M90,65 L110,65 L110,95 L140,95 L140,115 L110,115 L110,145 L90,145 L90,115 L60,115 L60,95 L90,95 Z" />
+</vector>

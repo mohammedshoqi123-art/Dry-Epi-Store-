@@ -1,37 +1,42 @@
 #!/bin/bash
 set -e
 
-echo "🔨 EPI Supervisor - Build Script"
+echo "🔨 EPI Supervisor — Build Script"
 echo "================================="
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
-# Build web
-echo -e "${YELLOW}Building Web...${NC}"
-cd apps/mobile
-flutter build web --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
-echo -e "${GREEN}✓ Web build complete → build/web/${NC}"
+# Check Flutter
+command -v flutter >/dev/null 2>&1 || { echo -e "${RED}Flutter is required.${NC}"; exit 1; }
 
-# Build APK
+# Load .env if exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Set defaults
+SUPABASE_URL="${SUPABASE_URL:-}"
+SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
+GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+
 echo -e "${YELLOW}Building APK...${NC}"
-flutter build apk --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
-echo -e "${GREEN}✓ APK build complete → build/app/outputs/flutter-apk/app-release.apk${NC}"
 
-# Build App Bundle (for Play Store)
-echo -e "${YELLOW}Building App Bundle...${NC}"
-flutter build appbundle --release --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
-echo -e "${GREEN}✓ AAB build complete → build/app/outputs/bundle/release/app-release.aab${NC}"
+# Setup local.properties
+echo "flutter.sdk=$(dirname $(dirname $(which flutter)))" > apps/mobile/android/local.properties
 
-cd ../..
+# Install dependencies
+cd packages/core && flutter pub get && cd ../..
+cd packages/shared && flutter pub get && cd ../..
+cd packages/features && flutter pub get && cd ../..
+cd apps/mobile && flutter pub get
 
-echo ""
-echo -e "${GREEN}=================================${NC}"
-echo -e "${GREEN}✅ All builds complete!${NC}"
-echo -e "${GREEN}=================================${NC}"
-echo ""
-echo "Artifacts:"
-echo "  Web:  apps/mobile/build/web/"
-echo "  APK:  apps/mobile/build/app/outputs/flutter-apk/app-release.apk"
-echo "  AAB:  apps/mobile/build/app/outputs/bundle/release/app-release.aab"
+# Build
+flutter build apk --release \
+    --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+    --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+    --dart-define=GEMINI_API_KEY="$GEMINI_API_KEY"
+
+echo -e "${GREEN}✅ APK built: apps/mobile/build/app/outputs/flutter-apk/app-release.apk${NC}"

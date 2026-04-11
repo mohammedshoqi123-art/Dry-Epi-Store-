@@ -71,3 +71,7 @@ coverage/
 
 # Local properties
 **/android/local.properties
+
+# ─── Android Local Config ───────────────────────────────────
+**/android/local.properties
+**/android/app/google-services.json
