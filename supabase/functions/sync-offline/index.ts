@@ -117,7 +117,7 @@ serve(async (req) => {
         }).then(() => {}).catch(() => {})
 
       } catch (err) {
-        errors.push({ offline_id: offlineId, error: (err as Error).message })
+        errors.push({ offline_id: offlineId, error: err instanceof Error ? err.message : String(err) })
       }
     }
 
@@ -138,7 +138,7 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error('Sync error:', error)
-    return new Response(JSON.stringify({ error: error.message, results: [], errors: [{ error: error.message }] }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error', results: [], errors: [{ error: error instanceof Error ? error.message : 'Internal server error' }] }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }

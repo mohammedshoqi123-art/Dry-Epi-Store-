@@ -140,7 +140,7 @@ ${context ? `البيانات المتاحة حالياً:\n${JSON.stringify(con
     console.error('AI Chat error:', error)
     return new Response(JSON.stringify({
       reply: 'عذراً، حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
