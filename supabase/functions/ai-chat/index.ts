@@ -36,8 +36,15 @@ serve(async (req) => {
     const body = await req.json()
     const { message, history = [], context, mode = 'chat', language = 'ar' } = body
 
+    // Validate message length (prevent abuse)
     if (!message || typeof message !== 'string') {
       return new Response(JSON.stringify({ error: 'Message is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (message.length > 2000) {
+      return new Response(JSON.stringify({ error: 'Message too long. Maximum 2000 characters.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
