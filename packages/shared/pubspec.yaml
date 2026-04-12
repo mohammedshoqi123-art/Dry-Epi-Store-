@@ -18,10 +18,13 @@ dependencies:
   fl_chart: ^0.68.0
   flutter_screenutil: ^5.9.3
   google_fonts: ^6.2.1
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
   build_runner: ^2.4.9
+  freezed: ^2.5.2
   json_serializable: ^6.8.0
