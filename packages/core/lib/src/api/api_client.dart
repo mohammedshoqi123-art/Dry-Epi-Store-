@@ -95,7 +95,7 @@ class ApiClient {
     String select = '*',
   }) async {
     try {
-      final result = await _client
+      final result = await _safeClient
           .from(table)
           .insert(data)
           .select(select)
