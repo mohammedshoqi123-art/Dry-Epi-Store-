@@ -1,59 +1,64 @@
 -- ============================================================
--- EPI Supervisor Platform - Complete Database Schema
--- Version: 1.0.1
--- Database: PostgreSQL (Supabase)
+-- EPI Supervisor Platform — Complete Database Schema
+-- Version: 2.0.0 (Supabase-compatible, fixed)
+-- ============================================================
+-- شغّل هذا الملف في Supabase SQL Editor
+-- Run this file in Supabase SQL Editor
 -- ============================================================
 
--- Enable required extensions
+BEGIN;
+
+-- ============================================================
+-- 1. EXTENSIONS
+-- ============================================================
+-- Supabase provides these in the `extensions` schema by default.
+-- Use IF NOT EXISTS to avoid errors if already enabled.
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
--- ============================================================
--- ENUMS
--- ============================================================
-
-CREATE TYPE user_role AS ENUM (
-  'admin',
-  'central',
-  'governorate',
-  'district',
-  'data_entry'
-);
-
-CREATE TYPE submission_status AS ENUM (
-  'draft',
-  'submitted',
-  'reviewed',
-  'approved',
-  'rejected'
-);
-
-CREATE TYPE shortage_severity AS ENUM (
-  'critical',
-  'high',
-  'medium',
-  'low'
-);
-
-CREATE TYPE audit_action AS ENUM (
-  'create',
-  'read',
-  'update',
-  'delete',
-  'login',
-  'logout',
-  'submit',
-  'approve',
-  'reject',
-  'export'
-);
+-- PostGIS: usually pre-enabled on Supabase. If not, uncomment:
+-- CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- ============================================================
--- TABLE: governorates (must be BEFORE profiles due to FK)
+-- 2. ENUMS
 -- ============================================================
 
-CREATE TABLE governorates (
+DO $$ BEGIN
+  CREATE TYPE user_role AS ENUM (
+    'admin', 'central', 'governorate', 'district', 'data_entry'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE submission_status AS ENUM (
+    'draft', 'submitted', 'reviewed', 'approved', 'rejected'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE shortage_severity AS ENUM (
+    'critical', 'high', 'medium', 'low'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE audit_action AS ENUM (
+    'create', 'read', 'update', 'delete',
+    'login', 'logout', 'submit', 'approve', 'reject', 'export'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ============================================================
+-- 3. TABLES
+-- ============================================================
+
+-- ----- governorates -----
+CREATE TABLE IF NOT EXISTS governorates (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,
@@ -66,21 +71,11 @@ CREATE TABLE governorates (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ,
-
   CONSTRAINT governorates_code_check CHECK (length(code) >= 2)
 );
 
-CREATE INDEX idx_governorates_code ON governorates(code) WHERE deleted_at IS NULL;
-CREATE INDEX idx_governorates_geom ON governorates USING GIST(geometry);
-CREATE INDEX idx_governorates_name_ar ON governorates USING gin(name_ar gin_trgm_ops);
-
-COMMENT ON TABLE governorates IS 'Administrative governorate divisions';
-
--- ============================================================
--- TABLE: districts (must be BEFORE profiles due to FK)
--- ============================================================
-
-CREATE TABLE districts (
+-- ----- districts -----
+CREATE TABLE IF NOT EXISTS districts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   governorate_id UUID NOT NULL REFERENCES governorates(id) ON DELETE RESTRICT,
   name_ar TEXT NOT NULL,
@@ -94,21 +89,11 @@ CREATE TABLE districts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ,
-
   CONSTRAINT districts_code_check CHECK (length(code) >= 2)
 );
 
-CREATE INDEX idx_districts_governorate ON districts(governorate_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_districts_code ON districts(code) WHERE deleted_at IS NULL;
-CREATE INDEX idx_districts_geom ON districts USING GIST(geometry);
-
-COMMENT ON TABLE districts IS 'Administrative district divisions within governorates';
-
--- ============================================================
--- TABLE: profiles
--- ============================================================
-
-CREATE TABLE profiles (
+-- ----- profiles -----
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT NOT NULL,
@@ -122,24 +107,12 @@ CREATE TABLE profiles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ,
-
   CONSTRAINT profiles_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
   CONSTRAINT profiles_full_name_check CHECK (length(full_name) >= 2)
 );
 
-CREATE INDEX idx_profiles_role ON profiles(role) WHERE deleted_at IS NULL;
-CREATE INDEX idx_profiles_governorate ON profiles(governorate_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_profiles_district ON profiles(district_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_profiles_email ON profiles(email) WHERE deleted_at IS NULL;
-CREATE INDEX idx_profiles_active ON profiles(is_active) WHERE deleted_at IS NULL;
-
-COMMENT ON TABLE profiles IS 'User profiles with role-based access control';
-
--- ============================================================
--- TABLE: forms
--- ============================================================
-
-CREATE TABLE forms (
+-- ----- forms -----
+CREATE TABLE IF NOT EXISTS forms (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title_ar TEXT NOT NULL,
   title_en TEXT NOT NULL,
@@ -151,27 +124,17 @@ CREATE TABLE forms (
   requires_gps BOOLEAN NOT NULL DEFAULT false,
   requires_photo BOOLEAN NOT NULL DEFAULT false,
   max_photos INTEGER DEFAULT 5,
-  allowed_roles user_role[] NOT NULL DEFAULT ARRAY['data_entry', 'district', 'governorate', 'central', 'admin']::user_role[],
+  allowed_roles user_role[] NOT NULL DEFAULT ARRAY['data_entry','district','governorate','central','admin']::user_role[],
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ,
-
   CONSTRAINT forms_schema_check CHECK (jsonb_typeof(schema) = 'object'),
   CONSTRAINT forms_title_check CHECK (length(title_ar) >= 2)
 );
 
-CREATE INDEX idx_forms_active ON forms(is_active) WHERE deleted_at IS NULL;
-CREATE INDEX idx_forms_created_by ON forms(created_by);
-CREATE INDEX idx_forms_schema ON forms USING GIN(schema);
-
-COMMENT ON TABLE forms IS 'Dynamic form definitions with JSON schema';
-
--- ============================================================
--- TABLE: form_submissions
--- ============================================================
-
-CREATE TABLE form_submissions (
+-- ----- form_submissions -----
+CREATE TABLE IF NOT EXISTS form_submissions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   form_id UUID NOT NULL REFERENCES forms(id) ON DELETE RESTRICT,
   submitted_by UUID NOT NULL REFERENCES profiles(id),
@@ -197,7 +160,6 @@ CREATE TABLE form_submissions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ,
-
   CONSTRAINT form_submissions_data_check CHECK (jsonb_typeof(data) = 'object'),
   CONSTRAINT form_submissions_gps_check CHECK (
     (gps_lat IS NULL AND gps_lng IS NULL) OR
@@ -205,23 +167,8 @@ CREATE TABLE form_submissions (
   )
 );
 
-CREATE INDEX idx_submissions_form ON form_submissions(form_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_submissions_submitted_by ON form_submissions(submitted_by) WHERE deleted_at IS NULL;
-CREATE INDEX idx_submissions_status ON form_submissions(status) WHERE deleted_at IS NULL;
-CREATE INDEX idx_submissions_governorate ON form_submissions(governorate_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_submissions_district ON form_submissions(district_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_submissions_location ON form_submissions USING GIST(location);
-CREATE INDEX idx_submissions_created ON form_submissions(created_at DESC) WHERE deleted_at IS NULL;
-CREATE INDEX idx_submissions_data ON form_submissions USING GIN(data);
-CREATE INDEX idx_submissions_offline ON form_submissions(offline_id) WHERE offline_id IS NOT NULL;
-
-COMMENT ON TABLE form_submissions IS 'Form submission data with offline sync support';
-
--- ============================================================
--- TABLE: supply_shortages
--- ============================================================
-
-CREATE TABLE supply_shortages (
+-- ----- supply_shortages -----
+CREATE TABLE IF NOT EXISTS supply_shortages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   submission_id UUID REFERENCES form_submissions(id),
   reported_by UUID NOT NULL REFERENCES profiles(id),
@@ -243,20 +190,8 @@ CREATE TABLE supply_shortages (
   deleted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_shortages_governorate ON supply_shortages(governorate_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_shortages_district ON supply_shortages(district_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_shortages_severity ON supply_shortages(severity) WHERE deleted_at IS NULL;
-CREATE INDEX idx_shortages_resolved ON supply_shortages(is_resolved) WHERE deleted_at IS NULL;
-CREATE INDEX idx_shortages_location ON supply_shortages USING GIST(location);
-CREATE INDEX idx_shortages_item ON supply_shortages USING gin(item_name gin_trgm_ops);
-
-COMMENT ON TABLE supply_shortages IS 'Supply shortage tracking with geo-location';
-
--- ============================================================
--- TABLE: audit_logs
--- ============================================================
-
-CREATE TABLE audit_logs (
+-- ----- audit_logs -----
+CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES profiles(id),
   action audit_action NOT NULL,
@@ -272,20 +207,285 @@ CREATE TABLE audit_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_audit_user ON audit_logs(user_id);
-CREATE INDEX idx_audit_action ON audit_logs(action);
-CREATE INDEX idx_audit_table ON audit_logs(table_name);
-CREATE INDEX idx_audit_record ON audit_logs(record_id);
-CREATE INDEX idx_audit_created ON audit_logs(created_at DESC);
-CREATE INDEX idx_audit_session ON audit_logs(session_id);
-
-COMMENT ON TABLE audit_logs IS 'Immutable audit trail for all system actions';
-
 -- ============================================================
--- FUNCTIONS
+-- 4. INDEXES
 -- ============================================================
 
--- Updated_at trigger function
+-- governorates
+CREATE INDEX IF NOT EXISTS idx_governorates_code ON governorates(code) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_governorates_geom ON governorates USING GIST(geometry);
+CREATE INDEX IF NOT EXISTS idx_governorates_name_ar ON governorates USING gin(name_ar gin_trgm_ops);
+
+-- districts
+CREATE INDEX IF NOT EXISTS idx_districts_governorate ON districts(governorate_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_districts_code ON districts(code) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_districts_geom ON districts USING GIST(geometry);
+
+-- profiles
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_governorate ON profiles(governorate_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_district ON profiles(district_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_profiles_active ON profiles(is_active) WHERE deleted_at IS NULL;
+
+-- forms
+CREATE INDEX IF NOT EXISTS idx_forms_active ON forms(is_active) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_forms_created_by ON forms(created_by);
+CREATE INDEX IF NOT EXISTS idx_forms_schema ON forms USING GIN(schema);
+
+-- form_submissions
+CREATE INDEX IF NOT EXISTS idx_submissions_form ON form_submissions(form_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_submitted_by ON form_submissions(submitted_by) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_status ON form_submissions(status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_governorate ON form_submissions(governorate_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_district ON form_submissions(district_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_location ON form_submissions USING GIST(location);
+CREATE INDEX IF NOT EXISTS idx_submissions_created ON form_submissions(created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_data ON form_submissions USING GIN(data);
+CREATE INDEX IF NOT EXISTS idx_submissions_offline ON form_submissions(offline_id) WHERE offline_id IS NOT NULL;
+
+-- supply_shortages
+CREATE INDEX IF NOT EXISTS idx_shortages_governorate ON supply_shortages(governorate_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_shortages_district ON supply_shortages(district_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_shortages_severity ON supply_shortages(severity) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_shortages_resolved ON supply_shortages(is_resolved) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_shortages_location ON supply_shortages USING GIST(location);
+CREATE INDEX IF NOT EXISTS idx_shortages_item ON supply_shortages USING gin(item_name gin_trgm_ops);
+
+-- audit_logs
+CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_table ON audit_logs(table_name);
+CREATE INDEX IF NOT EXISTS idx_audit_record ON audit_logs(record_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_session ON audit_logs(session_id);
+
+-- ============================================================
+-- 5. HELPER FUNCTIONS (public schema — NOT auth schema)
+-- ============================================================
+-- ⚠️ Supabase لا يسمح بإنشاء دوال في schema auth
+-- Supabase does NOT allow creating functions in auth schema
+
+-- Get current user role
+CREATE OR REPLACE FUNCTION public.user_role()
+RETURNS user_role
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM profiles WHERE id = auth.uid() LIMIT 1;
+$$;
+
+-- Get current user governorate
+CREATE OR REPLACE FUNCTION public.user_governorate_id()
+RETURNS UUID
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT governorate_id FROM profiles WHERE id = auth.uid() LIMIT 1;
+$$;
+
+-- Get current user district
+CREATE OR REPLACE FUNCTION public.user_district_id()
+RETURNS UUID
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT district_id FROM profiles WHERE id = auth.uid() LIMIT 1;
+$$;
+
+-- Role hierarchy check
+CREATE OR REPLACE FUNCTION public.check_role_hierarchy(target_role user_role, assigner_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE
+AS $$
+DECLARE
+  assigner_role user_role;
+  hierarchy JSONB := '{"admin":5,"central":4,"governorate":3,"district":2,"data_entry":1}';
+BEGIN
+  SELECT role INTO assigner_role FROM profiles WHERE id = assigner_id;
+  IF assigner_role IS NULL THEN RETURN false; END IF;
+  RETURN (hierarchy->>assigner_role::TEXT)::INT > (hierarchy->>target_role::TEXT)::INT;
+END;
+$$;
+
+-- ============================================================
+-- 6. ROW LEVEL SECURITY
+-- ============================================================
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE governorates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE districts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE form_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE supply_shortages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Drop old policies if re-running
+DROP POLICY IF EXISTS "profiles_select_admin" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_central" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_governorate" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_self" ON profiles;
+DROP POLICY IF EXISTS "profiles_insert_admin" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_admin" ON profiles;
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
+
+DROP POLICY IF EXISTS "governorates_select_all" ON governorates;
+DROP POLICY IF EXISTS "governorates_modify_admin" ON governorates;
+
+DROP POLICY IF EXISTS "districts_select_all" ON districts;
+DROP POLICY IF EXISTS "districts_modify_admin" ON districts;
+
+DROP POLICY IF EXISTS "forms_select_all" ON forms;
+DROP POLICY IF EXISTS "forms_select_admin" ON forms;
+DROP POLICY IF EXISTS "forms_modify_admin" ON forms;
+
+DROP POLICY IF EXISTS "submissions_select_own" ON form_submissions;
+DROP POLICY IF EXISTS "submissions_select_district" ON form_submissions;
+DROP POLICY IF EXISTS "submissions_select_governorate" ON form_submissions;
+DROP POLICY IF EXISTS "submissions_select_central_admin" ON form_submissions;
+DROP POLICY IF EXISTS "submissions_insert_own" ON form_submissions;
+DROP POLICY IF EXISTS "submissions_update_own_draft" ON form_submissions;
+DROP POLICY IF EXISTS "submissions_update_reviewer" ON form_submissions;
+
+DROP POLICY IF EXISTS "shortages_select_all_auth" ON supply_shortages;
+DROP POLICY IF EXISTS "shortages_insert_auth" ON supply_shortages;
+DROP POLICY IF EXISTS "shortages_update_hierarchy" ON supply_shortages;
+
+DROP POLICY IF EXISTS "audit_select_admin" ON audit_logs;
+DROP POLICY IF EXISTS "audit_select_central" ON audit_logs;
+DROP POLICY IF EXISTS "audit_insert_system" ON audit_logs;
+
+-- ---- PROFILES ----
+-- ⚠️ أهم policy: السماح للمستخدم الجديد ي_INSERT_صفحته
+-- Critical: allow new user to INSERT their own profile during signup
+
+CREATE POLICY "profiles_insert_self" ON profiles
+  FOR INSERT WITH CHECK (id = auth.uid());
+
+CREATE POLICY "profiles_insert_admin" ON profiles
+  FOR INSERT WITH CHECK (public.user_role() = 'admin');
+
+CREATE POLICY "profiles_select_own" ON profiles
+  FOR SELECT USING (id = auth.uid());
+
+CREATE POLICY "profiles_select_admin" ON profiles
+  FOR SELECT USING (public.user_role() = 'admin');
+
+CREATE POLICY "profiles_select_central" ON profiles
+  FOR SELECT USING (public.user_role() = 'central');
+
+CREATE POLICY "profiles_select_governorate" ON profiles
+  FOR SELECT USING (
+    public.user_role() = 'governorate' AND
+    governorate_id = public.user_governorate_id()
+  );
+
+CREATE POLICY "profiles_update_own" ON profiles
+  FOR UPDATE USING (id = auth.uid());
+
+CREATE POLICY "profiles_update_admin" ON profiles
+  FOR UPDATE USING (public.user_role() = 'admin');
+
+-- ---- GOVERNORATES ----
+
+CREATE POLICY "governorates_select_all" ON governorates
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "governorates_modify_admin" ON governorates
+  FOR ALL USING (public.user_role() = 'admin');
+
+-- ---- DISTRICTS ----
+
+CREATE POLICY "districts_select_all" ON districts
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "districts_modify_admin" ON districts
+  FOR ALL USING (public.user_role() = 'admin');
+
+-- ---- FORMS ----
+
+CREATE POLICY "forms_select_all" ON forms
+  FOR SELECT USING (auth.uid() IS NOT NULL AND is_active = true);
+
+CREATE POLICY "forms_select_admin" ON forms
+  FOR SELECT USING (public.user_role() = 'admin');
+
+CREATE POLICY "forms_modify_admin" ON forms
+  FOR ALL USING (public.user_role() = 'admin');
+
+-- ---- FORM_SUBMISSIONS ----
+
+CREATE POLICY "submissions_select_own" ON form_submissions
+  FOR SELECT USING (submitted_by = auth.uid());
+
+CREATE POLICY "submissions_select_district" ON form_submissions
+  FOR SELECT USING (
+    public.user_role() = 'district' AND
+    district_id = public.user_district_id()
+  );
+
+CREATE POLICY "submissions_select_governorate" ON form_submissions
+  FOR SELECT USING (
+    public.user_role() = 'governorate' AND
+    governorate_id = public.user_governorate_id()
+  );
+
+CREATE POLICY "submissions_select_central_admin" ON form_submissions
+  FOR SELECT USING (public.user_role() IN ('central', 'admin'));
+
+CREATE POLICY "submissions_insert_own" ON form_submissions
+  FOR INSERT WITH CHECK (
+    submitted_by = auth.uid() AND
+    public.user_role() IN ('data_entry', 'district', 'governorate', 'central', 'admin')
+  );
+
+CREATE POLICY "submissions_update_own_draft" ON form_submissions
+  FOR UPDATE USING (
+    submitted_by = auth.uid() AND status = 'draft'
+  );
+
+CREATE POLICY "submissions_update_reviewer" ON form_submissions
+  FOR UPDATE USING (
+    public.user_role() = 'admin' OR
+    public.user_role() = 'central' OR
+    (public.user_role() = 'governorate' AND governorate_id = public.user_governorate_id()) OR
+    (public.user_role() = 'district' AND district_id = public.user_district_id())
+  );
+
+-- ---- SUPPLY_SHORTAGES ----
+
+CREATE POLICY "shortages_select_all_auth" ON supply_shortages
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "shortages_insert_auth" ON supply_shortages
+  FOR INSERT WITH CHECK (reported_by = auth.uid());
+
+CREATE POLICY "shortages_update_hierarchy" ON supply_shortages
+  FOR UPDATE USING (
+    reported_by = auth.uid() OR
+    public.user_role() IN ('district', 'governorate', 'central', 'admin')
+  );
+
+-- ---- AUDIT_LOGS ----
+
+CREATE POLICY "audit_select_admin" ON audit_logs
+  FOR SELECT USING (public.user_role() = 'admin');
+
+CREATE POLICY "audit_select_central" ON audit_logs
+  FOR SELECT USING (public.user_role() = 'central');
+
+-- SECURITY DEFINER function يتجاوز RLS → السماح بالـ INSERT
+CREATE POLICY "audit_insert_system" ON audit_logs
+  FOR INSERT WITH CHECK (true);
+
+-- لا تحديث أو حذف على audit logs (immutable)
+
+-- ============================================================
+-- 7. TRIGGER FUNCTIONS
+-- ============================================================
+
+-- Auto updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -294,15 +494,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Apply updated_at triggers
-CREATE TRIGGER trg_profiles_updated BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_governorates_updated BEFORE UPDATE ON governorates FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_districts_updated BEFORE UPDATE ON districts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_forms_updated BEFORE UPDATE ON forms FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_submissions_updated BEFORE UPDATE ON form_submissions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_shortages_updated BEFORE UPDATE ON supply_shortages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Audit log trigger function
+-- Audit log (SECURITY DEFINER → يتجاوز RLS)
 CREATE OR REPLACE FUNCTION create_audit_log()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -330,13 +522,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Apply audit triggers
-CREATE TRIGGER trg_profiles_audit AFTER INSERT OR UPDATE OR DELETE ON profiles FOR EACH ROW EXECUTE FUNCTION create_audit_log();
-CREATE TRIGGER trg_forms_audit AFTER INSERT OR UPDATE OR DELETE ON forms FOR EACH ROW EXECUTE FUNCTION create_audit_log();
-CREATE TRIGGER trg_submissions_audit AFTER INSERT OR UPDATE OR DELETE ON form_submissions FOR EACH ROW EXECUTE FUNCTION create_audit_log();
-CREATE TRIGGER trg_shortages_audit AFTER INSERT OR UPDATE OR DELETE ON supply_shortages FOR EACH ROW EXECUTE FUNCTION create_audit_log();
-
--- Location auto-set trigger
+-- Auto-set location from GPS
 CREATE OR REPLACE FUNCTION set_submission_location()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -347,192 +533,77 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_submission_location BEFORE INSERT OR UPDATE ON form_submissions FOR EACH ROW EXECUTE FUNCTION set_submission_location();
-
--- Profile auto-creation on signup
+-- Auto-create profile on signup
+-- ⚠️ SECURITY DEFINER → يتجاوز RLS على profiles
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   INSERT INTO profiles (id, email, full_name, role)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'data_entry')
   );
   RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- لا تفشل الـ signup لو فشل إنشاء الـ profile
+  RAISE WARNING 'Failed to create profile for user %: %', NEW.id, SQLERRM;
+  RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
+-- ============================================================
+-- 8. APPLY TRIGGERS
+-- ============================================================
+
+-- Drop existing triggers if re-running
+DROP TRIGGER IF EXISTS trg_profiles_updated ON profiles;
+DROP TRIGGER IF EXISTS trg_governorates_updated ON governorates;
+DROP TRIGGER IF EXISTS trg_districts_updated ON districts;
+DROP TRIGGER IF EXISTS trg_forms_updated ON forms;
+DROP TRIGGER IF EXISTS trg_submissions_updated ON form_submissions;
+DROP TRIGGER IF EXISTS trg_shortages_updated ON supply_shortages;
+DROP TRIGGER IF EXISTS trg_profiles_audit ON profiles;
+DROP TRIGGER IF EXISTS trg_forms_audit ON forms;
+DROP TRIGGER IF EXISTS trg_submissions_audit ON form_submissions;
+DROP TRIGGER IF EXISTS trg_shortages_audit ON supply_shortages;
+DROP TRIGGER IF EXISTS trg_submission_location ON form_submissions;
+DROP TRIGGER IF EXISTS trg_auth_signup ON auth.users;
+
+-- Updated_at triggers
+CREATE TRIGGER trg_profiles_updated BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_governorates_updated BEFORE UPDATE ON governorates FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_districts_updated BEFORE UPDATE ON districts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_forms_updated BEFORE UPDATE ON forms FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_submissions_updated BEFORE UPDATE ON form_submissions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_shortages_updated BEFORE UPDATE ON supply_shortages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Audit triggers
+CREATE TRIGGER trg_profiles_audit AFTER INSERT OR UPDATE OR DELETE ON profiles FOR EACH ROW EXECUTE FUNCTION create_audit_log();
+CREATE TRIGGER trg_forms_audit AFTER INSERT OR UPDATE OR DELETE ON forms FOR EACH ROW EXECUTE FUNCTION create_audit_log();
+CREATE TRIGGER trg_submissions_audit AFTER INSERT OR UPDATE OR DELETE ON form_submissions FOR EACH ROW EXECUTE FUNCTION create_audit_log();
+CREATE TRIGGER trg_shortages_audit AFTER INSERT OR UPDATE OR DELETE ON supply_shortages FOR EACH ROW EXECUTE FUNCTION create_audit_log();
+
+-- Location trigger
+CREATE TRIGGER trg_submission_location BEFORE INSERT OR UPDATE ON form_submissions FOR EACH ROW EXECUTE FUNCTION set_submission_location();
+
+-- Signup trigger
 CREATE TRIGGER trg_auth_signup AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
--- Role hierarchy check function
-CREATE OR REPLACE FUNCTION check_role_hierarchy(target_role user_role, assigner_id UUID)
-RETURNS BOOLEAN AS $$
-DECLARE
-  assigner_role user_role;
-  hierarchy JSONB := '{
-    "admin": 5,
-    "central": 4,
-    "governorate": 3,
-    "district": 2,
-    "data_entry": 1
-  }';
-BEGIN
-  SELECT role INTO assigner_role FROM profiles WHERE id = assigner_id;
-  RETURN (hierarchy->>assigner_role::TEXT)::INT > (hierarchy->>target_role::TEXT)::INT;
-END;
-$$ LANGUAGE plpgsql STABLE;
-
 -- ============================================================
--- ROW LEVEL SECURITY (RLS)
+-- 9. COMMENTS
 -- ============================================================
 
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE governorates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE districts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE forms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE form_submissions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE supply_shortages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+COMMENT ON TABLE governorates IS 'Administrative governorate divisions (محافظات)';
+COMMENT ON TABLE districts IS 'Administrative district divisions within governorates (مديريات)';
+COMMENT ON TABLE profiles IS 'User profiles with role-based access control';
+COMMENT ON TABLE forms IS 'Dynamic form definitions with JSON schema';
+COMMENT ON TABLE form_submissions IS 'Form submission data with offline sync support';
+COMMENT ON TABLE supply_shortages IS 'Supply shortage tracking with geo-location';
+COMMENT ON TABLE audit_logs IS 'Immutable audit trail for all system actions';
 
--- Helper function: get current user role
-CREATE OR REPLACE FUNCTION auth.user_role()
-RETURNS user_role AS $$
-  SELECT role FROM profiles WHERE id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
-
--- Helper function: get current user governorate
-CREATE OR REPLACE FUNCTION auth.user_governorate_id()
-RETURNS UUID AS $$
-  SELECT governorate_id FROM profiles WHERE id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
-
--- Helper function: get current user district
-CREATE OR REPLACE FUNCTION auth.user_district_id()
-RETURNS UUID AS $$
-  SELECT district_id FROM profiles WHERE id = auth.uid() LIMIT 1;
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
-
--- ---- PROFILES RLS ----
-
-CREATE POLICY "profiles_select_admin" ON profiles
-  FOR SELECT USING (auth.user_role() = 'admin');
-
-CREATE POLICY "profiles_select_own" ON profiles
-  FOR SELECT USING (id = auth.uid());
-
-CREATE POLICY "profiles_select_central" ON profiles
-  FOR SELECT USING (auth.user_role() = 'central');
-
-CREATE POLICY "profiles_select_governorate" ON profiles
-  FOR SELECT USING (
-    auth.user_role() = 'governorate' AND
-    governorate_id = auth.user_governorate_id()
-  );
-
-CREATE POLICY "profiles_insert_admin" ON profiles
-  FOR INSERT WITH CHECK (auth.user_role() = 'admin');
-
-CREATE POLICY "profiles_update_admin" ON profiles
-  FOR UPDATE USING (auth.user_role() = 'admin');
-
-CREATE POLICY "profiles_update_own" ON profiles
-  FOR UPDATE USING (id = auth.uid());
-
--- ---- GOVERNORATES RLS ----
-
-CREATE POLICY "governorates_select_all" ON governorates
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "governorates_modify_admin" ON governorates
-  FOR ALL USING (auth.user_role() = 'admin');
-
--- ---- DISTRICTS RLS ----
-
-CREATE POLICY "districts_select_all" ON districts
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "districts_modify_admin" ON districts
-  FOR ALL USING (auth.user_role() = 'admin');
-
--- ---- FORMS RLS ----
-
-CREATE POLICY "forms_select_all" ON forms
-  FOR SELECT USING (auth.uid() IS NOT NULL AND is_active = true);
-
-CREATE POLICY "forms_select_admin" ON forms
-  FOR SELECT USING (auth.user_role() = 'admin');
-
-CREATE POLICY "forms_modify_admin" ON forms
-  FOR ALL USING (auth.user_role() = 'admin');
-
--- ---- FORM_SUBMISSIONS RLS ----
-
-CREATE POLICY "submissions_select_own" ON form_submissions
-  FOR SELECT USING (submitted_by = auth.uid());
-
-CREATE POLICY "submissions_select_district" ON form_submissions
-  FOR SELECT USING (
-    auth.user_role() = 'district' AND
-    district_id = auth.user_district_id()
-  );
-
-CREATE POLICY "submissions_select_governorate" ON form_submissions
-  FOR SELECT USING (
-    auth.user_role() = 'governorate' AND
-    governorate_id = auth.user_governorate_id()
-  );
-
-CREATE POLICY "submissions_select_central_admin" ON form_submissions
-  FOR SELECT USING (auth.user_role() IN ('central', 'admin'));
-
-CREATE POLICY "submissions_insert_own" ON form_submissions
-  FOR INSERT WITH CHECK (
-    submitted_by = auth.uid() AND
-    auth.user_role() IN ('data_entry', 'district', 'governorate', 'central', 'admin')
-  );
-
-CREATE POLICY "submissions_update_own_draft" ON form_submissions
-  FOR UPDATE USING (
-    submitted_by = auth.uid() AND status = 'draft'
-  );
-
-CREATE POLICY "submissions_update_reviewer" ON form_submissions
-  FOR UPDATE USING (
-    auth.user_role() = 'admin' OR
-    auth.user_role() = 'central' OR
-    (auth.user_role() = 'governorate' AND governorate_id = auth.user_governorate_id()) OR
-    (auth.user_role() = 'district' AND district_id = auth.user_district_id())
-  );
-
--- ---- SUPPLY_SHORTAGES RLS ----
-
-CREATE POLICY "shortages_select_all_auth" ON supply_shortages
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
-CREATE POLICY "shortages_insert_auth" ON supply_shortages
-  FOR INSERT WITH CHECK (reported_by = auth.uid());
-
-CREATE POLICY "shortages_update_hierarchy" ON supply_shortages
-  FOR UPDATE USING (
-    reported_by = auth.uid() OR
-    auth.user_role() IN ('district', 'governorate', 'central', 'admin')
-  );
-
--- ---- AUDIT_LOGS RLS ----
-
-CREATE POLICY "audit_select_admin" ON audit_logs
-  FOR SELECT USING (auth.user_role() = 'admin');
-
-CREATE POLICY "audit_select_central" ON audit_logs
-  FOR SELECT USING (auth.user_role() = 'central');
-
-CREATE POLICY "audit_insert_system" ON audit_logs
-  FOR INSERT WITH CHECK (true);
-
--- No update/delete on audit logs (immutable)
-
--- ============================================================
--- END OF SCHEMA
--- ============================================================
+COMMIT;

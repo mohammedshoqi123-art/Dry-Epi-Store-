@@ -1,7 +1,15 @@
 -- ============================================================
 -- EPI Supervisor Platform — SIA Forms (النشاط الايصالي التكاملي)
--- Version: 1.0.0
+-- Version: 2.0.0
 -- ============================================================
+
+BEGIN;
+
+-- Clean duplicates on re-run
+DELETE FROM forms WHERE title_ar IN (
+  'استمارة الاشراف للنشاط الايصالي التكاملي',
+  'استمارة الجاهزية للنشاط الايصالي التكاملي'
+) AND deleted_at IS NULL;
 
 -- ============================================================
 -- FORM 1: استمارة الاشراف للنشاط الايصالي التكاملي
@@ -294,7 +302,4 @@ INSERT INTO forms (
   0
 );
 
--- ============================================================
--- VERIFICATION: Show inserted forms
--- ============================================================
--- SELECT id, title_ar, title_en, is_active FROM forms WHERE deleted_at IS NULL ORDER BY created_at;
+COMMIT;

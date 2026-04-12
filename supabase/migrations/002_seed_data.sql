@@ -1,9 +1,14 @@
 -- ============================================================
--- EPI Supervisor Platform - Seed Data
--- Version: 1.0.2 (Fixed - independent of admin user)
+-- EPI Supervisor Platform — Seed Data
+-- Version: 2.0.0
+-- ⚠️ شغّل هذا الملف بـ service_role_key (يتجاوز RLS)
 -- ============================================================
 
--- Insert Iraqi governorates (19)
+BEGIN;
+
+-- ============================================================
+-- Iraqi Governorates (19)
+-- ============================================================
 INSERT INTO governorates (id, name_ar, name_en, code, center_lat, center_lng) VALUES
   (uuid_generate_v4(), 'بغداد', 'Baghdad', 'BGD', 33.3152, 44.3661),
   (uuid_generate_v4(), 'البصرة', 'Basra', 'BSR', 30.5085, 47.7804),
@@ -26,53 +31,44 @@ INSERT INTO governorates (id, name_ar, name_en, code, center_lat, center_lng) VA
   (uuid_generate_v4(), 'حلبجة', 'Halabja', 'HLB', 35.1833, 45.9833)
 ON CONFLICT (code) DO NOTHING;
 
--- Insert sample districts for Baghdad
+-- ============================================================
+-- Districts — Baghdad
+-- ============================================================
 INSERT INTO districts (id, governorate_id, name_ar, name_en, code, center_lat, center_lng)
-SELECT
-  uuid_generate_v4(),
-  g.id,
-  d.name_ar,
-  d.name_en,
-  d.code,
-  d.lat,
-  d.lng
+SELECT uuid_generate_v4(), g.id, d.name_ar, d.name_en, d.code, d.lat, d.lng
 FROM governorates g
-CROSS JOIN (
-  VALUES
-    ('الكرخ', 'Karkh', 'KRK-BGD', 33.3000, 44.3300),
-    ('الرصافة', 'Rusafa', 'RSF-BGD', 33.3300, 44.4000),
-    ('الصدر', 'Sadr City', 'SDR-BGD', 33.3833, 44.4667),
-    ('أبو غريب', 'Abu Ghraib', 'AGB-BGD', 33.2833, 44.1833),
-    ('المحمودية', 'Mahmudiya', 'MHM-BGD', 33.0667, 44.3667)
+CROSS JOIN (VALUES
+  ('الكرخ', 'Karkh', 'KRK-BGD', 33.3000, 44.3300),
+  ('الرصافة', 'Rusafa', 'RSF-BGD', 33.3300, 44.4000),
+  ('الصدر', 'Sadr City', 'SDR-BGD', 33.3833, 44.4667),
+  ('أبو غريب', 'Abu Ghraib', 'AGB-BGD', 33.2833, 44.1833),
+  ('المحمودية', 'Mahmudiya', 'MHM-BGD', 33.0667, 44.3667)
 ) AS d(name_ar, name_en, code, lat, lng)
 WHERE g.code = 'BGD'
 ON CONFLICT (code) DO NOTHING;
 
--- Insert districts for Basra
+-- ============================================================
+-- Districts — Basra
+-- ============================================================
 INSERT INTO districts (id, governorate_id, name_ar, name_en, code, center_lat, center_lng)
-SELECT
-  uuid_generate_v4(),
-  g.id,
-  d.name_ar,
-  d.name_en,
-  d.code,
-  d.lat,
-  d.lng
+SELECT uuid_generate_v4(), g.id, d.name_ar, d.name_en, d.code, d.lat, d.lng
 FROM governorates g
-CROSS JOIN (
-  VALUES
-    ('البصرة المركز', 'Basra Center', 'CTR-BSR', 30.5085, 47.7804),
-    ('الزبير', 'Zubayr', 'ZBR-BSR', 30.3833, 47.7000),
-    ('القرنة', 'Qurna', 'QRN-BSR', 31.0167, 47.4333),
-    ('أبو الخصيب', 'Abu Al-Khaseeb', 'AKS-BSR', 30.0500, 48.0167)
+CROSS JOIN (VALUES
+  ('البصرة المركز', 'Basra Center', 'CTR-BSR', 30.5085, 47.7804),
+  ('الزبير', 'Zubayr', 'ZBR-BSR', 30.3833, 47.7000),
+  ('القرنة', 'Qurna', 'QRN-BSR', 31.0167, 47.4333),
+  ('أبو الخصيب', 'Abu Al-Khaseeb', 'AKS-BSR', 30.0500, 48.0167)
 ) AS d(name_ar, name_en, code, lat, lng)
 WHERE g.code = 'BSR'
 ON CONFLICT (code) DO NOTHING;
 
--- Insert sample form (without created_by - will be set when admin exists)
-INSERT INTO forms (id, title_ar, title_en, description_ar, description_en, schema, is_active, requires_gps)
-VALUES (
-  uuid_generate_v4(),
+-- ============================================================
+-- Sample Form
+-- ============================================================
+INSERT INTO forms (
+  title_ar, title_en, description_ar, description_en,
+  schema, is_active, requires_gps
+) VALUES (
   'نموذج فحص مراكز التطعيم',
   'Vaccination Center Inspection Form',
   'نموذج لفحص ومتابعة مراكز التطعيم في الميدان',
@@ -89,9 +85,6 @@ VALUES (
   }'::jsonb,
   true,
   true
-)
-ON CONFLICT DO NOTHING;
+);
 
--- ============================================================
--- END OF SEED DATA
--- ============================================================
+COMMIT;
