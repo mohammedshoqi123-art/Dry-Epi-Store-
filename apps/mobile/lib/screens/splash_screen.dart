@@ -34,7 +34,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (session != null) {
       // Wait for profile to load (with timeout)
       try {
-        final authState = await ref.read(authStateProvider.future);
+        await ref.read(authStateProvider.future);
         if (!mounted || _hasNavigated) return;
         _hasNavigated = true;
         context.go('/dashboard');

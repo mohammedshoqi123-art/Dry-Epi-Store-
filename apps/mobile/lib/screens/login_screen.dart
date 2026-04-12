@@ -151,7 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8),
-                              Text(
+                              const Text(
                                 'مرحباً بعودتك! أدخل بياناتك للمتابعة',
                                 style: TextStyle(
                                   fontFamily: 'Tajawal',

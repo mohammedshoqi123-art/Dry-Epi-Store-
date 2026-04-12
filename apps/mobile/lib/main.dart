@@ -104,7 +104,7 @@ Future<void> main() async {
 
   // Initialize Sentry with centralized config
   await SentryConfig.init(
-    appRunner: () => runApp(const ProviderScope(child: EpiSupervisorApp())),
+    appRunner: () async => runApp(const ProviderScope(child: EpiSupervisorApp())),
   );
 }
 
