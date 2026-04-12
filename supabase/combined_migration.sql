@@ -2956,4 +2956,79 @@ INSERT INTO health_facilities (district_id, name_ar, name_en, code) SELECT d.id,
 INSERT INTO health_facilities (district_id, name_ar, name_en, code) SELECT d.id, 'الوحدة الصحية سربيت', 'Srbit HU', 'TAIZZ-SAMA-SRBITHU' FROM districts d JOIN governorates g ON d.governorate_id = g.id WHERE d.code = 'TAIZZ-SAMA' ON CONFLICT (code) DO NOTHING;
 INSERT INTO health_facilities (district_id, name_ar, name_en, code) SELECT d.id, 'وحدة حمان', 'وحدة حمان', 'TAIZZ-SAMA-وحدةحمان' FROM districts d JOIN governorates g ON d.governorate_id = g.id WHERE d.code = 'TAIZZ-SAMA' ON CONFLICT (code) DO NOTHING;
 
+-- ============================================================
+-- 007_restore_missing_policies.sql
+-- Restores RLS policies dropped by 006 but not recreated
+-- ============================================================
+
+-- PROFILES
+DROP POLICY IF EXISTS "profiles_insert_self" ON profiles;
+CREATE POLICY "profiles_insert_self" ON profiles
+  FOR INSERT WITH CHECK (id = auth.uid());
+
+DROP POLICY IF EXISTS "profiles_select_own" ON profiles;
+CREATE POLICY "profiles_select_own" ON profiles
+  FOR SELECT USING (id = auth.uid());
+
+DROP POLICY IF EXISTS "profiles_select_governorate" ON profiles;
+CREATE POLICY "profiles_select_governorate" ON profiles
+  FOR SELECT USING (
+    public.user_role() = 'governorate' AND
+    governorate_id = public.user_governorate_id()
+  );
+
+DROP POLICY IF EXISTS "profiles_update_own" ON profiles;
+CREATE POLICY "profiles_update_own" ON profiles
+  FOR UPDATE USING (id = auth.uid());
+
+-- FORMS
+DROP POLICY IF EXISTS "forms_select_all" ON forms;
+CREATE POLICY "forms_select_all" ON forms
+  FOR SELECT USING (auth.uid() IS NOT NULL AND is_active = true);
+
+-- SUBMISSIONS
+DROP POLICY IF EXISTS "submissions_select_own" ON form_submissions;
+CREATE POLICY "submissions_select_own" ON form_submissions
+  FOR SELECT USING (submitted_by = auth.uid());
+
+DROP POLICY IF EXISTS "submissions_update_own_draft" ON form_submissions;
+CREATE POLICY "submissions_update_own_draft" ON form_submissions
+  FOR UPDATE USING (
+    submitted_by = auth.uid() AND status = 'draft'
+  );
+
+-- GOVERNORATES
+DROP POLICY IF EXISTS "governorates_select_all" ON governorates;
+CREATE POLICY "governorates_select_all" ON governorates
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- DISTRICTS
+DROP POLICY IF EXISTS "districts_select_all" ON districts;
+CREATE POLICY "districts_select_all" ON districts
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- SHORTAGES
+DROP POLICY IF EXISTS "shortages_select_all_auth" ON supply_shortages;
+CREATE POLICY "shortages_select_all_auth" ON supply_shortages
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "shortages_insert_auth" ON supply_shortages;
+CREATE POLICY "shortages_insert_auth" ON supply_shortages
+  FOR INSERT WITH CHECK (reported_by = auth.uid());
+
+-- AUDIT
+DROP POLICY IF EXISTS "audit_insert_system" ON audit_logs;
+CREATE POLICY "audit_insert_system" ON audit_logs
+  FOR INSERT WITH CHECK (true);
+
+-- HEALTH FACILITIES
+DROP POLICY IF EXISTS "facilities_select_all" ON health_facilities;
+CREATE POLICY "facilities_select_all" ON health_facilities
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- Permissions
+GRANT EXECUTE ON FUNCTION public.user_role() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.user_governorate_id() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.user_district_id() TO anon, authenticated, service_role;
+
 COMMIT;

@@ -117,7 +117,7 @@ echo -e "${GREEN}  ✔ Migrations completed${NC}"
 
 # ─── 5. Deploy Edge Functions ──────────────────────────────────────────
 echo -e "\n${CYAN}▶ Step 5: Deploying Edge Functions...${NC}"
-FUNCTIONS=("create-admin" "submit-form" "get-analytics" "ai-chat" "sync-offline")
+FUNCTIONS=("create-admin" "admin-actions" "submit-form" "get-analytics" "ai-chat" "sync-offline")
 
 for fn in "${FUNCTIONS[@]}"; do
     echo -e "  → Deploying ${fn}..."

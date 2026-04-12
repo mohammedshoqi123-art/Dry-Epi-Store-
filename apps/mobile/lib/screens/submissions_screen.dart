@@ -24,7 +24,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final submissions = ref.watch(submissionsProvider({'status': _statusFilter}));
+    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(status: _statusFilter)));
 
     return Scaffold(
       appBar: EpiAppBar(
@@ -63,12 +63,12 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => ref.invalidate(submissionsProvider),
+              onRefresh: () async => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter))),
               child: submissions.when(
                 loading: () => const EpiLoading.shimmer(),
                 error: (e, _) => EpiErrorWidget(
                   message: e.toString(),
-                  onRetry: () => ref.invalidate(submissionsProvider),
+                  onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter))),
                 ),
                 data: (data) {
                   // Apply search filter

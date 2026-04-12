@@ -18,7 +18,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   bool _showHeatmap = false;
   double _currentZoom = 6.0;
 
-  static const _iraqCenter = LatLng(33.3152, 44.3661);
+  static const _yemenCenter = LatLng(15.5527, 48.5164); // Center of Yemen
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.my_location),
-            onPressed: () => _mapController.move(_iraqCenter, 6.0),
+            onPressed: () => _mapController.move(_yemenCenter, 6.0),
             tooltip: 'العودة للمركز',
           ),
         ],
@@ -82,7 +82,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
-        initialCenter: _iraqCenter,
+        initialCenter: _yemenCenter,
         initialZoom: _currentZoom,
         minZoom: 4.0,
         maxZoom: 18.0,
@@ -98,7 +98,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Widget _buildSubmissionsLayer() {
-    final submissionsAsync = ref.watch(submissionsProvider({}));
+    final submissionsAsync = ref.watch(submissionsProvider(const SubmissionsFilter()));
 
     return submissionsAsync.when(
       loading: () => const MarkerLayer(markers: []),

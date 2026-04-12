@@ -5,9 +5,13 @@ extension StringExtensions on String {
       RegExp(r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
           .hasMatch(this);
 
-  // ─── Phone (Iraqi) ────────────────────────────────────────────────────────
-  bool get isValidIraqiPhone =>
-      RegExp(r'^(07[3-9]\d{8}|07[0-2]\d{8})$').hasMatch(this);
+  // ─── Phone (Yemeni) ───────────────────────────────────────────────────────
+  bool get isValidYemeniPhone =>
+      RegExp(r'^(07[0-9]{8})$').hasMatch(this);
+
+  /// Generic phone validator (7-15 digits)
+  bool get isValidPhone =>
+      RegExp(r'^\+?[0-9]{7,15}$').hasMatch(this);
 
   // ─── General ──────────────────────────────────────────────────────────────
   bool get isNotBlank => trim().isNotEmpty;

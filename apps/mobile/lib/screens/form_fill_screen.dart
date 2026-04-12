@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'dart:io';
 import '../providers/app_providers.dart';
 
 class FormFillScreen extends ConsumerStatefulWidget {
@@ -27,6 +29,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   
   double? _gpsLat;
   double? _gpsLng;
+  final List<XFile> _pickedPhotos = [];
+  String? _signatureData; // base64 or path of signature image
 
   @override
   void initState() {
@@ -120,6 +124,49 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     final formState = _formKey.currentState;
     if (formState == null) return;
     if (!formState.validate()) return;
+
+    // Custom validation for non-FormField types
+    final missingFields = <String>[];
+    for (final field in _allFields) {
+      final key = field['key'] as String? ?? '';
+      final type = field['type'] as String? ?? 'text';
+      final label = field['label_ar'] as String? ?? key;
+      final isRequired = field['required'] == true;
+      if (!isRequired) continue;
+
+      switch (type) {
+        case 'multiselect':
+          final val = _formData[key] as List?;
+          if (val == null || val.isEmpty) missingFields.add(label);
+          break;
+        case 'yesno':
+          if (_formData[key] == null) missingFields.add(label);
+          break;
+        case 'date':
+        case 'time':
+          if (_formData[key] == null || (_formData[key] as String?)?.isEmpty == true) missingFields.add(label);
+          break;
+        case 'gps':
+          if (_gpsLat == null) missingFields.add(label);
+          break;
+        case 'photo':
+          if (_pickedPhotos.isEmpty) missingFields.add(label);
+          break;
+        case 'signature':
+          if (_signatureData == null || (_signatureData as String?)?.isEmpty == true) missingFields.add(label);
+          break;
+        case 'governorate':
+          if (_formData[key] == null) missingFields.add(label);
+          break;
+        case 'district':
+          if (_formData[key] == null) missingFields.add(label);
+          break;
+      }
+    }
+    if (missingFields.isNotEmpty) {
+      context.showWarning('الحقول التالية مطلوبة: ${missingFields.join("، ")}');
+      return;
+    }
 
     // Check GPS
     final requiresGps = _formSchema?['requires_gps'] == true;
@@ -590,7 +637,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       case 'governorate':
         return _GovernorateDropdown(
           value: _formData[key],
-          onChanged: (v) => setState(() => _formData[key] = v),
+          onChanged: (v) => setState(() {
+            _formData[key] = v;
+            // Clear district when governorate changes
+            _formData['district_id'] = null;
+            _formData['district'] = null;
+          }),
           isRequired: isRequired,
         );
 
@@ -603,44 +655,31 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         );
 
       case 'photo':
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              const Icon(Icons.camera_alt, size: 40, color: AppTheme.primaryColor),
-              const SizedBox(height: 8),
-              Text(
-                'انقر لإرفاق صورة',
-                style: TextStyle(fontFamily: 'Tajawal', color: Colors.grey.shade600),
-              ),
-            ],
-          ),
+        return _PhotoPickerField(
+          key: ValueKey('photo_$key'),
+          photos: _pickedPhotos,
+          maxPhotos: (_formSchema?['max_photos'] as int?) ?? 5,
+          onPhotosChanged: (photos) {
+            setState(() {
+              _pickedPhotos.clear();
+              _pickedPhotos.addAll(photos);
+              _formData[key] = photos.map((p) => p.path).toList();
+            });
+          },
+          isRequired: isRequired,
         );
 
       case 'signature':
-        return Container(
-          height: 120,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.draw, size: 32, color: Colors.grey.shade400),
-                const SizedBox(height: 8),
-                Text(
-                  'انقر للتوقيع',
-                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
+        return _SignatureField(
+          key: ValueKey('sig_$key'),
+          signatureData: _signatureData,
+          onSignatureChanged: (data) {
+            setState(() {
+              _signatureData = data;
+              _formData[key] = data;
+            });
+          },
+          isRequired: isRequired,
         );
 
       default:
@@ -740,6 +779,306 @@ class _DistrictDropdown extends ConsumerWidget {
           validator: isRequired ? (v) => v == null ? AppStrings.required : null : null,
         );
       },
+    );
+  }
+}
+
+// ─── Photo Picker ──────────────────────────────────────────────────────────
+
+class _PhotoPickerField extends StatelessWidget {
+  final List<XFile> photos;
+  final int maxPhotos;
+  final ValueChanged<List<XFile>> onPhotosChanged;
+  final bool isRequired;
+
+  const _PhotoPickerField({
+    super.key,
+    required this.photos,
+    required this.maxPhotos,
+    required this.onPhotosChanged,
+    required this.isRequired,
+  });
+
+  Future<void> _pickImage(BuildContext context, ImageSource source) async {
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 80,
+      );
+      if (picked != null) {
+        final updated = List<XFile>.from(photos)..add(picked);
+        onPhotosChanged(updated);
+      }
+    } catch (e) {
+      if (context.mounted) context.showError('فشل التقاط الصورة');
+    }
+  }
+
+  void _showPickerOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppTheme.primaryColor),
+              title: const Text('الكاميرا', style: TextStyle(fontFamily: 'Tajawal')),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(context, ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppTheme.primaryColor),
+              title: const Text('المعرض', style: TextStyle(fontFamily: 'Tajawal')),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(context, ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Photo grid
+        if (photos.isNotEmpty)
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: photos.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(photos[index].path),
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () {
+                            final updated = List<XFile>.from(photos)..removeAt(index);
+                            onPhotosChanged(updated);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: AppTheme.errorColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, size: 14, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        if (photos.isNotEmpty) const SizedBox(height: 8),
+        // Add button
+        if (photos.length < maxPhotos)
+          InkWell(
+            onTap: () => _showPickerOptions(context),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: isRequired && photos.isEmpty
+                      ? AppTheme.errorColor
+                      : Colors.grey.shade300,
+                  style: BorderStyle.solid,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                color: isRequired && photos.isEmpty
+                    ? AppTheme.errorColor.withOpacity(0.05)
+                    : null,
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.add_a_photo,
+                    size: 32,
+                    color: isRequired && photos.isEmpty
+                        ? AppTheme.errorColor
+                        : AppTheme.primaryColor,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    photos.isEmpty
+                        ? 'انقر لإرفاق صورة (${photos.length}/$maxPhotos)'
+                        : 'إضافة صورة أخرى (${photos.length}/$maxPhotos)',
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      color: isRequired && photos.isEmpty
+                          ? AppTheme.errorColor
+                          : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ─── Signature Field ────────────────────────────────────────────────────────
+
+class _SignatureField extends StatelessWidget {
+  final String? signatureData;
+  final ValueChanged<String?> onSignatureChanged;
+  final bool isRequired;
+
+  const _SignatureField({
+    super.key,
+    this.signatureData,
+    required this.onSignatureChanged,
+    required this.isRequired,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSignature = signatureData != null && signatureData!.isNotEmpty;
+
+    return InkWell(
+      onTap: () => _openSignaturePad(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 120,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isRequired && !hasSignature
+                ? AppTheme.errorColor
+                : Colors.grey.shade300,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: isRequired && !hasSignature
+              ? AppTheme.errorColor.withOpacity(0.05)
+              : null,
+        ),
+        child: hasSignature
+            ? Stack(
+                children: [
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.check_circle, size: 32, color: AppTheme.successColor),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'تم التوقيع ✓',
+                          style: TextStyle(fontFamily: 'Tajawal', color: AppTheme.successColor),
+                        ),
+                        TextButton(
+                          onPressed: () => _openSignaturePad(context),
+                          child: const Text('إعادة التوقيع', style: TextStyle(fontFamily: 'Tajawal', fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.draw,
+                    size: 32,
+                    color: isRequired && !hasSignature
+                        ? AppTheme.errorColor
+                        : Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'انقر للتوقيع',
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      color: isRequired && !hasSignature
+                          ? AppTheme.errorColor
+                          : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  void _openSignaturePad(BuildContext context) {
+    // Simple signature using a dialog with a text field for now
+    // A full signature pad would need a custom painter
+    final controller = TextEditingController(text: signatureData ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('التوقيع', style: TextStyle(fontFamily: 'Cairo')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'اكتب اسمك كتوقيع (سيتم تحسين هذه الميزة لاحقاً بلوحة رسم)',
+              style: TextStyle(fontFamily: 'Tajawal', fontSize: 13, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              textDirection: TextDirection.rtl,
+              decoration: InputDecoration(
+                hintText: 'اكتب اسمك هنا',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              style: const TextStyle(fontFamily: 'Tajawal', fontSize: 18),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء', style: TextStyle(fontFamily: 'Tajawal')),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                onSignatureChanged(text);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('تأكيد', style: TextStyle(fontFamily: 'Tajawal')),
+          ),
+        ],
+      ),
     );
   }
 }

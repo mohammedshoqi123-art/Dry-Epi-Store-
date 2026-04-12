@@ -46,6 +46,42 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
+// ─── Submissions Filter ───────────────────────────────────────────────────────
+
+/// Immutable filter for submissions queries — fixes Riverpod equality issues.
+class SubmissionsFilter {
+  final String? status;
+  final String? formId;
+  final String? governorateId;
+  final String? districtId;
+  final int limit;
+  final int offset;
+
+  const SubmissionsFilter({
+    this.status,
+    this.formId,
+    this.governorateId,
+    this.districtId,
+    this.limit = 20,
+    this.offset = 0,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SubmissionsFilter &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          formId == other.formId &&
+          governorateId == other.governorateId &&
+          districtId == other.districtId &&
+          limit == other.limit &&
+          offset == other.offset;
+
+  @override
+  int get hashCode => Object.hash(status, formId, governorateId, districtId, limit, offset);
+}
+
 // ─── Data Providers ───────────────────────────────────────────────────────────
 final governoratesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
   return ref.read(databaseServiceProvider).getGovernorates();
@@ -63,17 +99,19 @@ final formsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
   return ref.read(databaseServiceProvider).getForms();
 });
 
-final submissionsProvider = FutureProvider.family<List<Map<String, dynamic>>,
-    Map<String, dynamic>>((ref, params) {
-  return ref.read(databaseServiceProvider).getSubmissions(
-        formId: params['form_id'],
-        status: params['status'],
-        governorateId: params['governorate_id'],
-        districtId: params['district_id'],
-        limit: params['limit'] ?? 20,
-        offset: params['offset'] ?? 0,
-      );
-});
+final submissionsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, SubmissionsFilter>(
+  (ref, filter) {
+    return ref.read(databaseServiceProvider).getSubmissions(
+          formId: filter.formId,
+          status: filter.status,
+          governorateId: filter.governorateId,
+          districtId: filter.districtId,
+          limit: filter.limit,
+          offset: filter.offset,
+        );
+  },
+);
 
 final dashboardAnalyticsProvider =
     FutureProvider<Map<String, dynamic>>((ref) async {

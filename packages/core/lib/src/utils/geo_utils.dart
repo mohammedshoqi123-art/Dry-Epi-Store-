@@ -42,10 +42,20 @@ class GeoUtils {
     return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
   }
 
-  /// Check if point is within Iraq's bounding box
-  static bool isWithinIraq(double lat, double lng) {
-    // Iraq approximate bounding box
-    return lat >= 29.0 && lat <= 37.5 && lng >= 38.8 && lng <= 48.8;
+  /// Check if point is within Yemen's bounding box
+  static bool isWithinYemen(double lat, double lng) {
+    // Yemen approximate bounding box
+    return lat >= 12.0 && lat <= 19.0 && lng >= 42.0 && lng <= 54.0;
+  }
+
+  /// Generic: Check if point is within a country bounding box
+  static bool isWithinBounds(double lat, double lng, {
+    required double minLat,
+    required double maxLat,
+    required double minLng,
+    required double maxLng,
+  }) {
+    return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
   }
 
   // ─── Formatting ───────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import '../errors/app_exceptions.dart';
 class GeminiService {
   final ApiClient _api;
   final List<Map<String, String>> _history = [];
+  static const int _maxHistorySize = 20;
 
   GeminiService(this._api);
 
@@ -25,7 +26,7 @@ class GeminiService {
     try {
       final response = await _api.callFunction(SupabaseConfig.fnAiChat, {
         'message': message,
-        'history': _history.take(20).toList(),
+        'history': _history.take(_maxHistorySize).toList(),
         'context': analyticsContext,
         'language': 'ar',
       });
@@ -35,6 +36,12 @@ class GeminiService {
           'عذراً، لم أتمكن من معالجة طلبك.';
 
       _history.add({'role': 'assistant', 'content': reply});
+
+      // Trim history to prevent unbounded growth
+      if (_history.length > _maxHistorySize) {
+        _history.removeRange(0, _history.length - _maxHistorySize);
+      }
+
       return reply;
     } on ApiException catch (e) {
       throw AIException('فشل الاتصال بالمساعد الذكي: ${e.message}');

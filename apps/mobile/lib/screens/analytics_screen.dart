@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:epi_shared/epi_shared.dart';
 import '../providers/app_providers.dart';
 
@@ -248,8 +250,42 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   void _exportData() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('جاري تصدير البيانات...', style: TextStyle(fontFamily: 'Tajawal'))),
-    );
+    final analytics = ref.read(dashboardAnalyticsProvider);
+    analytics.whenData((data) {
+      final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
+      final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
+      final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
+      final bySeverity = shortages['bySeverity'] as Map<String, dynamic>? ?? {};
+
+      final buffer = StringBuffer();
+      buffer.writeln('📊 تقرير تحليلات منصة مشرف EPI');
+      buffer.writeln('═══════════════════════════════════');
+      buffer.writeln('');
+      buffer.writeln('📈 الإرساليات:');
+      buffer.writeln('  • الإجمالي: ${submissions['total'] ?? 0}');
+      buffer.writeln('  • اليوم: ${submissions['today'] ?? 0}');
+      buffer.writeln('');
+      buffer.writeln('📋 توزيع الحالات:');
+      for (final entry in byStatus.entries) {
+        final labels = {'draft': 'مسودة', 'submitted': 'مرسل', 'reviewed': 'مراجعة', 'approved': 'معتمد', 'rejected': 'مرفوض'};
+        buffer.writeln('  • ${labels[entry.key] ?? entry.key}: ${entry.value}');
+      }
+      buffer.writeln('');
+      buffer.writeln('⚠️ النواقص:');
+      buffer.writeln('  • الإجمالي: ${shortages['total'] ?? 0}');
+      buffer.writeln('  • المحلولة: ${shortages['resolved'] ?? 0}');
+      buffer.writeln('  • المعلقة: ${shortages['pending'] ?? 0}');
+      buffer.writeln('');
+      buffer.writeln('📊 توزيع الخطورة:');
+      for (final entry in bySeverity.entries) {
+        final labels = {'critical': 'حرج', 'high': 'عالي', 'medium': 'متوسط', 'low': 'منخفض'};
+        buffer.writeln('  • ${labels[entry.key] ?? entry.key}: ${entry.value}');
+      }
+      buffer.writeln('');
+      buffer.writeln('═══════════════════════════════════');
+      buffer.writeln('تاريخ التصدير: ${DateTime.now().toString().split('.')[0]}');
+
+      Share.share(buffer.toString(), subject: 'تقرير تحليلات EPI Supervisor');
+    });
   }
 }

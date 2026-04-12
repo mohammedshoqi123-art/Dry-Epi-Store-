@@ -1,16 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:epi_shared/epi_shared.dart';
 import 'package:epi_core/epi_core.dart';
 
-class SplashScreen extends StatefulWidget {
+import '../providers/app_providers.dart';
+
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
@@ -18,13 +24,28 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigate() async {
+    // Show splash for at least 2 seconds
     await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
+    if (!mounted || _hasNavigated) return;
 
-    final auth = SupabaseConfig.client.auth.currentUser;
-    if (auth != null) {
-      context.go('/dashboard');
+    // Check if Supabase has an active session
+    final session = SupabaseConfig.client.auth.currentSession;
+
+    if (session != null) {
+      // Wait for profile to load (with timeout)
+      try {
+        final authState = await ref.read(authStateProvider.future);
+        if (!mounted || _hasNavigated) return;
+        _hasNavigated = true;
+        context.go('/dashboard');
+      } catch (_) {
+        // Profile failed to load but user is authenticated — still go to dashboard
+        if (!mounted || _hasNavigated) return;
+        _hasNavigated = true;
+        context.go('/dashboard');
+      }
     } else {
+      _hasNavigated = true;
       context.go('/login');
     }
   }
