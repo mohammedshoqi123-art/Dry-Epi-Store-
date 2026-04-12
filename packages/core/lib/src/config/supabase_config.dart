@@ -39,6 +39,7 @@ class SupabaseConfig {
   static const String fnGetAnalytics = 'get-analytics';
   static const String fnAiChat = 'ai-chat';
   static const String fnCreateAdmin = 'create-admin';
+  static const String fnAdminActions = 'admin-actions';
 
   // Storage buckets
   static const String bucketPhotos = 'submission-photos';
