@@ -30,6 +30,7 @@ dependencies:
   supabase_flutter: ^2.5.6
 
   # UI
+  cupertino_icons: ^1.0.8
   flutter_screenutil: ^5.9.3
   google_fonts: ^6.2.1
   shimmer: ^3.0.0
