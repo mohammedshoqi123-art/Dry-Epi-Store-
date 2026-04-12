@@ -1,8 +1,48 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../offline/enhanced_sync_service.dart';
+
+/// Connection quality levels
+enum ConnectionQuality { excellent, good, poor, offline }
+
+/// Smart connection state with pending items count and quality
+class NetworkState {
+  final bool isOnline;
+  final ConnectionQuality quality;
+  final int pendingItems;
+  final DateTime? lastOnline;
+  final DateTime? lastSync;
+
+  const NetworkState({
+    required this.isOnline,
+    this.quality = ConnectionQuality.offline,
+    this.pendingItems = 0,
+    this.lastOnline,
+    this.lastSync,
+  });
+
+  Duration? get offlineDuration =>
+      !isOnline && lastOnline != null ? DateTime.now().difference(lastOnline!) : null;
+
+  String get qualityText {
+    switch (quality) {
+      case ConnectionQuality.excellent: return 'ممتاز';
+      case ConnectionQuality.good: return 'جيد';
+      case ConnectionQuality.poor: return 'ضعيف';
+      case ConnectionQuality.offline: return 'غير متصل';
+    }
+  }
+
+  String get statusMessage {
+    if (!isOnline) {
+      return pendingItems > 0
+          ? 'غير متصل - $pendingItems عنصر في الانتظار'
+          : 'غير متصل - العمل في وضع بدون إنترنت';
+    }
+    return pendingItems > 0
+        ? 'متصل ($qualityText) - جاري مزامنة $pendingItems عنصر...'
+        : 'متصل ($qualityText)';
+  }
+}
 
 /// Animated connection status widget with quality indicator and pending count.
 /// Shows real-time connection state with smooth transitions.
@@ -49,11 +89,8 @@ class ConnectionStatusWidget extends ConsumerWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Connection icon with pulse animation
             _buildConnectionIcon(isOnline, hasPending),
             const SizedBox(width: 8),
-
-            // Status text
             Flexible(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,8 +117,6 @@ class ConnectionStatusWidget extends ConsumerWidget {
                 ],
               ),
             ),
-
-            // Sync button when pending
             if (hasPending && isOnline && onSyncNow != null) ...[
               const SizedBox(width: 8),
               GestureDetector(
@@ -92,16 +127,10 @@ class ConnectionStatusWidget extends ConsumerWidget {
                     color: Colors.green.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.sync,
-                    size: 14,
-                    color: Colors.green,
-                  ),
+                  child: const Icon(Icons.sync, size: 14, color: Colors.green),
                 ),
               ),
             ],
-
-            // Quality indicator
             if (isOnline) ...[
               const SizedBox(width: 6),
               _buildQualityIndicator(),
@@ -113,9 +142,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
   }
 
   Widget _buildConnectionIcon(bool isOnline, bool hasPending) {
-    if (!isOnline) {
-      return const Icon(Icons.wifi_off, size: 16, color: Colors.orange);
-    }
+    if (!isOnline) return const Icon(Icons.wifi_off, size: 16, color: Colors.orange);
     if (hasPending) {
       return SizedBox(
         width: 16,
@@ -130,22 +157,12 @@ class ConnectionStatusWidget extends ConsumerWidget {
   }
 
   Widget _buildQualityIndicator() {
-    Color color;
-    int bars;
-    switch (state.quality) {
-      case ConnectionQuality.excellent:
-        color = Colors.green;
-        bars = 4;
-      case ConnectionQuality.good:
-        color = Colors.green;
-        bars = 3;
-      case ConnectionQuality.poor:
-        color = Colors.orange;
-        bars = 1;
-      case ConnectionQuality.offline:
-        color = Colors.grey;
-        bars = 0;
-    }
+    final (color, bars) = switch (state.quality) {
+      ConnectionQuality.excellent => (Colors.green, 4),
+      ConnectionQuality.good => (Colors.green, 3),
+      ConnectionQuality.poor => (Colors.orange, 1),
+      ConnectionQuality.offline => (Colors.grey, 0),
+    };
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -183,9 +200,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
 
   String _statusText(bool isOnline, bool hasPending) {
     if (!isOnline) {
-      return hasPending
-          ? 'غير متصل - ${state.pendingItems} عنصر معلق'
-          : 'غير متصل';
+      return hasPending ? 'غير متصل - ${state.pendingItems} عنصر معلق' : 'غير متصل';
     }
     if (hasPending) return 'مزامنة ${state.pendingItems} عنصر...';
     return 'متصل (${state.qualityText})';
@@ -212,20 +227,14 @@ class FloatingConnectionIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.isOnline && state.pendingItems == 0) {
-      return const SizedBox.shrink();
-    }
-
+    if (state.isOnline && state.pendingItems == 0) return const SizedBox.shrink();
     return Positioned(
       top: MediaQuery.of(context).padding.top + 4,
       right: 8,
       child: Material(
         elevation: 4,
         borderRadius: BorderRadius.circular(20),
-        child: ConnectionStatusWidget(
-          state: state,
-          onTap: onTap,
-        ),
+        child: ConnectionStatusWidget(state: state, onTap: onTap),
       ),
     );
   }
