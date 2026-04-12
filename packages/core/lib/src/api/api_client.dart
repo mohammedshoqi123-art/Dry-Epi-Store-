@@ -160,17 +160,11 @@ class ApiClient {
     Map<String, dynamic> filter,
     void Function(PostgresChangePayload) callback,
   ) {
-    final builder = _client
-        .channel(channel)
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          callback: callback,
-        );
+    final channelObj = _client.channel(channel);
 
-    // Apply filter if provided and non-empty
     if (filter.isNotEmpty) {
-      builder.onPostgresChanges(
+      // Subscribe with filter — only receive matching changes
+      channelObj.onPostgresChanges(
         event: PostgresChangeEvent.all,
         schema: 'public',
         filter: PostgresChangeFilter(
@@ -180,8 +174,15 @@ class ApiClient {
         ),
         callback: callback,
       );
+    } else {
+      // Subscribe to all changes on this channel
+      channelObj.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        callback: callback,
+      );
     }
 
-    return builder.subscribe();
+    return channelObj.subscribe();
   }
 }

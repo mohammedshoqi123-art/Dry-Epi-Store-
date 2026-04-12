@@ -20,6 +20,14 @@ import '../screens/form_fill_screen.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
 
+  // Minimum role level required per route
+  const routeMinRole = {
+    '/admin/users': 4,   // central+
+    '/admin/audit': 4,   // central+
+    '/analytics': 3,     // governorate+
+    '/ai': 3,            // governorate+
+  };
+
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
@@ -29,10 +37,21 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isSplash) return null;
 
-      final isAuthenticated = authAsync.valueOrNull?.isAuthenticated ?? false;
+      final authState = authAsync.valueOrNull;
+      final isAuthenticated = authState?.isAuthenticated ?? false;
 
       if (!isAuthenticated && !isLoginRoute) return '/login';
       if (isAuthenticated && isLoginRoute) return '/dashboard';
+
+      // Role-based route guards
+      if (isAuthenticated) {
+        final userLevel = authState?.role?.hierarchyLevel ?? 0;
+        final requiredLevel = routeMinRole[state.matchedLocation];
+
+        if (requiredLevel != null && userLevel < requiredLevel) {
+          return '/dashboard'; // Redirect unauthorized users
+        }
+      }
 
       return null;
     },
@@ -150,6 +169,7 @@ class AppDrawer extends ConsumerWidget {
       currentRoute: GoRouterState.of(context).matchedLocation,
       userName: authState?.fullName ?? 'مستخدم',
       userRole: authState?.role?.nameAr,
+      userRoleLevel: authState?.role?.hierarchyLevel ?? 1,
       onNavigate: (route) => context.go(route),
     );
   }

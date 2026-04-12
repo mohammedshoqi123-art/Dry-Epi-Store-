@@ -6,6 +6,7 @@ class EpiDrawer extends StatelessWidget {
   final String? userName;
   final String? userRole;
   final String? avatarUrl;
+  final int userRoleLevel; // 1=data_entry, 2=district, 3=governorate, 4=central, 5=admin
   final ValueChanged<String>? onNavigate;
 
   const EpiDrawer({
@@ -14,6 +15,7 @@ class EpiDrawer extends StatelessWidget {
     this.userName,
     this.userRole,
     this.avatarUrl,
+    this.userRoleLevel = 1,
     this.onNavigate,
   });
 
@@ -70,11 +72,15 @@ class EpiDrawer extends StatelessWidget {
             _buildItem(context, Icons.assignment, 'النماذج', '/forms'),
             _buildItem(context, Icons.upload_file, 'الإرساليات', '/submissions'),
             _buildItem(context, Icons.map, 'الخريطة', '/map'),
-            _buildItem(context, Icons.bar_chart, 'التحليلات', '/analytics'),
-            _buildItem(context, Icons.smart_toy, 'المساعد الذكي', '/ai'),
-            const Divider(),
-            _buildItem(context, Icons.people, 'إدارة المستخدمين', '/admin/users'),
-            _buildItem(context, Icons.history, 'سجل العمليات', '/admin/audit'),
+            if (userRoleLevel >= 3) ...[
+              _buildItem(context, Icons.bar_chart, 'التحليلات', '/analytics'),
+              _buildItem(context, Icons.smart_toy, 'المساعد الذكي', '/ai'),
+            ],
+            if (userRoleLevel >= 4) ...[
+              const Divider(),
+              _buildItem(context, Icons.people, 'إدارة المستخدمين', '/admin/users'),
+              _buildItem(context, Icons.history, 'سجل العمليات', '/admin/audit'),
+            ],
           ],
         ),
       ),

@@ -14,8 +14,11 @@ class EpiBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
       currentIndex: currentIndex,
       onTap: onTap,
+      selectedItemColor: AppTheme.primaryColor,
+      unselectedItemColor: AppTheme.textHint,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'الرئيسية'),
         BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'النماذج'),
