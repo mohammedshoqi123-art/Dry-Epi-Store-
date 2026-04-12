@@ -17,7 +17,7 @@ build/
 *.swo
 
 # ─── Generated Files ───────────────────────────────────────
-*.g.dart
+# *.g.dart — COMMIT these so CI doesn't need build_runner
 *.freezed.dart
 *.mocks.dart
 

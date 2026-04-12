@@ -28,29 +28,36 @@ class LocalAIEngine {
 
   // ─── Query Handlers ───────────────────────────────────────────────────────
 
-  String _count(Map d) {
-    final t = d['submissions']?['total'] ?? 0;
-    final td = d['submissions']?['today'] ?? 0;
+  String _count(Map<String, dynamic> d) {
+    final subs = d['submissions'] as Map<String, dynamic>? ?? {};
+    final t = subs['total'] ?? 0;
+    final td = subs['today'] ?? 0;
     return 'إجمالي الإرساليات: $t. اليوم: $td إرسالية.';
   }
 
-  String _shortage(Map d) {
-    final t = d['shortages']?['total'] ?? 0;
-    final c = d['shortages']?['bySeverity']?['critical'] ?? 0;
+  String _shortage(Map<String, dynamic> d) {
+    final shorts = d['shortages'] as Map<String, dynamic>? ?? {};
+    final t = shorts['total'] ?? 0;
+    final bySev = shorts['bySeverity'] as Map<String, dynamic>? ?? {};
+    final c = bySev['critical'] ?? 0;
     if (t == 0) return 'لا توجد نواقص مسجلة. ممتاز!';
     return 'يوجد $t نقص منها $c حرج يحتاج معالجة فورية.';
   }
 
-  String _summary(Map d) => 'ملخص: ${d['submissions']?['total']} إرسالية '
-      '${d['shortages']?['total']} نقص '
-      '${d['shortages']?['resolved']} محلول.';
+  String _summary(Map<String, dynamic> d) {
+    final subs = d['submissions'] as Map<String, dynamic>? ?? {};
+    final shorts = d['shortages'] as Map<String, dynamic>? ?? {};
+    return 'ملخص: ${subs['total']} إرسالية '
+        '${shorts['total']} نقص '
+        '${shorts['resolved']} محلول.';
+  }
 
-  String _recommend(Map d) =>
+  String _recommend(Map<String, dynamic> d) =>
       LocalAnalyticsEngine.generateInsights(d).join('\n');
 
-  String _trend(Map d) => 'تحليل الاتجاه يتطلب بيانات تاريخية أكثر للتحليل.';
+  String _trend(Map<String, dynamic> d) => 'تحليل الاتجاه يتطلب بيانات تاريخية أكثر للتحليل.';
 
-  String _generalInsight(Map d) =>
+  String _generalInsight(Map<String, dynamic> d) =>
       LocalAnalyticsEngine.generateInsights(d).firstOrNull ??
       'مرحباً! كيف يمكنني مساعدتك';
 
