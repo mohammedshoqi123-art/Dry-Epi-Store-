@@ -17,8 +17,8 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
--- PostGIS: usually pre-enabled on Supabase. If not, uncomment:
--- CREATE EXTENSION IF NOT EXISTS "postgis";
+-- PostGIS: required for GEOMETRY columns. Supabase usually has this pre-enabled.
+CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- ============================================================
 -- 2. ENUMS

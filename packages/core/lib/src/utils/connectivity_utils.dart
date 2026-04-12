@@ -15,8 +15,10 @@ class ConnectivityUtils {
     final result = await _connectivity.checkConnectivity();
     _isOnline = _isConnected(result);
 
-    _subscription = _connectivity.onConnectivityChanged.listen((result) {
-      final online = _isConnected(result);
+    _subscription = _connectivity.onConnectivityChanged.listen((results) {
+      // connectivity_plus 6.x returns List<ConnectivityResult>
+      final resultList = results is List<ConnectivityResult> ? results : [results as ConnectivityResult];
+      final online = _isConnected(resultList);
       if (online != _isOnline) {
         _isOnline = online;
         _controller.add(_isOnline);

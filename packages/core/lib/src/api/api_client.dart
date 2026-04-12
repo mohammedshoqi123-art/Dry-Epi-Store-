@@ -160,18 +160,28 @@ class ApiClient {
     Map<String, dynamic> filter,
     void Function(PostgresChangePayload) callback,
   ) {
-    return _client
+    final builder = _client
         .channel(channel)
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
-          filter: filter != null ? PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq, 
-            column: filter.keys.first, 
-            value: filter.values.first
-          ) : null,
           callback: callback,
-        )
-        .subscribe();
+        );
+
+    // Apply filter if provided and non-empty
+    if (filter.isNotEmpty) {
+      builder.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: filter.keys.first,
+          value: filter.values.first,
+        ),
+        callback: callback,
+      );
+    }
+
+    return builder.subscribe();
   }
 }
