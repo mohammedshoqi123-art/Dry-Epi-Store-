@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../api/api_client.dart';
 import '../config/supabase_config.dart';
 import '../offline/offline_manager.dart';
 import '../errors/app_exceptions.dart';
 
+/// Manages background synchronization of offline data.
+/// Handles batch syncing, conflict resolution, and retry logic.
 class SyncService {
   final ApiClient _api;
   final OfflineManager _offline;
@@ -15,8 +18,11 @@ class SyncService {
   SyncState _currentState = const SyncState();
   SyncState get currentState => _currentState;
 
+  static const int _batchSize = 10;
+
   SyncService(this._api, this._offline);
 
+  /// Start periodic auto-sync (every 5 minutes + on connectivity change)
   void startAutoSync() {
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
@@ -34,90 +40,85 @@ class SyncService {
     _syncTimer?.cancel();
   }
 
-  Future<SyncResult> sync() async {
-    if (_isSyncing) return SyncResult.empty;
-    if (!_offline.isOnline) return SyncResult.empty;
+  /// Perform a sync cycle. Returns summary of results.
+  Future<SyncCycleResult> sync() async {
+    if (_isSyncing) return SyncCycleResult.empty();
+    if (!_offline.isOnline) return SyncCycleResult.empty();
 
     _isSyncing = true;
     _updateState(isSyncing: true);
 
-    final result = SyncResult();
-    final pendingItems = await _offline.getPendingItems();
+    final result = SyncCycleResult();
 
-    if (pendingItems.isEmpty) {
-      _isSyncing = false;
-      _updateState(isSyncing: false, lastSync: DateTime.now());
-      return result;
-    }
-
-    _updateState(
-      isSyncing: true,
-      totalItems: pendingItems.length,
-      processedItems: 0,
-    );
-
-    // Batch sync (10 items at a time)
-    const batchSize = 10;
-    for (var i = 0; i < pendingItems.length; i += batchSize) {
-      final batch = pendingItems.skip(i).take(batchSize).toList();
-
-      try {
+    try {
+      // Use the improved OfflineManager's syncPendingItems with retry/conflict handling
+      final syncResults = await _offline.syncPendingItems((item) async {
         final response = await _api.callFunction(
           SupabaseConfig.fnSyncOffline,
-          {'items': batch},
+          {'items': [item]},
         );
+        final results = (response['results'] as List?) ?? [];
+        final errors = (response['errors'] as List?) ?? [];
 
-        final results = response['results'] as List? ?? [];
-        final errors = response['errors'] as List? ?? [];
+        if (results.isNotEmpty) {
+          final r = results.first;
+          return {'success': true, 'status': r['status'], ...r};
+        }
+        if (errors.isNotEmpty) {
+          final e = errors.first;
+          return {'success': false, 'error': e['error']};
+        }
+        return {'success': false, 'error': 'Unknown sync response'};
+      });
 
-        for (final r in results) {
-          if (r['status'] == 'synced' || r['status'] == 'duplicate') {
-            await _offline.removeFromQueue(r['offline_id']);
+      for (final sr in syncResults) {
+        switch (sr.status) {
+          case SyncStatus.success:
             result.synced++;
-          }
+          case SyncStatus.duplicate:
+            result.duplicates++;
+          case SyncStatus.conflict:
+            result.conflicts++;
+            result.conflictDetails.add(sr);
+          case SyncStatus.error:
+            result.failed++;
+            result.errors.add(SyncError(offlineId: sr.offlineId, error: sr.errorMessage ?? 'Unknown'));
         }
-
-        for (final e in errors) {
-          result.failed++;
-          result.errors.add(SyncError(
-            offlineId: e['offline_id'],
-            error: e['error'],
-          ));
-        }
-      } catch (e) {
-        result.failed += batch.length;
-        result.errors.add(SyncError(error: e.toString()));
       }
-
-      _updateState(
-        isSyncing: true,
-        totalItems: pendingItems.length,
-        processedItems: (i + batch.length).clamp(0, pendingItems.length).toInt(),
-      );
+    } catch (e) {
+      if (kDebugMode) print('Sync cycle error: $e');
+      result.errors.add(SyncError(error: e.toString()));
     }
 
     _isSyncing = false;
     _updateState(
       isSyncing: false,
       lastSync: DateTime.now(),
-      totalItems: pendingItems.length,
-      processedItems: pendingItems.length,
+      pendingCount: _offline.pendingCount,
     );
 
     return result;
   }
 
+  /// Get unresolved conflicts for manual resolution
+  List<Map<String, dynamic>> getConflicts() {
+    return _offline.getUnresolvedConflicts();
+  }
+
+  /// Resolve a conflict
+  Future<void> resolveConflict(String offlineId, {bool useLocal = false}) async {
+    await _offline.resolveConflict(offlineId, useLocal: useLocal);
+  }
+
   void _updateState({
     bool? isSyncing,
     DateTime? lastSync,
-    int? totalItems,
-    int? processedItems,
+    int? pendingCount,
   }) {
     _currentState = _currentState.copyWith(
       isSyncing: isSyncing,
       lastSync: lastSync,
-      totalItems: totalItems,
-      processedItems: processedItems,
+      pendingCount: pendingCount,
     );
     _syncStateController.add(_currentState);
   }
@@ -128,48 +129,58 @@ class SyncService {
   }
 }
 
+/// State of the sync service
 class SyncState {
   final bool isSyncing;
   final DateTime? lastSync;
-  final int totalItems;
-  final int processedItems;
+  final int pendingCount;
 
   const SyncState({
     this.isSyncing = false,
     this.lastSync,
-    this.totalItems = 0,
-    this.processedItems = 0,
+    this.pendingCount = 0,
   });
 
   SyncState copyWith({
     bool? isSyncing,
     DateTime? lastSync,
-    int? totalItems,
-    int? processedItems,
+    int? pendingCount,
   }) {
     return SyncState(
       isSyncing: isSyncing ?? this.isSyncing,
       lastSync: lastSync ?? this.lastSync,
-      totalItems: totalItems ?? this.totalItems,
-      processedItems: processedItems ?? this.processedItems,
+      pendingCount: pendingCount ?? this.pendingCount,
     );
   }
-
-  double get progress => totalItems > 0 ? processedItems / totalItems : 1.0;
 }
 
-class SyncResult {
+/// Result of a complete sync cycle
+class SyncCycleResult {
   int synced = 0;
+  int duplicates = 0;
+  int conflicts = 0;
   int failed = 0;
   List<SyncError> errors = [];
+  List<SyncResult> conflictDetails = [];
 
-  SyncResult();
-  static SyncResult empty = SyncResult();
+  SyncCycleResult();
+  factory SyncCycleResult.empty() => SyncCycleResult();
+
+  bool get hasErrors => errors.isNotEmpty;
+  bool get hasConflicts => conflicts > 0;
+  int get total => synced + duplicates + conflicts + failed;
+
+  @override
+  String toString() => 'SyncCycleResult(synced=$synced, dup=$duplicates, conflict=$conflicts, failed=$failed)';
 }
 
+/// Individual sync error
 class SyncError {
   final String? offlineId;
   final String error;
 
   SyncError({this.offlineId, required this.error});
+
+  @override
+  String toString() => 'SyncError(${offlineId ?? "?"}: $error)';
 }

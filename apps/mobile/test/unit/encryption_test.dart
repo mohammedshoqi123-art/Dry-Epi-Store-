@@ -1,101 +1,121 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:epi_core/src/security/encryption_service.dart';
+import 'dart:convert';
 
 void main() {
-  late EncryptionService encryption;
+  group('EncryptionService - Security Tests', () {
+    late EncryptionService service;
 
-  setUp(() {
-    encryption = EncryptionService();
-  });
-
-  group('EncryptionService', () {
-    test('encrypt returns non-empty string', () {
-      final result = encryption.encrypt('hello');
-      expect(result, isNotEmpty);
-      expect(result, isNot('hello'));
+    setUp(() {
+      service = EncryptionService();
     });
 
-    test('decrypt reverses encrypt for simple string', () {
-      const plaintext = 'Hello, World!';
-      final encrypted = encryption.encrypt(plaintext);
-      final decrypted = encryption.decrypt(encrypted);
-      expect(decrypted, equals(plaintext));
+    test('encrypt produces non-empty base64 output', () {
+      final encrypted = service.encrypt('test data');
+      expect(encrypted, isNotEmpty);
+      // Should be valid base64
+      expect(() => base64Decode(encrypted), returnsNormally);
     });
 
-    test('decrypt reverses encrypt for Arabic text', () {
-      const plaintext = 'مرحباً بالعالم - منصة مشرف EPI';
-      final encrypted = encryption.encrypt(plaintext);
-      final decrypted = encryption.decrypt(encrypted);
-      expect(decrypted, equals(plaintext));
+    test('different IVs produce different ciphertexts for same plaintext', () {
+      const plaintext = 'identical plaintext for both encryptions';
+      final enc1 = service.encrypt(plaintext);
+      final enc2 = service.encrypt(plaintext);
+      // Due to random IV, outputs should differ
+      expect(enc1, isNot(equals(enc2)));
     });
 
-    test('decrypt reverses encrypt for JSON data', () {
-      const plaintext = '{"form_id":"abc-123","data":{"name":"test","value":42}}';
-      final encrypted = encryption.encrypt(plaintext);
-      final decrypted = encryption.decrypt(encrypted);
-      expect(decrypted, equals(plaintext));
+    test('roundtrip: encrypt then decrypt returns original plaintext', () {
+      const original = 'بيانات حساسة للنظام الصحي';
+      final encrypted = service.encrypt(original);
+      final decrypted = service.decrypt(encrypted);
+      expect(decrypted, equals(original));
     });
 
-    test('each encryption produces different output (random salt+IV)', () {
-      const plaintext = 'same input';
-      final enc1 = encryption.encrypt(plaintext);
-      final enc2 = encryption.encrypt(plaintext);
-      expect(enc1, isNot(enc2)); // different due to random salt/IV
-      // But both should decrypt to same plaintext
-      expect(encryption.decrypt(enc1), equals(plaintext));
-      expect(encryption.decrypt(enc2), equals(plaintext));
+    test('roundtrip works with empty string', () {
+      final encrypted = service.encrypt('');
+      final decrypted = service.decrypt(encrypted);
+      expect(decrypted, equals(''));
     });
 
-    test('decrypt with invalid input throws', () {
-      expect(() => encryption.decrypt('not-encrypted'), throwsException);
-      expect(() => encryption.decrypt(''), throwsException);
+    test('roundtrip works with unicode and emoji', () {
+      const original = 'تطعيم 💉 2024 — الحصبة والشلل';
+      final encrypted = service.encrypt(original);
+      final decrypted = service.decrypt(encrypted);
+      expect(decrypted, equals(original));
+    });
+
+    test('roundtrip works with large data (100KB)', () {
+      final largeData = 'x' * 100000;
+      final encrypted = service.encrypt(largeData);
+      final decrypted = service.decrypt(encrypted);
+      expect(decrypted, equals(largeData));
+    });
+
+    test('tampered ciphertext throws exception', () {
+      final encrypted = service.encrypt('secret data');
+      final bytes = base64Decode(encrypted);
+      // Flip a byte in the middle of the ciphertext
+      if (bytes.length > 30) {
+        bytes[bytes.length - 5] = bytes[bytes.length - 5] ^ 0xFF;
+      }
+      final tampered = base64Encode(bytes);
+      expect(
+        () => service.decrypt(tampered),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('truncated ciphertext throws exception', () {
+      final encrypted = service.encrypt('test');
+      final bytes = base64Decode(encrypted);
+      // Truncate to half
+      final truncated = base64Encode(bytes.sublist(0, bytes.length ~/ 2));
+      expect(
+        () => service.decrypt(truncated),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('invalid base64 throws exception', () {
+      expect(
+        () => service.decrypt('not-valid-base64!!!'),
+        throwsA(isA<Exception>()),
+      );
     });
 
     test('encryptMap and decryptMap roundtrip', () {
       final map = {
-        'form_id': 'test-123',
-        'status': 'submitted',
+        'name': 'أحمد',
+        'role': 'supervisor',
         'count': 42,
         'nested': {'key': 'value'},
       };
-      final encrypted = encryption.encryptMap(map);
-      final decrypted = encryption.decryptMap(encrypted);
-      expect(decrypted['form_id'], equals('test-123'));
-      expect(decrypted['status'], equals('submitted'));
+      final encrypted = service.encryptMap(map);
+      final decrypted = service.decryptMap(encrypted);
+      expect(decrypted['name'], equals('أحمد'));
+      expect(decrypted['role'], equals('supervisor'));
       expect(decrypted['count'], equals(42));
-      expect(decrypted['nested']['key'], equals('value'));
+      expect(decrypted['nested'], equals({'key': 'value'}));
     });
 
-    test('hash returns consistent results', () {
-      final h1 = encryption.hash('test input');
-      final h2 = encryption.hash('test input');
-      expect(h1, equals(h2));
-      expect(h1.length, equals(16));
+    test('hash is deterministic', () {
+      final hash1 = service.hash('test input');
+      final hash2 = service.hash('test input');
+      expect(hash1, equals(hash2));
     });
 
-    test('hash returns different results for different inputs', () {
-      final h1 = encryption.hash('input1');
-      final h2 = encryption.hash('input2');
-      expect(h1, isNot(h2));
+    test('different inputs produce different hashes', () {
+      final hash1 = service.hash('input A');
+      final hash2 = service.hash('input B');
+      expect(hash1, isNot(equals(hash2)));
     });
 
     test('verifyIntegrity works correctly', () {
-      final h = encryption.hash('important data');
-      expect(encryption.verifyIntegrity('important data', h), isTrue);
-      expect(encryption.verifyIntegrity('tampered data', h), isFalse);
-    });
-
-    test('handles empty string', () {
-      final encrypted = encryption.encrypt('');
-      final decrypted = encryption.decrypt(encrypted);
-      expect(decrypted, equals(''));
-    });
-
-    test('handles long string (10KB)', () {
-      final plaintext = 'A' * 10240;
-      final encrypted = encryption.encrypt(plaintext);
-      final decrypted = encryption.decrypt(encrypted);
-      expect(decrypted, equals(plaintext));
+      const data = 'important data';
+      final hash = service.hash(data);
+      expect(service.verifyIntegrity(data, hash), isTrue);
+      expect(service.verifyIntegrity('tampered data', hash), isFalse);
     });
   });
 }

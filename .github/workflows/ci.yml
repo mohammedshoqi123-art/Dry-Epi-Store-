@@ -108,6 +108,8 @@ jobs:
           flutter build apk --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }} \
+            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
             $GEMINI_FLAG
 
       - name: Upload APK artifact
@@ -153,6 +155,8 @@ jobs:
           flutter build web --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }} \
+            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
             $GEMINI_FLAG \
             --base-href "/EPI-Supervisor/"
 

@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
+const GEMINI_STREAM_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -36,7 +37,7 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { message, history = [], context, language = 'ar', mode } = await req.json()
+    const { message, history = [], context, language = 'ar', mode, stream = false } = await req.json()
 
     if (!message) {
       return new Response(JSON.stringify({ error: 'Message is required' }), {
@@ -48,14 +49,22 @@ serve(async (req) => {
     // Check Gemini API key
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
     if (!geminiApiKey) {
+      // Suggestions mode fallback
+      if (mode === 'suggestions') {
+        return new Response(JSON.stringify({
+          suggestions: [
+            'ما هي المحافظات الأكثر نشاطاً في الإرسال؟',
+            'ما أكثر النواقص شيوعاً هذا الشهر؟',
+            'كيف تقارن إرساليات هذا الأسبوع بالأسبوع الماضي؟'
+          ]
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
       return new Response(JSON.stringify({
         error: 'AI service not configured',
         reply: 'خدمة الذكاء الاصطناعي غير مُعدّة حالياً. يرجى التواصل مع مدير النظام.',
-        suggestions: [
-          'ما هي المحافظات الأكثر نشاطاً في الإرسال؟',
-          'ما أكثر النواقص شيوعاً هذا الشهر؟',
-          'كيف تقارن إرساليات هذا الأسبوع بالأسبوع الماضي؟'
-        ]
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -66,7 +75,7 @@ serve(async (req) => {
     let systemContext = ''
     if (context) {
       systemContext = `
-أنت مساعد ذكي متخصص في تحليل بيانات حملات التطعيم في العراق.
+أنت مساعد ذكي متخصص في تحليل بيانات حملات التطعيم في اليمن.
 قدم إجابات مفيدة ودقيقة باللغة العربية.
 البيانات المتاحة:
 ${JSON.stringify(context, null, 2)}
@@ -91,17 +100,104 @@ ${JSON.stringify(context, null, 2)}
     // Add current message
     contents.push({ role: 'user', parts: [{ text: message }] })
 
-    // Call Gemini
+    const requestBody = {
+      contents,
+      generationConfig: {
+        maxOutputTokens: 2048,
+        temperature: 0.7,
+        ...(mode === 'suggestions' ? { responseMimeType: 'application/json' } : {}),
+      },
+      ...(mode === 'suggestions' ? {
+        systemInstruction: {
+          parts: [{ text: 'اقترح 3 أسئلة تحليلية مفيدة. أرجع النتيجة كـ JSON array من strings فقط.' }]
+        }
+      } : {}),
+    }
+
+    // ─── Streaming response ────────────────────────────────
+    if (stream) {
+      const response = await fetch(`${GEMINI_STREAM_URL}?key=${geminiApiKey}&alt=sse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      })
+
+      if (!response.ok) {
+        const err = await response.text()
+        console.error('Gemini stream error:', err)
+        return new Response(JSON.stringify({
+          error: 'AI service error',
+          reply: 'حدث خطأ في خدمة الذكاء الاصطناعي.'
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      // Stream SSE chunks to the client
+      const reader = response.body?.getReader()
+      if (!reader) {
+        return new Response(JSON.stringify({ error: 'Stream unavailable' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      const { readable, writable } = new TransformStream()
+      const writer = writable.getWriter()
+      const encoder = new TextEncoder()
+      const decoder = new TextDecoder()
+
+      // Process stream in background
+      ;(async () => {
+        try {
+          let buffer = ''
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() ?? ''
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim()
+                if (data === '[DONE]') continue
+                try {
+                  const parsed = JSON.parse(data)
+                  const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text
+                  if (text) {
+                    await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+                  }
+                } catch { /* skip malformed JSON */ }
+              }
+            }
+          }
+          await writer.write(encoder.encode('data: [DONE]\n\n'))
+        } catch (err) {
+          console.error('Stream processing error:', err)
+        } finally {
+          await writer.close()
+        }
+      })()
+
+      return new Response(readable, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      })
+    }
+
+    // ─── Non-streaming response (default) ──────────────────
     const response = await fetch(`${GEMINI_API_URL}?key=${geminiApiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          maxOutputTokens: 2048,
-          temperature: 0.7,
-        }
-      })
+      body: JSON.stringify(requestBody),
     })
 
     const result = await response.json()
@@ -115,6 +211,23 @@ ${JSON.stringify(context, null, 2)}
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
+    }
+
+    // Suggestions mode — parse as JSON
+    if (mode === 'suggestions') {
+      try {
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]'
+        const suggestions = JSON.parse(text)
+        return new Response(JSON.stringify({ suggestions }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      } catch {
+        return new Response(JSON.stringify({ suggestions: [] }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
     }
 
     const reply = result.candidates?.[0]?.content?.parts?.[0]?.text ??

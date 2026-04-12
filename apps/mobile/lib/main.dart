@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
@@ -12,6 +11,39 @@ import 'router/app_router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Validate all environment variables first
+  try {
+    EnvValidator.validate();
+  } catch (e) {
+    runApp(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text(
+                  'خطأ في الإعدادات',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  e.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontFamily: 'Tajawal'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ));
+    return;
+  }
 
   // Validate Supabase configuration is set
   try {
@@ -28,7 +60,7 @@ Future<void> main() async {
                 const Icon(Icons.error_outline, size: 64, color: Colors.red),
                 const SizedBox(height: 16),
                 const Text(
-                  'خطأ في الإعدادات',
+                  'خطأ في إعدادات Supabase',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
                 ),
                 const SizedBox(height: 8),
@@ -70,24 +102,10 @@ Future<void> main() async {
     ),
   );
 
-  // Initialize Sentry monitoring
-  const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-  if (sentryDsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = sentryDsn;
-        options.tracesSampleRate = AppConfig.isProduction ? 0.2 : 1.0;
-        // ignore: invalid_use_of_protected_member
-        options.profilesSampleRate = AppConfig.isProduction ? 0.1 : 1.0;
-        options.environment = AppConfig.environment;
-        options.release = 'epi-supervisor@${AppConfig.appVersion}+${AppConfig.buildNumber}';
-        options.attachStacktrace = true;
-      },
-      appRunner: () => runApp(const ProviderScope(child: EpiSupervisorApp())),
-    );
-  } else {
-    runApp(const ProviderScope(child: EpiSupervisorApp()));
-  }
+  // Initialize Sentry with centralized config
+  await SentryConfig.init(
+    appRunner: () => runApp(const ProviderScope(child: EpiSupervisorApp())),
+  );
 }
 
 class EpiSupervisorApp extends ConsumerWidget {

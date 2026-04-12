@@ -6,7 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// In-memory rate limiter (per instance, sufficient for Edge Functions)
+// ─── Role hierarchy for permission validation ────────────────
+const ROLE_HIERARCHY: Record<string, number> = {
+  'admin': 5,
+  'central': 4,
+  'governorate': 3,
+  'district': 2,
+  'data_entry': 1,
+}
+
+// ─── In-memory rate limiter ──────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
 function checkRateLimit(userId: string, limit = 10, windowMs = 60000): boolean {
@@ -18,14 +27,67 @@ function checkRateLimit(userId: string, limit = 10, windowMs = 60000): boolean {
     return true
   }
 
-  if (entry.count >= limit) {
-    return false
-  }
-
+  if (entry.count >= limit) return false
   entry.count++
   return true
 }
 
+// ─── Hierarchical permission validation ──────────────────────
+interface UserProfile {
+  role: string
+  governorate_id: string | null
+  district_id: string | null
+}
+
+async function validateSubmissionPermissions(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  targetGovId: string | null,
+  targetDistId: string | null
+): Promise<{ valid: boolean; error?: string }> {
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role, governorate_id, district_id')
+    .eq('id', userId)
+    .single()
+
+  if (error || !profile) return { valid: false, error: 'User profile not found' }
+
+  const p = profile as UserProfile
+
+  switch (p.role) {
+    case 'admin':
+    case 'central':
+      // Can submit for any governorate/district
+      return { valid: true }
+
+    case 'governorate':
+      if (targetGovId && targetGovId !== p.governorate_id) {
+        return { valid: false, error: 'Cannot submit data for a different governorate' }
+      }
+      return { valid: true }
+
+    case 'district':
+      if (targetGovId && targetGovId !== p.governorate_id) {
+        return { valid: false, error: 'Cannot submit data for a different governorate' }
+      }
+      if (targetDistId && targetDistId !== p.district_id) {
+        return { valid: false, error: 'Cannot submit data for a different district' }
+      }
+      return { valid: true }
+
+    case 'data_entry':
+      if (targetGovId !== p.governorate_id || targetDistId !== p.district_id) {
+        return { valid: false, error: 'Data entry users can only submit for their assigned area' }
+      }
+      return { valid: true }
+
+    default:
+      return { valid: false, error: `Invalid role: ${p.role}` }
+  }
+}
+
+// ─── Main handler ────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -50,7 +112,7 @@ serve(async (req) => {
       })
     }
 
-    // ─── Rate Limiting ────────────────────────────────────────
+    // ─── Rate Limiting ──────────────────────────────────────
     if (!checkRateLimit(user.id)) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 submissions per minute.' }), {
         status: 429,
@@ -69,7 +131,7 @@ serve(async (req) => {
       offline_id, device_id, app_version, is_offline = false
     } = body
 
-    // ─── Validate Required Fields ─────────────────────────────
+    // ─── Validate Required Fields ───────────────────────────
     if (!form_id || typeof form_id !== 'string') {
       return new Response(JSON.stringify({ error: 'form_id is required and must be a string' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -100,7 +162,27 @@ serve(async (req) => {
       }
     }
 
-    // ─── Verify Form Exists ───────────────────────────────────
+    // Validate payload size (max 1MB)
+    const payloadSize = JSON.stringify(body).length
+    if (payloadSize > 1024 * 1024) {
+      return new Response(JSON.stringify({ error: 'Payload too large (max 1MB)' }), {
+        status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // ─── Hierarchical Permission Check ──────────────────────
+    const permCheck = await validateSubmissionPermissions(
+      supabase, user.id,
+      governorate_id ?? null,
+      district_id ?? null
+    )
+    if (!permCheck.valid) {
+      return new Response(JSON.stringify({ error: permCheck.error }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // ─── Verify Form Exists ─────────────────────────────────
     const { data: form, error: formError } = await supabase
       .from('forms')
       .select('id, requires_gps, requires_photo, allowed_roles, schema')
@@ -112,6 +194,20 @@ serve(async (req) => {
     if (formError || !form) {
       return new Response(JSON.stringify({ error: 'Form not found or inactive' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Get user profile for role check
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('governorate_id, district_id, role')
+      .eq('id', user.id)
+      .single()
+
+    // Check role permission against form's allowed_roles
+    if (form.allowed_roles && profile?.role && !form.allowed_roles.includes(profile.role)) {
+      return new Response(JSON.stringify({ error: 'Your role does not have permission to submit this form' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -129,25 +225,21 @@ serve(async (req) => {
       })
     }
 
-    // Get user profile for role + governorate/district
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('governorate_id, district_id, role')
-      .eq('id', user.id)
-      .single()
+    // ─── Use authoritative profile values (NOT user-supplied) ────
+    // Only admin/central can override governorate/district
+    const effectiveGovId = (profile?.role === 'admin' || profile?.role === 'central')
+      ? (governorate_id || profile?.governorate_id || null)
+      : (profile?.governorate_id || null)
 
-    // Check role permission
-    if (form.allowed_roles && profile?.role && !form.allowed_roles.includes(profile.role)) {
-      return new Response(JSON.stringify({ error: 'Your role does not have permission to submit this form' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
+    const effectiveDistId = (profile?.role === 'admin' || profile?.role === 'central')
+      ? (district_id || profile?.district_id || null)
+      : (profile?.district_id || null)
 
     const submissionData = {
       form_id,
       submitted_by: user.id,
-      governorate_id: governorate_id || profile?.governorate_id || null,
-      district_id: district_id || profile?.district_id || null,
+      governorate_id: effectiveGovId,
+      district_id: effectiveDistId,
       status,
       data: formData || {},
       gps_lat: gps_lat || null,
@@ -163,7 +255,7 @@ serve(async (req) => {
       synced_at: is_offline ? new Date().toISOString() : null,
     }
 
-    // Check for duplicate offline submission
+    // ─── Check for duplicate offline submission (Idempotency) ────
     if (offline_id) {
       const { data: existing } = await supabase
         .from('form_submissions')
@@ -197,13 +289,13 @@ serve(async (req) => {
       })
     }
 
-    // Log audit
+    // Log audit (fire-and-forget)
     await supabase.from('audit_logs').insert({
       user_id: user.id,
       action: 'submit',
       table_name: 'form_submissions',
       record_id: submission.id,
-      metadata: { form_id, is_offline, offline_id }
+      metadata: { form_id, is_offline, offline_id, governorate_id: effectiveGovId }
     }).then(() => {}).catch(() => {})
 
     return new Response(JSON.stringify({
