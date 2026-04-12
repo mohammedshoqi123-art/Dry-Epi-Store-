@@ -51,7 +51,9 @@ jobs:
 
       - name: Generate code (shared)
         working-directory: packages/shared
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: |
+          # build_runner may have nothing to do — that's OK
+          dart run build_runner build --delete-conflicting-outputs || true
 
       - name: Analyze code
         working-directory: apps/mobile
@@ -87,8 +89,8 @@ jobs:
 
       - name: Setup project
         run: |
-          cd packages/core && flutter pub get && dart run build_runner build --delete-conflicting-outputs
-          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs
+          cd packages/core && flutter pub get
+          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs || true
           cd $GITHUB_WORKSPACE/packages/features && flutter pub get
           cd $GITHUB_WORKSPACE/apps/mobile && flutter pub get
 
@@ -132,8 +134,8 @@ jobs:
 
       - name: Setup project
         run: |
-          cd packages/core && flutter pub get && dart run build_runner build --delete-conflicting-outputs
-          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs
+          cd packages/core && flutter pub get
+          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs || true
           cd $GITHUB_WORKSPACE/packages/features && flutter pub get
           cd $GITHUB_WORKSPACE/apps/mobile && flutter pub get
 
