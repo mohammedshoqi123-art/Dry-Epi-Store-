@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
@@ -42,7 +41,7 @@ class ApiClient {
       return List<Map<String, dynamic>>.from(await finalQuery);
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on SocketException {
+    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
       throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'select($table)');
@@ -67,7 +66,7 @@ class ApiClient {
       rethrow;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on SocketException {
+    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
       throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'selectOne($table)');
@@ -89,7 +88,7 @@ class ApiClient {
       return result;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on SocketException {
+    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
       throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'insert($table)');
@@ -112,7 +111,7 @@ class ApiClient {
       return result;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on SocketException {
+    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
       throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'update($table)');
@@ -132,7 +131,7 @@ class ApiClient {
       await query;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on SocketException {
+    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
       throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'delete($table)');
@@ -161,7 +160,7 @@ class ApiClient {
       return Map<String, dynamic>.from(response.data);
     } on FunctionException catch (e) {
       throw _mapFunctionException(e);
-    } on SocketException {
+    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
       throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'callFunction($functionName)');
