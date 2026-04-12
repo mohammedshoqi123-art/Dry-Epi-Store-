@@ -31,8 +31,6 @@ enabled = true
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
-refresh_token_rotation_enabled = true
-enable_refresh_token_reuse = true
 
 [auth.email]
 enable_signup = true
