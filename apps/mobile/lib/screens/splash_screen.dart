@@ -71,6 +71,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       }
     } catch (e) {
       // Supabase not initialized — go to login
+      debugPrint('SplashScreen: Supabase access failed: $e');
       setState(() => _status = 'الانتقال لتسجيل الدخول...');
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted || _hasNavigated) return;

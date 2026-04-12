@@ -4,7 +4,8 @@ import '../config/supabase_config.dart';
 import 'auth_state.dart' as app_auth;
 
 class AuthRepository {
-  final SupabaseClient _client = SupabaseConfig.client;
+  SupabaseClient? _client;
+  bool _isConfigured = false;
   final _authStateController = StreamController<app_auth.AuthState>.broadcast();
 
   Stream<app_auth.AuthState> get authStateChanges => _authStateController.stream;
@@ -16,13 +17,39 @@ class AuthRepository {
   }
 
   void _init() {
-    // Restore session on app start — emit immediately
-    final session = _client.auth.currentSession;
-    if (session != null) {
-      _loadProfile(session.user.id);
+    // Safe initialization — don't crash if Supabase is not set up
+    try {
+      if (!SupabaseConfig.isConfigured) {
+        _isConfigured = false;
+        _currentState = const app_auth.AuthState(
+          error: 'Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY.',
+        );
+        _authStateController.add(_currentState);
+        return;
+      }
+
+      _client = Supabase.instance.client;
+      _isConfigured = true;
+    } catch (e) {
+      _isConfigured = false;
+      _currentState = app_auth.AuthState(
+        error: 'Supabase initialization failed: $e',
+      );
+      _authStateController.add(_currentState);
+      return;
     }
 
-    _client.auth.onAuthStateChange.listen((data) async {
+    // Restore session on app start — emit immediately
+    try {
+      final session = _client!.auth.currentSession;
+      if (session != null) {
+        _loadProfile(session.user.id);
+      }
+    } catch (e) {
+      // Session restore failed — user will need to login
+    }
+
+    _client!.auth.onAuthStateChange.listen((data) async {
       final event = data.event;
       final session = data.session;
 
@@ -41,11 +68,12 @@ class AuthRepository {
 
   /// Loads profile from DB. If missing, creates one automatically.
   Future<void> _loadProfile(String userId) async {
+    if (!_isConfigured || _client == null) return;
     try {
-      final user = _client.auth.currentUser;
+      final user = _client!.auth.currentUser;
       if (user == null) return;
 
-      var response = await _client
+      var response = await _client!
           .from('profiles')
           .select()
           .eq('id', userId)
@@ -53,7 +81,7 @@ class AuthRepository {
 
       // Auto-create profile if missing (trigger was removed)
       if (response == null) {
-        await _client.from('profiles').upsert({
+        await _client!.from('profiles').upsert({
           'id': userId,
           'email': user.email,
           'full_name': user.userMetadata?['full_name'] ??
@@ -63,7 +91,7 @@ class AuthRepository {
         });
 
         // Re-fetch after creation
-        response = await _client
+        response = await _client!
             .from('profiles')
             .select()
             .eq('id', userId)
@@ -96,7 +124,7 @@ class AuthRepository {
       _currentState = app_auth.AuthState(
         isAuthenticated: true,
         userId: userId,
-        email: _client.auth.currentUser?.email,
+        email: _client?.auth.currentUser?.email,
         error: e.toString(),
       );
       _authStateController.add(_currentState);
@@ -114,11 +142,15 @@ class AuthRepository {
   }
 
   Future<AuthResponse> signIn(String email, String password) async {
+    if (!_isConfigured || _client == null) {
+      throw StateError('Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY.');
+    }
+
     _currentState = _currentState.copyWith(isLoading: true, error: null);
     _authStateController.add(_currentState);
 
     try {
-      final response = await _client.auth.signInWithPassword(
+      final response = await _client!.auth.signInWithPassword(
         email: email,
         password: password,
       );
@@ -131,17 +163,20 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _client.auth.signOut();
+    if (!_isConfigured || _client == null) return;
+    await _client!.auth.signOut();
   }
 
   Future<void> refreshSession() async {
-    await _client.auth.refreshSession();
+    if (!_isConfigured || _client == null) return;
+    await _client!.auth.refreshSession();
   }
 
+  bool get isConfigured => _isConfigured;
   bool get isAdmin => _currentState.role == app_auth.UserRole.admin;
-  bool get isAuthenticated => _client.auth.currentUser != null;
-  String? get userId => _client.auth.currentUser?.id;
-  String? get accessToken => _client.auth.currentSession?.accessToken;
+  bool get isAuthenticated => _client?.auth.currentUser != null;
+  String? get userId => _client?.auth.currentUser?.id;
+  String? get accessToken => _client?.auth.currentSession?.accessToken;
 
   void dispose() {
     _authStateController.close();

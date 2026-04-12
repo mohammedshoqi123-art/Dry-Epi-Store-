@@ -7,7 +7,22 @@ import '../errors/app_exceptions.dart';
 /// Centralized API client with hierarchical error handling.
 /// All external calls go through this client for consistent error classification.
 class ApiClient {
-  final SupabaseClient _client = SupabaseConfig.client;
+  SupabaseClient? _client;
+
+  /// Lazy initialization — don't crash if Supabase isn't set up yet.
+  SupabaseClient get _safeClient {
+    if (_client == null) {
+      if (!SupabaseConfig.isConfigured) {
+        throw const NetworkException('Supabase is not configured');
+      }
+      try {
+        _client = Supabase.instance.client;
+      } catch (e) {
+        throw NetworkException('Supabase not initialized: $e');
+      }
+    }
+    return _client!;
+  }
 
   // ===== Generic CRUD operations with RLS =====
 
@@ -21,7 +36,7 @@ class ApiClient {
     int? offset,
   }) async {
     try {
-      var query = _client.from(table).select(select);
+      var query = _safeClient.from(table).select(select);
 
       if (filters != null) {
         for (final key in filters.keys) {
@@ -56,7 +71,7 @@ class ApiClient {
     required Map<String, dynamic> filters,
   }) async {
     try {
-      var query = _client.from(table).select(select);
+      var query = _safeClient.from(table).select(select);
       filters.forEach((key, value) {
         query = query.eq(key, value);
       });
@@ -102,7 +117,7 @@ class ApiClient {
     String select = '*',
   }) async {
     try {
-      var query = _client.from(table).update(data);
+      var query = _safeClient.from(table).update(data);
       filters.forEach((key, value) {
         query = query.eq(key, value);
       });
@@ -122,7 +137,7 @@ class ApiClient {
     required Map<String, dynamic> filters,
   }) async {
     try {
-      var query = _client.from(table).delete();
+      var query = _safeClient.from(table).delete();
       filters.forEach((key, value) {
         query = query.eq(key, value);
       });
@@ -150,7 +165,7 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     try {
-      final response = await _client.functions.invoke(
+      final response = await _safeClient.functions.invoke(
         functionName,
         body: body,
       );
@@ -173,12 +188,12 @@ class ApiClient {
     String contentType = 'image/jpeg',
   }) async {
     try {
-      await _client.storage.from(bucket).uploadBinary(
+      await _safeClient.storage.from(bucket).uploadBinary(
         path,
         Uint8List.fromList(bytes),
         fileOptions: FileOptions(contentType: contentType),
       );
-      return _client.storage.from(bucket).getPublicUrl(path);
+      return _safeClient.storage.from(bucket).getPublicUrl(path);
     } catch (e) {
       throw FileStorageException('Upload failed: ${e.runtimeType}');
     }
@@ -191,7 +206,7 @@ class ApiClient {
     Map<String, dynamic> filter,
     void Function(PostgresChangePayload) callback,
   ) {
-    final channelObj = _client.channel(channel);
+    final channelObj = _safeClient.channel(channel);
 
     if (filter.isNotEmpty) {
       channelObj.onPostgresChanges(

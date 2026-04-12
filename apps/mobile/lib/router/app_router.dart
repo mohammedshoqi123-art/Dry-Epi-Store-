@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,7 @@ import '../screens/form_fill_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
+  final authRepo = ref.watch(authRepositoryProvider);
 
   // Minimum role level required per route
   const routeMinRole = {
@@ -41,16 +43,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isSplash) return null;
 
+      // If Supabase is not configured, go to login (it shows the warning)
+      if (!SupabaseConfig.isConfigured) {
+        if (isLoginRoute) return null;
+        return '/login';
+      }
+
       // Get auth state — may be null if stream hasn't emitted yet
       final authState = authAsync.valueOrNull;
       final isAuthenticated = authState?.isAuthenticated ?? false;
-
-      // If Supabase is not configured, allow login/dashboard freely
-      if (!SupabaseConfig.isConfigured) {
-        if (isLoginRoute) return null; // Stay on login
-        if (isAuthenticated) return null; // Stay on current page
-        return '/login'; // Go to login
-      }
 
       // Not authenticated and not on login page -> redirect to login
       if (!isAuthenticated && !isLoginRoute) return '/login';
@@ -198,8 +199,16 @@ class AppDrawer extends ConsumerWidget {
 
 /// Makes GoRouter rebuild when a stream emits a new value.
 class GoRouterRefreshStream extends ChangeNotifier {
+  StreamSubscription? _subscription;
+
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
-    stream.asBroadcastStream().listen((_) => notifyListeners());
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 }

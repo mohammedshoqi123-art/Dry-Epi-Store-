@@ -12,6 +12,13 @@ import 'router/app_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Global error handler for uncaught Flutter errors
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('Flutter Error: ${details.exception}');
+    debugPrint('Stack: ${details.stack}');
+  };
+
   // Validate all environment variables first
   try {
     EnvValidator.validate();
@@ -46,7 +53,11 @@ Future<void> main() async {
   }
 
   // Initialize connectivity monitoring
-  await ConnectivityUtils.initialize();
+  try {
+    await ConnectivityUtils.initialize();
+  } catch (e) {
+    debugPrint('ConnectivityUtils init failed: $e');
+  }
 
   // Initialize Supabase only if online mode is available
   if (!EnvValidator.isOfflineMode) {
@@ -135,7 +146,7 @@ class EpiSupervisorApp extends ConsumerWidget {
       ],
       builder: (context, child) {
         // RTL + ensure text direction throughout the app
-        return Directionality(
+        Widget content = Directionality(
           textDirection: TextDirection.rtl,
           child: MediaQuery(
             // Prevent font size changes from accessibility settings affecting layout
@@ -143,6 +154,45 @@ class EpiSupervisorApp extends ConsumerWidget {
             child: child!,
           ),
         );
+
+        // Error boundary — catch rendering errors and show a friendly fallback
+        ErrorWidget.builder = (FlutterErrorDetails details) {
+          return Material(
+            child: Container(
+              color: Colors.white,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'حدث خطأ في عرض الصفحة',
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        details.exceptionAsString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        };
+
+        return content;
       },
     );
   }
