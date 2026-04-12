@@ -79,7 +79,7 @@ class EncryptionService {
   String decrypt(String ciphertext) {
     try {
       final bytes = base64Decode(ciphertext);
-      final minLength = _saltLength + _ivLength + 17; // 16 tag + 1 min data
+      final minLength = _saltLength + _ivLength + 16; // 16 = GCM tag only (empty plaintext is valid)
 
       if (bytes.length < minLength) {
         throw FormatException('Ciphertext too short');
