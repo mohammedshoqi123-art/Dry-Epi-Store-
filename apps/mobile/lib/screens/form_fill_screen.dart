@@ -117,7 +117,9 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final formState = _formKey.currentState;
+    if (formState == null) return;
+    if (!formState.validate()) return;
 
     // Check GPS
     final requiresGps = _formSchema?['requires_gps'] == true;
@@ -137,26 +139,25 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
     setState(() => _isLoading = true);
     try {
+      final submissionData = {
+        'form_id': widget.formId,
+        'data': Map<String, dynamic>.from(_formData),
+        if (_gpsLat != null) 'gps_lat': _gpsLat,
+        if (_gpsLng != null) 'gps_lng': _gpsLng,
+      };
+
       final offline = await ref.read(offlineManagerProvider.future);
 
       if (offline.isOnline) {
         final db = ref.read(databaseServiceProvider);
-        await db.submitForm({
-          'form_id': widget.formId,
-          'data': _formData,
-          if (_gpsLat != null) 'gps_lat': _gpsLat,
-          if (_gpsLng != null) 'gps_lng': _gpsLng,
-        });
+        await db.submitForm(submissionData);
         if (mounted) {
           context.showSuccess(AppStrings.formSubmitted);
           context.pop();
         }
       } else {
         await offline.addToSyncQueue({
-          'form_id': widget.formId,
-          'data': _formData,
-          if (_gpsLat != null) 'gps_lat': _gpsLat,
-          if (_gpsLng != null) 'gps_lng': _gpsLng,
+          ...submissionData,
           'created_at': DateTime.now().toIso8601String(),
         });
         if (mounted) {
@@ -172,13 +173,17 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   }
 
   Future<void> _saveDraft() async {
+    if (_formData.isEmpty) {
+      context.showWarning('املأ بعض الحقول أولاً قبل الحفظ');
+      return;
+    }
     setState(() => _isSavingDraft = true);
     try {
       final offline = await ref.read(offlineManagerProvider.future);
-      await offline.saveDraft(widget.formId, _formData);
+      await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
       if (mounted) context.showSuccess(AppStrings.draftSaved);
     } catch (e) {
-      if (mounted) context.showError('فشل حفظ المسودة');
+      if (mounted) context.showError('فشل حفظ المسودة: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isSavingDraft = false);
     }

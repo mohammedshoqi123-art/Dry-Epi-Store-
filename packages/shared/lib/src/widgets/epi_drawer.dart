@@ -79,6 +79,7 @@ class EpiDrawer extends StatelessWidget {
             if (userRoleLevel >= 4) ...[
               const Divider(),
               _buildItem(context, Icons.people, 'إدارة المستخدمين', '/admin/users'),
+              _buildItem(context, Icons.edit_document, 'إدارة النماذج', '/admin/forms'),
               _buildItem(context, Icons.history, 'سجل العمليات', '/admin/audit'),
             ],
           ],

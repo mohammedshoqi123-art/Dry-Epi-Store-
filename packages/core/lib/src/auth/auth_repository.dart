@@ -105,6 +105,8 @@ class AuthRepository {
 
   app_auth.UserRole? _parseRole(String? role) {
     if (role == null) return null;
+    // Handle snake_case DB values (data_entry) matching camelCase enum (dataEntry)
+    if (role == 'data_entry') return app_auth.UserRole.dataEntry;
     return app_auth.UserRole.values.cast<app_auth.UserRole?>().firstWhere(
       (r) => r?.name == role,
       orElse: () => null,

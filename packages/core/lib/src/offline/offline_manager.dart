@@ -26,13 +26,19 @@ class OfflineManager {
   OfflineManager(this._encryption);
 
   Future<void> init() async {
-    await Hive.initFlutter();
+    try {
+      await Hive.initFlutter();
+    } catch (e) {
+      // Fallback for platforms where path_provider is unavailable (e.g., web)
+      // Hive will use in-memory storage
+      if (kDebugMode) print('Hive.initFlutter failed, using default: $e');
+    }
     _box = await Hive.openBox<String>(_boxName);
 
     // Listen to connectivity changes (connectivity_plus 6.x returns List<ConnectivityResult>)
     _connectivity.onConnectivityChanged.listen((results) {
       final wasOnline = _isOnline;
-      final resultList = results is List ? results : [results];
+      final resultList = results is List<ConnectivityResult> ? results : [results as ConnectivityResult];
       _isOnline = resultList.isNotEmpty &&
           resultList.any((r) => r != ConnectivityResult.none);
       if (wasOnline != _isOnline) {
@@ -41,10 +47,15 @@ class OfflineManager {
     });
 
     // Initial check
-    final results = await _connectivity.checkConnectivity();
-    final resultList = results is List ? results : [results];
-    _isOnline = resultList.isNotEmpty &&
-        resultList.any((r) => r != ConnectivityResult.none);
+    try {
+      final results = await _connectivity.checkConnectivity();
+      final resultList = results is List<ConnectivityResult> ? results : [results as ConnectivityResult];
+      _isOnline = resultList.isNotEmpty &&
+          resultList.any((r) => r != ConnectivityResult.none);
+    } catch (e) {
+      // Assume online if connectivity check fails
+      _isOnline = true;
+    }
   }
 
   // ===== SUBMISSIONS QUEUE =====

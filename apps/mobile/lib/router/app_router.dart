@@ -14,6 +14,7 @@ import '../screens/analytics_screen.dart';
 import '../screens/ai_chat_screen.dart';
 import '../screens/admin/users_screen.dart';
 import '../screens/admin/audit_screen.dart';
+import '../screens/admin/forms_management_screen.dart';
 import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
 
@@ -24,6 +25,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   const routeMinRole = {
     '/admin/users': 4,   // central+
     '/admin/audit': 4,   // central+
+    '/admin/forms': 4,   // central+ (admin only for modifications)
     '/analytics': 3,     // governorate+
     '/ai': 3,            // governorate+
   };
@@ -110,6 +112,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/users',
             builder: (context, state) => const UsersScreen(),
+          ),
+          GoRoute(
+            path: '/admin/forms',
+            builder: (context, state) => const AdminFormsScreen(),
           ),
           GoRoute(
             path: '/admin/audit',
