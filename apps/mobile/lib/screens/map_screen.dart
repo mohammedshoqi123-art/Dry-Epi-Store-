@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:epi_shared/epi_shared.dart';
 import '../providers/app_providers.dart';
@@ -249,7 +250,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               text: 'عرض التفاصيل',
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/submissions/${sub['id']}');
+                context.go('/submissions/${sub['id']}');
               },
               width: double.infinity,
             ),
