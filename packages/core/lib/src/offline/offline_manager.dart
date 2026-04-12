@@ -9,35 +9,35 @@ import '../security/encryption_service.dart';
 import '../errors/app_exceptions.dart';
 
 /// Sync result status enum
-enum SyncStatus { success, conflict, error, duplicate }
+enum OfflineSyncStatus { success, conflict, error, duplicate }
 
 /// Result of a sync attempt
-class SyncResult {
+class OfflineSyncResult {
   final String offlineId;
-  final SyncStatus status;
+  final OfflineSyncStatus status;
   final String? errorMessage;
   final Map<String, dynamic>? serverResponse;
 
-  SyncResult.success(this.offlineId, [this.serverResponse])
-      : status = SyncStatus.success,
+  OfflineSyncResult.success(this.offlineId, [this.serverResponse])
+      : status = OfflineSyncStatus.success,
         errorMessage = null;
-  SyncResult.conflict(this.offlineId, [this.serverResponse])
-      : status = SyncStatus.conflict,
+  OfflineSyncResult.conflict(this.offlineId, [this.serverResponse])
+      : status = OfflineSyncStatus.conflict,
         errorMessage = null;
-  SyncResult.error(this.offlineId, this.errorMessage)
-      : status = SyncStatus.error,
+  OfflineSyncResult.error(this.offlineId, this.errorMessage)
+      : status = OfflineSyncStatus.error,
         serverResponse = null;
-  SyncResult.duplicate(this.offlineId, [this.serverResponse])
-      : status = SyncStatus.duplicate,
+  OfflineSyncResult.duplicate(this.offlineId, [this.serverResponse])
+      : status = OfflineSyncStatus.duplicate,
         errorMessage = null;
 
-  bool get isSuccess => status == SyncStatus.success;
-  bool get isConflict => status == SyncStatus.conflict;
-  bool get isError => status == SyncStatus.error;
-  bool get isDuplicate => status == SyncStatus.duplicate;
+  bool get isSuccess => status == OfflineSyncStatus.success;
+  bool get isConflict => status == OfflineSyncStatus.conflict;
+  bool get isError => status == OfflineSyncStatus.error;
+  bool get isDuplicate => status == OfflineSyncStatus.duplicate;
 
   @override
-  String toString() => 'SyncResult($offlineId: $status${errorMessage != null ? ' - $errorMessage' : ''})';
+  String toString() => 'OfflineSyncResult($offlineId: $status${errorMessage != null ? ' - $errorMessage' : ''})';
 }
 
 /// Manages offline data storage, sync queue, drafts, and cache.
@@ -75,7 +75,7 @@ class OfflineManager {
     // Listen to connectivity changes
     _connectivity.onConnectivityChanged.listen((results) {
       final wasOnline = _isOnline;
-      final resultList = results is List<ConnectivityResult> ? results : [results as ConnectivityResult];
+      final resultList = results;
       _isOnline = resultList.isNotEmpty &&
           resultList.any((r) => r != ConnectivityResult.none);
       if (wasOnline != _isOnline) {
@@ -86,7 +86,7 @@ class OfflineManager {
     // Initial check
     try {
       final results = await _connectivity.checkConnectivity();
-      final resultList = results is List<ConnectivityResult> ? results : [results as ConnectivityResult];
+      final resultList = results;
       _isOnline = resultList.isNotEmpty &&
           resultList.any((r) => r != ConnectivityResult.none);
     } catch (e) {
@@ -153,9 +153,9 @@ class OfflineManager {
 
   /// Sync all pending items with retry logic and conflict handling.
   /// Returns a list of sync results for each item.
-  Future<List<SyncResult>> syncPendingItems(Future<Map<String, dynamic>> Function(Map<String, dynamic>) submitFn) async {
+  Future<List<OfflineSyncResult>> syncPendingItems(Future<Map<String, dynamic>> Function(Map<String, dynamic>) submitFn) async {
     final pending = _getQueue();
-    final results = <SyncResult>[];
+    final results = <OfflineSyncResult>[];
     final remaining = <Map<String, dynamic>>[];
 
     for (final item in pending) {
@@ -173,17 +173,17 @@ class OfflineManager {
         // Handle server response
         if (response['status'] == 'duplicate') {
           await removeFromQueue(item['offline_id']);
-          results.add(SyncResult.duplicate(item['offline_id'], response));
+          results.add(OfflineSyncResult.duplicate(item['offline_id'], response));
         } else if (response['conflict'] == true) {
           await _saveConflict(item, response);
           await removeFromQueue(item['offline_id']);
-          results.add(SyncResult.conflict(item['offline_id'], response));
+          results.add(OfflineSyncResult.conflict(item['offline_id'], response));
         } else if (response['success'] == true) {
           await removeFromQueue(item['offline_id']);
-          results.add(SyncResult.success(item['offline_id'], response));
+          results.add(OfflineSyncResult.success(item['offline_id'], response));
         } else {
           // Unexpected response — treat as error
-          results.add(SyncResult.error(item['offline_id'], 'Unexpected server response'));
+          results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
           remaining.add(item);
         }
       } on ApiException catch (e) {
@@ -192,16 +192,16 @@ class OfflineManager {
           item['retry_count'] = retryCount + 1;
           item['last_retry_at'] = DateTime.now().toIso8601String();
           remaining.add(item);
-          results.add(SyncResult.error(item['offline_id'], 'RETRY_${retryCount + 1}/${_maxRetries}: ${e.message}'));
+          results.add(OfflineSyncResult.error(item['offline_id'], 'RETRY_${retryCount + 1}/${_maxRetries}: ${e.message}'));
         } else {
           await _logSyncError(item, e);
-          results.add(SyncResult.error(item['offline_id'], e.message));
+          results.add(OfflineSyncResult.error(item['offline_id'], e.message));
           // Don't re-add items that have exceeded retries — they stay in the queue for manual review
           remaining.add(item);
         }
       } catch (e) {
         await _logSyncError(item, e);
-        results.add(SyncResult.error(item['offline_id'], e.toString()));
+        results.add(OfflineSyncResult.error(item['offline_id'], e.toString()));
         remaining.add(item);
       }
     }
@@ -280,7 +280,7 @@ class OfflineManager {
     }
   }
 
-  void _logSyncSummary(List<SyncResult> results) {
+  void _logSyncSummary(List<OfflineSyncResult> results) {
     if (kDebugMode && results.isNotEmpty) {
       final success = results.where((r) => r.isSuccess).length;
       final duplicates = results.where((r) => r.isDuplicate).length;

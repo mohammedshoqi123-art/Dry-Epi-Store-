@@ -1,6 +1,5 @@
 import '../config/supabase_config.dart';
 import '../api/api_client.dart';
-import '../errors/app_exceptions.dart';
 
 class DatabaseService {
   final ApiClient _api;

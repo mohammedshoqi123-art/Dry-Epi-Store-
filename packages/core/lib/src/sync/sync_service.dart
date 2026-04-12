@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../api/api_client.dart';
 import '../config/supabase_config.dart';
 import '../offline/offline_manager.dart';
-import '../errors/app_exceptions.dart';
 
 /// Manages background synchronization of offline data.
 /// Handles batch syncing, conflict resolution, and retry logic.
@@ -17,8 +16,6 @@ class SyncService {
   Stream<SyncState> get syncState => _syncStateController.stream;
   SyncState _currentState = const SyncState();
   SyncState get currentState => _currentState;
-
-  static const int _batchSize = 10;
 
   SyncService(this._api, this._offline);
 
@@ -73,14 +70,14 @@ class SyncService {
 
       for (final sr in syncResults) {
         switch (sr.status) {
-          case SyncStatus.success:
+          case OfflineSyncStatus.success:
             result.synced++;
-          case SyncStatus.duplicate:
+          case OfflineSyncStatus.duplicate:
             result.duplicates++;
-          case SyncStatus.conflict:
+          case OfflineSyncStatus.conflict:
             result.conflicts++;
             result.conflictDetails.add(sr);
-          case SyncStatus.error:
+          case OfflineSyncStatus.error:
             result.failed++;
             result.errors.add(SyncError(offlineId: sr.offlineId, error: sr.errorMessage ?? 'Unknown'));
         }
@@ -161,7 +158,7 @@ class SyncCycleResult {
   int conflicts = 0;
   int failed = 0;
   List<SyncError> errors = [];
-  List<SyncResult> conflictDetails = [];
+  List<OfflineSyncResult> conflictDetails = [];
 
   SyncCycleResult();
   factory SyncCycleResult.empty() => SyncCycleResult();

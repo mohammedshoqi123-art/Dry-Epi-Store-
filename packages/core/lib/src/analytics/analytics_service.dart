@@ -1,7 +1,6 @@
 import 'dart:async';
 import '../api/api_client.dart';
 import '../config/supabase_config.dart';
-import '../errors/app_exceptions.dart';
 
 /// Analytics service that aggregates KPI data from Supabase.
 /// Falls back to Edge Function for complex aggregations.

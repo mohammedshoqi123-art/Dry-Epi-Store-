@@ -1,14 +1,13 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
-import 'package:encrypt/encrypt.dart';
+import 'package:encrypt/encrypt.dart' as enc;
 import 'package:pointycastle/export.dart' as pc;
 import 'package:flutter/foundation.dart';
 
 /// Secure encryption service for local storage.
 /// Uses AES-256-GCM with PBKDF2 key derivation.
 ///
-/// Format: [salt(16)][iv(12)][tag(16)][ciphertext]
+/// Format: [salt(16)][iv(12)][ciphertext_with_tag]
 /// GCM mode provides both confidentiality AND integrity — no separate HMAC needed.
 class EncryptionService {
   static const String _envKey = String.fromEnvironment(
@@ -19,9 +18,8 @@ class EncryptionService {
   static const int _keyLength = 32; // 256 bits
   static const int _saltLength = 16;
   static const int _ivLength = 12; // GCM standard IV length
-  static const int _tagLength = 16; // GCM auth tag length
 
-  late final Key _key;
+  late final enc.Key _key;
   late final Uint8List _salt;
 
   EncryptionService() {
@@ -31,19 +29,19 @@ class EncryptionService {
   }
 
   /// PBKDF2 key derivation using HMAC-SHA256 (100,000 iterations per OWASP 2024)
-  Key _deriveKey(List<int> password, Uint8List salt) {
+  enc.Key _deriveKey(List<int> password, Uint8List salt) {
     final derivator = pc.PBKDF2KeyDerivator(pc.HMac(pc.SHA256Digest(), 64))
       ..init(pc.Pbkdf2Parameters(salt, 100000, _keyLength));
     final derived = derivator.process(Uint8List.fromList(password));
-    return Key(derived);
+    return enc.Key(derived);
   }
 
   /// Encrypt plaintext using AES-256-GCM.
-  /// Returns: base64(salt(16) + iv(12) + ciphertext + tag(16))
+  /// Returns: base64(salt(16) + iv(12) + ciphertext_with_tag)
   String encrypt(String plaintext) {
     try {
-      final iv = IV.fromSecureRandom(_ivLength);
-      final encrypter = Encrypter(AES(_key, mode: AESMode.gcm));
+      final iv = enc.IV.fromSecureRandom(_ivLength);
+      final encrypter = enc.Encrypter(enc.AES(_key, mode: enc.AESMode.gcm));
       final encrypted = encrypter.encrypt(plaintext, iv: iv);
 
       // Assemble: salt + iv + ciphertext_with_tag
@@ -66,22 +64,21 @@ class EncryptionService {
   String decrypt(String ciphertext) {
     try {
       final bytes = base64Decode(ciphertext);
-      final minLength = _saltLength + _ivLength + _tagLength + 1;
+      final minLength = _saltLength + _ivLength + 17; // 16 tag + 1 min data
 
       if (bytes.length < minLength) {
         throw FormatException('Ciphertext too short');
       }
 
-      // Parse components
+      // Parse: salt(16) + iv(12) + encrypted+tag
       var offset = 0;
-      // salt = bytes.sublist(offset, offset + _saltLength); // Not used for re-derivation in this scheme
-      offset += _saltLength;
-      final iv = IV(Uint8List.fromList(bytes.sublist(offset, offset + _ivLength)));
+      offset += _saltLength; // skip salt
+      final iv = enc.IV(Uint8List.fromList(bytes.sublist(offset, offset + _ivLength)));
       offset += _ivLength;
-      final encrypted = Encrypted(Uint8List.fromList(bytes.sublist(offset)));
+      final encrypted = enc.Encrypted(Uint8List.fromList(bytes.sublist(offset)));
 
       // GCM automatically verifies the auth tag during decryption
-      final encrypter = Encrypter(AES(_key, mode: AESMode.gcm));
+      final encrypter = enc.Encrypter(enc.AES(_key, mode: enc.AESMode.gcm));
       return encrypter.decrypt(encrypted, iv: iv);
     } catch (e) {
       if (kDebugMode) print('EncryptionService.decrypt error: $e');
@@ -109,13 +106,4 @@ class EncryptionService {
   bool verifyIntegrity(String data, String hash) {
     return this.hash(data) == hash;
   }
-}
-
-/// Custom format error for encryption issues
-class FormatError implements Exception {
-  final String message;
-  FormatError(this.message);
-
-  @override
-  String toString() => 'FormatError: $message';
 }

@@ -41,10 +41,11 @@ class ApiClient {
       return List<Map<String, dynamic>>.from(await finalQuery);
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
-      throw const NetworkException();
+    } on FunctionException catch (e) {
+      throw _mapFunctionException(e);
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'select($table)');
+      if (_isNetworkError(e)) throw const NetworkException();
       throw ApiException('Unexpected error in select: ${e.runtimeType}', code: 'unknown');
     }
   }
@@ -66,10 +67,9 @@ class ApiClient {
       rethrow;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
-      throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'selectOne($table)');
+      if (_isNetworkError(e)) throw const NetworkException();
       throw ApiException('Unexpected error in selectOne: ${e.runtimeType}', code: 'unknown');
     }
   }
@@ -88,10 +88,9 @@ class ApiClient {
       return result;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
-      throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'insert($table)');
+      if (_isNetworkError(e)) throw const NetworkException();
       throw ApiException('Unexpected error in insert: ${e.runtimeType}', code: 'unknown');
     }
   }
@@ -111,10 +110,9 @@ class ApiClient {
       return result;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
-      throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'update($table)');
+      if (_isNetworkError(e)) throw const NetworkException();
       throw ApiException('Unexpected error in update: ${e.runtimeType}', code: 'unknown');
     }
   }
@@ -131,10 +129,9 @@ class ApiClient {
       await query;
     } on PostgrestException catch (e) {
       throw _mapPostgrestException(e);
-    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
-      throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'delete($table)');
+      if (_isNetworkError(e)) throw const NetworkException();
       throw ApiException('Unexpected error in delete: ${e.runtimeType}', code: 'unknown');
     }
   }
@@ -160,10 +157,9 @@ class ApiClient {
       return Map<String, dynamic>.from(response.data);
     } on FunctionException catch (e) {
       throw _mapFunctionException(e);
-    } on Exception catch (e) if (e.toString().contains("SocketException") || e.toString().contains("Failed host lookup") || e.toString().contains("Connection refused")) {
-      throw const NetworkException();
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'callFunction($functionName)');
+      if (_isNetworkError(e)) throw const NetworkException();
       throw ApiException('Unexpected error calling $functionName: ${e.runtimeType}', code: 'unknown');
     }
   }
@@ -219,23 +215,32 @@ class ApiClient {
     return channelObj.subscribe();
   }
 
-  // ===== Error mapping helpers =====
+  // ===== Error helpers =====
+
+  /// Detect network-related errors without importing dart:io
+  bool _isNetworkError(dynamic e) {
+    final s = e.toString();
+    return s.contains('SocketException') ||
+        s.contains('Failed host lookup') ||
+        s.contains('Connection refused') ||
+        s.contains('Network is unreachable') ||
+        s.contains('Connection timed out');
+  }
 
   /// Map PostgrestException to specific AppException types
-  ApiException _mapPostgrestException(PostgrestException e) {
+  AppException _mapPostgrestException(PostgrestException e) {
     switch (e.code) {
-      case 'PGRST116': // No rows returned
+      case 'PGRST116':
         return NotFoundException(e.message);
-      case '23505': // Unique violation
+      case '23505':
         return ConflictException('Duplicate entry: ${e.message}');
-      case '23503': // Foreign key violation
+      case '23503':
         return ValidationException('Related record not found', fieldErrors: {'reference': e.message});
-      case '42501': // Insufficient privilege (RLS)
+      case '42501':
         return PermissionException(e.message);
-      case '22P02': // Invalid text representation
+      case '22P02':
         return ValidationException('Invalid data format', fieldErrors: {'format': e.message});
       default:
-        // Server errors (5xx)
         if (e.code != null && e.code!.startsWith('5')) {
           return ServerException(e.message);
         }
@@ -244,28 +249,24 @@ class ApiClient {
   }
 
   /// Map FunctionException to specific AppException types
-  ApiException _mapFunctionException(FunctionException e) {
-    final status = e.status ?? 0;
-    switch (status) {
-      case 401:
-        return UnauthorizedException();
-      case 403:
-        return ForbiddenException();
-      case 429:
-        return ApiException('Rate limited', code: 'rate_limit');
-      case >= 500:
-        return ServerException('Edge function error: ${e.details}');
-      default:
-        return ApiException('Function error: ${e.details}', code: 'function_$status');
+  AppException _mapFunctionException(FunctionException e) {
+    final status = e.status;
+    if (status == 401) return const UnauthorizedException();
+    if (status == 403) return const ForbiddenException();
+    if (status == 429) return const ApiException('Rate limited', code: 'rate_limit');
+    if (status >= 500) {
+      return ServerException('Edge function error: ${e.details}');
     }
+    return ApiException('Function error: ${e.details}', code: 'function_$status');
   }
 
   /// Report unexpected errors (Sentry integration point)
   void _reportUnexpectedError(dynamic error, StackTrace stack, {String? context}) {
-    // TODO: Sentry.captureException(error, stackTrace: stack, hint: context)
-    if (const bool.fromEnvironment('dart.vm.product') == false) {
+    // Sentry.captureException(error, stackTrace: stack, hint: context)
+    assert(() {
       // ignore: avoid_print
-      print('ApiClient error [$context]: $error\n$stack');
-    }
+      print('ApiClient error [$context]: $error');
+      return true;
+    }());
   }
 }

@@ -12,7 +12,6 @@ class SentryConfig {
   /// Initialize Sentry. Call before runApp().
   static Future<void> init({required Future<void> Function() appRunner}) async {
     if (!isEnabled) {
-      // No DSN configured — run app directly
       await appRunner();
       return;
     }
@@ -25,12 +24,6 @@ class SentryConfig {
         options.tracesSampleRate = _environment == 'production' ? 0.2 : 1.0;
         options.enableAutoPerformanceTracing = true;
         options.attachStacktrace = true;
-        // Don't send sensitive user data
-        options.beforeSend = (event, {hint}) {
-          // Strip email/username from breadcrumb data
-          final sanitized = event;
-          return sanitized;
-        };
       },
       appRunner: appRunner,
     );
@@ -41,7 +34,6 @@ class SentryConfig {
     Object error,
     StackTrace stack, {
     String? context,
-    Map<String, dynamic>? extra,
   }) {
     if (!isEnabled) return;
     Sentry.captureException(
@@ -51,23 +43,17 @@ class SentryConfig {
         if (context != null) {
           scope.setContexts('context', {'value': context});
         }
-        if (extra != null) {
-          for (final entry in extra.entries) {
-            scope.setExtra(entry.key, entry.value);
-          }
-        }
       },
     );
   }
 
   /// Add a breadcrumb for debugging
-  static void addBreadcrumb(String message, {String? category, Map<String, dynamic>? data}) {
+  static void addBreadcrumb(String message, {String? category}) {
     if (!isEnabled) return;
     Sentry.addBreadcrumb(
       Breadcrumb(
         message: message,
         category: category ?? 'app',
-        data: data,
         timestamp: DateTime.now(),
       ),
     );

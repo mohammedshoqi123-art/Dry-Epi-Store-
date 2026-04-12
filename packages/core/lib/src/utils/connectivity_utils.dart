@@ -17,7 +17,7 @@ class ConnectivityUtils {
 
     _subscription = _connectivity.onConnectivityChanged.listen((results) {
       // connectivity_plus 6.x returns List<ConnectivityResult>
-      final resultList = results is List<ConnectivityResult> ? results : [results as ConnectivityResult];
+      final resultList = results;
       final online = _isConnected(resultList);
       if (online != _isOnline) {
         _isOnline = online;
