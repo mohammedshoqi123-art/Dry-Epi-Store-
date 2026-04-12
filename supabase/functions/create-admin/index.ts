@@ -42,6 +42,33 @@ serve(async (req) => {
       }
     )
 
+    // ─── Authorization: Verify caller is an admin ───────────────
+    // Extract the caller's JWT from the Authorization header
+    const jwt = authHeader.replace('Bearer ', '')
+    const { data: { user: caller }, error: callerError } =
+      await supabaseAdmin.auth.getUser(jwt)
+
+    if (callerError || !caller) {
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Check that the caller has admin role
+    const { data: callerProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', caller.id)
+      .single()
+
+    if (profileError || !callerProfile || callerProfile.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // ─── Parse Request ─────────────────────────────────────────
     const body = await req.json()
     const { email, password, full_name, role = 'admin' } = body
@@ -64,6 +91,21 @@ serve(async (req) => {
         }),
         {
           status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    // ─── Role hierarchy enforcement ────────────────────────────
+    const callerLevel = ROLE_HIERARCHY[callerProfile.role]
+    const targetLevel = ROLE_HIERARCHY[role]
+    if (targetLevel >= callerLevel) {
+      return new Response(
+        JSON.stringify({
+          error: `Cannot assign role '${role}' — you can only assign roles lower than your own`,
+        }),
+        {
+          status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )

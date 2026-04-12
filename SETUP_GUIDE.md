@@ -62,7 +62,7 @@ chmod +x scripts/setup_supabase.sh
 
 ### الخطوة 4: التأكد من Admin
 
-المستخدم `mohammedshoqi123@gmail.com` يجب أن يكون موجوداً في:
+المستخدم `admin@example.com` يجب أن يكون موجوداً في:
 1. **Authentication** → Users (مُفعّل)
 2. **جدول profiles** → بدور `admin`
 
@@ -72,7 +72,7 @@ curl -X POST "https://YOUR_PROJECT.supabase.co/functions/v1/create-admin" \
   -H "Authorization: Bearer YOUR_SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "mohammedshoqi123@gmail.com",
+    "email": "admin@example.com",
     "password": "YOUR_PASSWORD",
     "full_name": "مدير النظام",
     "role": "admin"

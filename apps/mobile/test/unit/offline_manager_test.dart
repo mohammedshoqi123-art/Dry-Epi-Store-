@@ -1,13 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:epi_core/src/offline/offline_manager.dart';
-import 'package:epi_core/src/security/encryption_service.dart';
-import 'package:epi_core/src/api/api_client.dart';
 import 'package:epi_core/src/errors/app_exceptions.dart';
 
 void main() {
-  group('SyncResult', () {
+  group('OfflineSyncResult', () {
     test('success result has correct properties', () {
-      final result = SyncResult.success('id-1', {'ok': true});
+      final result = OfflineSyncResult.success('id-1', {'ok': true});
       expect(result.isSuccess, isTrue);
       expect(result.isConflict, isFalse);
       expect(result.isError, isFalse);
@@ -17,24 +15,24 @@ void main() {
     });
 
     test('conflict result has correct properties', () {
-      final result = SyncResult.conflict('id-2', {'conflict': true});
+      final result = OfflineSyncResult.conflict('id-2', {'conflict': true});
       expect(result.isConflict, isTrue);
       expect(result.isSuccess, isFalse);
     });
 
     test('error result has message', () {
-      final result = SyncResult.error('id-3', 'Network timeout');
+      final result = OfflineSyncResult.error('id-3', 'Network timeout');
       expect(result.isError, isTrue);
       expect(result.errorMessage, equals('Network timeout'));
     });
 
     test('duplicate result has correct properties', () {
-      final result = SyncResult.duplicate('id-4');
+      final result = OfflineSyncResult.duplicate('id-4');
       expect(result.isDuplicate, isTrue);
     });
 
     test('toString includes status', () {
-      final result = SyncResult.error('abc', 'fail');
+      final result = OfflineSyncResult.error('abc', 'fail');
       expect(result.toString(), contains('abc'));
       expect(result.toString(), contains('error'));
     });

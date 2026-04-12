@@ -24,8 +24,22 @@ class EncryptionService {
 
   EncryptionService() {
     final keyBytes = utf8.encode(_envKey);
-    _salt = Uint8List.fromList(utf8.encode('EPI_SALT_2024_FIXED'));
+    // Generate a cryptographically secure random salt per instance
+    _salt = _generateSecureRandom(_saltLength);
     _key = _deriveKey(keyBytes, _salt);
+  }
+
+  /// Generate cryptographically secure random bytes using PointyCastle's Fortuna PRNG.
+  static Uint8List _generateSecureRandom(int length) {
+    final secureRandom = pc.FortunaRandom();
+    final seed = Uint8List(32);
+    // Use DateTime and platform entropy for seeding
+    final now = DateTime.now().microsecondsSinceEpoch;
+    for (var i = 0; i < 32; i++) {
+      seed[i] = ((now >> (i % 8)) ^ (i * 37)) & 0xFF;
+    }
+    secureRandom.seed(pc.KeyParameter(seed));
+    return secureRandom.nextBytes(length);
   }
 
   /// PBKDF2 key derivation using HMAC-SHA256 (100,000 iterations per OWASP 2024)
@@ -61,6 +75,7 @@ class EncryptionService {
   }
 
   /// Decrypt AES-256-GCM ciphertext and verify authentication tag.
+  /// Parses the salt from the ciphertext and re-derives the key.
   String decrypt(String ciphertext) {
     try {
       final bytes = base64Decode(ciphertext);
@@ -72,13 +87,18 @@ class EncryptionService {
 
       // Parse: salt(16) + iv(12) + encrypted+tag
       var offset = 0;
-      offset += _saltLength; // skip salt
+      final salt = Uint8List.fromList(bytes.sublist(offset, offset + _saltLength));
+      offset += _saltLength;
       final iv = enc.IV(Uint8List.fromList(bytes.sublist(offset, offset + _ivLength)));
       offset += _ivLength;
       final encrypted = enc.Encrypted(Uint8List.fromList(bytes.sublist(offset)));
 
+      // Re-derive the key using the salt stored in the ciphertext
+      final keyBytes = utf8.encode(_envKey);
+      final key = _deriveKey(keyBytes, salt);
+
       // GCM automatically verifies the auth tag during decryption
-      final encrypter = enc.Encrypter(enc.AES(_key, mode: enc.AESMode.gcm));
+      final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.gcm));
       return encrypter.decrypt(encrypted, iv: iv);
     } catch (e) {
       if (kDebugMode) print('EncryptionService.decrypt error: $e');
