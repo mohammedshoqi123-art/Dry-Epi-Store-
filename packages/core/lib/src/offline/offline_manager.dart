@@ -29,18 +29,22 @@ class OfflineManager {
     await Hive.initFlutter();
     _box = await Hive.openBox<String>(_boxName);
 
-    // Listen to connectivity changes
-    _connectivity.onConnectivityChanged.listen((result) {
+    // Listen to connectivity changes (connectivity_plus 6.x returns List<ConnectivityResult>)
+    _connectivity.onConnectivityChanged.listen((results) {
       final wasOnline = _isOnline;
-      _isOnline = result != ConnectivityResult.none;
+      final resultList = results is List ? results : [results];
+      _isOnline = resultList.isNotEmpty &&
+          resultList.any((r) => r != ConnectivityResult.none);
       if (wasOnline != _isOnline) {
         _connectivityController.add(_isOnline);
       }
     });
 
     // Initial check
-    final result = await _connectivity.checkConnectivity();
-    _isOnline = result != ConnectivityResult.none;
+    final results = await _connectivity.checkConnectivity();
+    final resultList = results is List ? results : [results];
+    _isOnline = resultList.isNotEmpty &&
+        resultList.any((r) => r != ConnectivityResult.none);
   }
 
   // ===== SUBMISSIONS QUEUE =====
@@ -63,7 +67,9 @@ class OfflineManager {
     try {
       final decoded = jsonDecode(_encryption.decrypt(data));
       return List<Map<String, dynamic>>.from(decoded);
-    } catch (_) {
+    } catch (e) {
+      // Corrupted or legacy data — clear and start fresh
+      _box.delete(_syncQueueKey);
       return [];
     }
   }
@@ -106,7 +112,9 @@ class OfflineManager {
     if (data == null || data.isEmpty) return {};
     try {
       return Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(data)));
-    } catch (_) {
+    } catch (e) {
+      // Corrupted or legacy data — clear and start fresh
+      _box.delete(_draftsKey);
       return {};
     }
   }

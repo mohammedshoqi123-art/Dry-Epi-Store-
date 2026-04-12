@@ -1,0 +1,63 @@
+name: epi_supervisor
+repository: https://github.com/mohammedshoqi123-art/EPI-Supervisor
+
+packages:
+  - packages/*
+  - apps/*
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  analyze:
+    description: Analyze all packages
+    run: flutter analyze --no-fatal-infos
+    exec:
+      concurrency: 1
+    packageFilters:
+      dirExists: lib
+
+  build_runner:
+    description: Run code generation in all packages
+    run: dart run build_runner build --delete-conflicting-outputs
+    exec:
+      concurrency: 1
+    packageFilters:
+      dirExists: lib
+
+  test:
+    description: Run all tests
+    run: flutter test --coverage
+    exec:
+      concurrency: 1
+    packageFilters:
+      dirExists: test
+
+  get:
+    description: Get dependencies for all packages
+    run: flutter pub get
+    exec:
+      concurrency: 1
+
+  build_apk:
+    description: Build Android APK
+    run: flutter build apk --release
+    exec:
+      concurrency: 1
+    packageFilters:
+      scope: epi_supervisor
+
+  build_web:
+    description: Build Flutter Web
+    run: flutter build web --release
+    exec:
+      concurrency: 1
+    packageFilters:
+      scope: epi_supervisor
+
+  clean:
+    description: Clean all packages
+    run: flutter clean
+    exec:
+      concurrency: 1

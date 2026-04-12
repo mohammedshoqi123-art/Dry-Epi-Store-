@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  FLUTTER_VERSION: '3.22.0'
+  FLUTTER_VERSION: '3.19.6'
 
 jobs:
   # ─── Analyze & Test ──────────────────────────────────────
@@ -48,6 +48,14 @@ jobs:
       - name: Install dependencies (mobile)
         working-directory: apps/mobile
         run: flutter pub get
+
+      - name: Generate code (core)
+        working-directory: packages/core
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate code (shared)
+        working-directory: packages/shared
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Analyze code
         working-directory: apps/mobile
@@ -83,8 +91,8 @@ jobs:
 
       - name: Setup project
         run: |
-          cd packages/core && flutter pub get
-          cd ../shared && flutter pub get
+          cd packages/core && flutter pub get && dart run build_runner build --delete-conflicting-outputs
+          cd ../shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs
           cd ../features && flutter pub get
           cd ../../apps/mobile && flutter pub get
 
@@ -128,8 +136,8 @@ jobs:
 
       - name: Setup project
         run: |
-          cd packages/core && flutter pub get
-          cd ../shared && flutter pub get
+          cd packages/core && flutter pub get && dart run build_runner build --delete-conflicting-outputs
+          cd ../shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs
           cd ../features && flutter pub get
           cd ../../apps/mobile && flutter pub get
 

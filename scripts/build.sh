@@ -28,8 +28,8 @@ echo -e "${YELLOW}Building APK...${NC}"
 echo "flutter.sdk=$(dirname $(dirname $(which flutter)))" > apps/mobile/android/local.properties
 
 # Install dependencies
-cd packages/core && flutter pub get && cd ../..
-cd packages/shared && flutter pub get && cd ../..
+cd packages/core && flutter pub get && dart run build_runner build --delete-conflicting-outputs && cd ../..
+cd packages/shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs && cd ../..
 cd packages/features && flutter pub get && cd ../..
 cd apps/mobile && flutter pub get
 

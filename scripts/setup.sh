@@ -48,9 +48,13 @@ cd ../..
 # Generate code
 echo -e "${YELLOW}Generating code...${NC}"
 cd packages/core
+flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 cd ../shared
+flutter pub get
 dart run build_runner build --delete-conflicting-outputs
+cd ../features
+flutter pub get
 cd ../..
 
 echo ""

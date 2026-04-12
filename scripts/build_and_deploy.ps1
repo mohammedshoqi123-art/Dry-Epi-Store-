@@ -62,7 +62,7 @@ if ($sentryDsn)    { $dartDefines += "--dart-define=SENTRY_DSN=$sentryDsn" }
 # ─── Get dependencies ─────────────────────────────────────────────────────────
 Write-Step "Getting Flutter dependencies..."
 
-foreach ($pkg in @("packages\core", "packages\shared", "apps\mobile")) {
+foreach ($pkg in @("packages\core", "packages\shared", "packages\features", "apps\mobile")) {
     $pkgPath = Join-Path $projectRoot $pkg
     Write-Host "  → $pkg" -ForegroundColor Gray
     Push-Location $pkgPath
@@ -71,6 +71,18 @@ foreach ($pkg in @("packages\core", "packages\shared", "apps\mobile")) {
     Pop-Location
 }
 Write-OK "Dependencies resolved"
+
+# ─── Generate code ────────────────────────────────────────────────────────────
+Write-Step "Running code generation..."
+foreach ($pkg in @("packages\core", "packages\shared")) {
+    $pkgPath = Join-Path $projectRoot $pkg
+    Write-Host "  → build_runner: $pkg" -ForegroundColor Gray
+    Push-Location $pkgPath
+    dart run build_runner build --delete-conflicting-outputs 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-ERR "build_runner failed for $pkg"; exit 1 }
+    Pop-Location
+}
+Write-OK "Code generation complete"
 
 # ─── Clean ────────────────────────────────────────────────────────────────────
 if ($clean) {

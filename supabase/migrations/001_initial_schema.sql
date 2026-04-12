@@ -500,7 +500,10 @@ CREATE POLICY "submissions_update_own_draft" ON form_submissions
 
 CREATE POLICY "submissions_update_reviewer" ON form_submissions
   FOR UPDATE USING (
-    auth.user_role() IN ('district', 'governorate', 'central', 'admin')
+    auth.user_role() = 'admin' OR
+    auth.user_role() = 'central' OR
+    (auth.user_role() = 'governorate' AND governorate_id = auth.user_governorate_id()) OR
+    (auth.user_role() = 'district' AND district_id = auth.user_district_id())
   );
 
 -- ---- SUPPLY_SHORTAGES RLS ----
