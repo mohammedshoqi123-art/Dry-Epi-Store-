@@ -56,19 +56,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT USAGE ON SEQUENCES TO authenticated;
 
 -- ============================================================
--- 3. FIX: إضافة policy ناقصة لـ profiles
--- ============================================================
-
--- السماح لمستخدمي district بعرض profiles في منطقتهم
-DROP POLICY IF EXISTS "profiles_select_district" ON profiles;
-CREATE POLICY "profiles_select_district" ON profiles
-  FOR SELECT USING (
-    public.user_role() = 'district' AND
-    district_id = public.user_district_id()
-  );
-
--- ============================================================
--- 4. FIX: السماح بقراءة profiles لجميع المستخدمين المسجلين
+-- 3. FIX: السماح بقراءة profiles لجميع المستخدمين المسجلين
 --    (مطلوب لعرض أسماء المُرسِلين في الإرساليات)
 -- ============================================================
 
@@ -78,9 +66,10 @@ DROP POLICY IF EXISTS "profiles_select_admin" ON profiles;
 DROP POLICY IF EXISTS "profiles_select_central" ON profiles;
 DROP POLICY IF EXISTS "profiles_select_governorate" ON profiles;
 DROP POLICY IF EXISTS "profiles_select_district" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_authenticated" ON profiles;
 
--- policy موحدة: المستخدمون المسجلون يمكنهم قراءة كل الـ profiles
--- (البيانات الحساسة محمية بـ application-level filtering)
+-- policy موحدة مؤقتة: المستخدمون المسجلون يمكنهم قراءة كل الـ profiles
+-- (يتم تضييقها في migration 007)
 CREATE POLICY "profiles_select_authenticated" ON profiles
   FOR SELECT USING (auth.uid() IS NOT NULL);
 

@@ -99,8 +99,13 @@ CREATE POLICY "forms_delete_admin" ON forms
 -- 3. تضييق profiles
 -- ============================================================
 
--- إزالة policy المفتوحة القديمة
+-- إزالة كل policies القديمة على profiles
 DROP POLICY IF EXISTS "profiles_select_authenticated" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_own" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_admin" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_central" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_governorate" ON profiles;
+DROP POLICY IF EXISTS "profiles_select_district" ON profiles;
 
 -- القراءة: admin يشوف الكل، البقية يشوفون بس أنفسهم
 CREATE POLICY "profiles_select_own" ON profiles
