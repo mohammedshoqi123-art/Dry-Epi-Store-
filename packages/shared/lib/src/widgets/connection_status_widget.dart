@@ -7,7 +7,7 @@ import '../offline/enhanced_sync_service.dart';
 /// Animated connection status widget with quality indicator and pending count.
 /// Shows real-time connection state with smooth transitions.
 class ConnectionStatusWidget extends ConsumerWidget {
-  final ConnectionState state;
+  final NetworkState state;
   final VoidCallback? onTap;
   final VoidCallback? onSyncNow;
 
@@ -201,7 +201,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
 
 /// Compact floating connection indicator for use in app bars
 class FloatingConnectionIndicator extends StatelessWidget {
-  final ConnectionState state;
+  final NetworkState state;
   final VoidCallback? onTap;
 
   const FloatingConnectionIndicator({

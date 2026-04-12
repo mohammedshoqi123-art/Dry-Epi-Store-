@@ -10,7 +10,7 @@ import '../errors/app_exceptions.dart';
 enum ConnectionQuality { excellent, good, poor, offline }
 
 /// Smart connection state with pending items count and quality
-class ConnectionState {
+class NetworkState {
   final bool isOnline;
   final ConnectionQuality quality;
   final int pendingItems;
@@ -18,7 +18,7 @@ class ConnectionState {
   final DateTime? lastSync;
   final Duration? offlineDuration;
 
-  const ConnectionState({
+  const NetworkState({
     required this.isOnline,
     this.quality = ConnectionQuality.offline,
     this.pendingItems = 0,
@@ -27,14 +27,14 @@ class ConnectionState {
     this.offlineDuration,
   });
 
-  ConnectionState copyWith({
+  NetworkState copyWith({
     bool? isOnline,
     ConnectionQuality? quality,
     int? pendingItems,
     DateTime? lastOnline,
     DateTime? lastSync,
   }) {
-    return ConnectionState(
+    return NetworkState(
       isOnline: isOnline ?? this.isOnline,
       quality: quality ?? this.quality,
       pendingItems: pendingItems ?? this.pendingItems,
@@ -173,15 +173,15 @@ class EnhancedSyncService {
   DateTime? _lastSync;
   int _pendingCount = 0;
 
-  final _stateController = StreamController<ConnectionState>.broadcast();
+  final _stateController = StreamController<NetworkState>.broadcast();
   final _conflictController = StreamController<DataConflict>.broadcast();
   final _syncResultController = StreamController<SyncBatchResult>.broadcast();
 
-  Stream<ConnectionState> get connectionState => _stateController.stream;
+  Stream<NetworkState> get connectionState => _stateController.stream;
   Stream<DataConflict> get onConflictDetected => _conflictController.stream;
   Stream<SyncBatchResult> get onSyncComplete => _syncResultController.stream;
 
-  ConnectionState get currentState => ConnectionState(
+  NetworkState get currentState => NetworkState(
         isOnline: _isOnline,
         quality: _measureQuality(),
         pendingItems: _pendingCount,
