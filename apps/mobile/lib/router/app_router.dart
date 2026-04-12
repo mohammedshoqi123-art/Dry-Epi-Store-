@@ -22,7 +22,6 @@ import '../screens/form_fill_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
-  final authRepo = ref.watch(authRepositoryProvider);
 
   // Minimum role level required per route
   const routeMinRole = {
