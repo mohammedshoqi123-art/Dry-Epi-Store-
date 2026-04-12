@@ -16,11 +16,19 @@ class AuthRepository {
   }
 
   void _init() {
+    // Restore session on app start — emit immediately
+    final session = _client.auth.currentSession;
+    if (session != null) {
+      _loadProfile(session.user.id);
+    }
+
     _client.auth.onAuthStateChange.listen((data) async {
       final event = data.event;
       final session = data.session;
 
-      if (event == AuthChangeEvent.signedIn && session != null) {
+      if ((event == AuthChangeEvent.signedIn ||
+               event == AuthChangeEvent.initialSession) &&
+              session != null) {
         await _loadProfile(session.user.id);
       } else if (event == AuthChangeEvent.signedOut) {
         _currentState = const app_auth.AuthState();
@@ -31,13 +39,36 @@ class AuthRepository {
     });
   }
 
+  /// Loads profile from DB. If missing, creates one automatically.
   Future<void> _loadProfile(String userId) async {
     try {
-      final response = await _client
+      final user = _client.auth.currentUser;
+      if (user == null) return;
+
+      var response = await _client
           .from('profiles')
           .select()
           .eq('id', userId)
           .maybeSingle();
+
+      // Auto-create profile if missing (trigger was removed)
+      if (response == null) {
+        await _client.from('profiles').upsert({
+          'id': userId,
+          'email': user.email,
+          'full_name': user.userMetadata?['full_name'] ??
+              (user.email?.split('@').first ?? 'مستخدم'),
+          'role': 'data_entry',
+          'is_active': true,
+        });
+
+        // Re-fetch after creation
+        response = await _client
+            .from('profiles')
+            .select()
+            .eq('id', userId)
+            .maybeSingle();
+      }
 
       if (response != null) {
         _currentState = app_auth.AuthState(
@@ -50,9 +81,18 @@ class AuthRepository {
           fullName: response['full_name'],
           avatarUrl: response['avatar_url'],
         );
-        _authStateController.add(_currentState);
+      } else {
+        // Profile still null after creation — authenticate anyway
+        _currentState = app_auth.AuthState(
+          isAuthenticated: true,
+          userId: userId,
+          email: user.email,
+          fullName: user.email?.split('@').first,
+        );
       }
+      _authStateController.add(_currentState);
     } catch (e) {
+      // On error, still mark as authenticated so user isn't logged out
       _currentState = app_auth.AuthState(
         isAuthenticated: true,
         userId: userId,
