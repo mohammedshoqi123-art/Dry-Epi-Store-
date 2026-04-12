@@ -1,16 +1,32 @@
 import 'package:flutter/foundation.dart';
 
 /// Validates required environment variables at startup.
-/// Prevents the app from launching with missing or placeholder configuration.
+/// Supports offline-first mode where Supabase is optional.
 class EnvValidator {
+  static const bool _offlineMode =
+      bool.fromEnvironment('OFFLINE_MODE', defaultValue: false);
+
+  /// Whether the app is running in full offline mode
+  static bool get isOfflineMode =>
+      _offlineMode ||
+      String.fromEnvironment('SUPABASE_URL', defaultValue: '').isEmpty;
+
   /// Validate all required environment variables.
-  /// Throws [StateError] if any required variable is missing or invalid.
+  /// In offline mode, Supabase checks are skipped entirely.
   static void validate() {
+    if (isOfflineMode) {
+      if (kDebugMode) {
+        print('📴 Offline mode — skipping Supabase env validation');
+      }
+      return;
+    }
+
     final errors = <String>[];
 
-    // Required variables
-    const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-    const supabaseKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+    final supabaseUrl =
+        String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+    final supabaseKey =
+        String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
 
     if (supabaseUrl.isEmpty || _isPlaceholder(supabaseUrl)) {
       errors.add('SUPABASE_URL is not configured');
@@ -25,9 +41,12 @@ class EnvValidator {
     }
 
     // Optional variables — warn but don't fail
-    const geminiKey = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
-    const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-    const encKey = String.fromEnvironment('ENCRYPTION_KEY', defaultValue: '');
+    const geminiKey =
+        String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+    const sentryDsn =
+        String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+    const encKey =
+        String.fromEnvironment('ENCRYPTION_KEY', defaultValue: '');
 
     if (kDebugMode) {
       if (geminiKey.isEmpty || _isPlaceholder(geminiKey)) {
@@ -42,7 +61,8 @@ class EnvValidator {
     }
 
     if (errors.isNotEmpty) {
-      final message = 'Environment validation failed:\n${errors.map((e) => '  ❌ $e').join('\n')}';
+      final message =
+          'Environment validation failed:\n${errors.map((e) => '  ❌ $e').join('\n')}';
       if (kDebugMode) print('🚨 $message');
       throw StateError(message);
     }
@@ -52,9 +72,12 @@ class EnvValidator {
 
   /// Validate without throwing — returns list of errors
   static List<String> validateQuiet() {
+    if (isOfflineMode) return [];
     final errors = <String>[];
-    const supabaseUrl = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-    const supabaseKey = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+    const supabaseUrl =
+        String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+    const supabaseKey =
+        String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
 
     if (supabaseUrl.isEmpty || _isPlaceholder(supabaseUrl)) {
       errors.add('SUPABASE_URL is not configured');

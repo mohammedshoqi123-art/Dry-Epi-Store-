@@ -10,6 +10,10 @@ class SupabaseConfig {
     defaultValue: '',
   );
 
+  /// Whether Supabase has been initialized and is available
+  static bool get isConfigured =>
+      url.isNotEmpty && url != 'https://your-project-ref.supabase.co';
+
   static SupabaseClient get client => Supabase.instance.client;
   static GoTrueClient get auth => client.auth;
   static User? get currentUser => auth.currentUser;

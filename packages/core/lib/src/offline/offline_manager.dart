@@ -333,16 +333,24 @@ class OfflineManager {
       'data': data,
       'cached_at': DateTime.now().toIso8601String(),
     };
-    await _box.put(_cacheKey, jsonEncode(cache));
+    final encrypted = _encryption.encrypt(jsonEncode(cache));
+    await _box.put(_cacheKey, encrypted);
   }
 
   Map<String, dynamic> _getCache() {
     final data = _box.get(_cacheKey);
     if (data == null || data.isEmpty) return {};
     try {
-      return Map<String, dynamic>.from(jsonDecode(data));
+      // Try decrypting first (new encrypted format)
+      final decrypted = _encryption.decrypt(data);
+      return Map<String, dynamic>.from(jsonDecode(decrypted));
     } catch (_) {
-      return {};
+      try {
+        // Fallback: try plain JSON (backward compatibility with old unencrypted cache)
+        return Map<String, dynamic>.from(jsonDecode(data));
+      } catch (_) {
+        return {};
+      }
     }
   }
 

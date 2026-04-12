@@ -45,48 +45,51 @@ Future<void> main() async {
     return;
   }
 
-  // Validate Supabase configuration is set
-  try {
-    SupabaseConfig.validate();
-  } catch (e) {
-    runApp(MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                const Text(
-                  'خطأ في إعدادات Supabase',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  e.toString(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontFamily: 'Tajawal'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ));
-    return;
-  }
-
   // Initialize connectivity monitoring
   await ConnectivityUtils.initialize();
 
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-    debug: AppConfig.isDevelopment,
-  );
+  // Initialize Supabase only if online mode is available
+  if (!EnvValidator.isOfflineMode) {
+    try {
+      SupabaseConfig.validate();
+      await Supabase.initialize(
+        url: SupabaseConfig.url,
+        anonKey: SupabaseConfig.anonKey,
+        debug: AppConfig.isDevelopment,
+      );
+    } catch (e) {
+      runApp(MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'خطأ في إعدادات Supabase',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Cairo'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    e.toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontFamily: 'Tajawal'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ));
+      return;
+    }
+  }
 
   // Lock to portrait on mobile
   await SystemChrome.setPreferredOrientations([

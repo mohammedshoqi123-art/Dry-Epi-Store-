@@ -20,6 +20,7 @@ class SyncService {
   SyncService(this._api, this._offline);
 
   /// Start periodic auto-sync (every 5 minutes + on connectivity change)
+  /// Automatically triggers sync when connectivity is restored with pending items.
   void startAutoSync() {
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
@@ -27,9 +28,11 @@ class SyncService {
       (_) => sync(),
     );
 
-    // Also sync when connectivity changes
+    // Auto-sync when connectivity is restored with a short delay
     _offline.connectivityStream.listen((isOnline) {
-      if (isOnline) sync();
+      if (isOnline && _offline.pendingCount > 0) {
+        Future.delayed(const Duration(seconds: 2), () => sync());
+      }
     });
   }
 
