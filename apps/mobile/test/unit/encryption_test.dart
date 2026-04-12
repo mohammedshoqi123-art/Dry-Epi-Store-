@@ -46,9 +46,9 @@ void main() {
       expect(encryption.decrypt(enc2), equals(plaintext));
     });
 
-    test('decrypt with invalid input returns input as-is', () {
-      expect(encryption.decrypt('not-encrypted'), equals('not-encrypted'));
-      expect(encryption.decrypt(''), equals(''));
+    test('decrypt with invalid input throws', () {
+      expect(() => encryption.decrypt('not-encrypted'), throwsException);
+      expect(() => encryption.decrypt(''), throwsException);
     });
 
     test('encryptMap and decryptMap roundtrip', () {
@@ -70,7 +70,7 @@ void main() {
       final h1 = encryption.hash('test input');
       final h2 = encryption.hash('test input');
       expect(h1, equals(h2));
-      expect(h1.length, equals(8));
+      expect(h1.length, equals(16));
     });
 
     test('hash returns different results for different inputs', () {
