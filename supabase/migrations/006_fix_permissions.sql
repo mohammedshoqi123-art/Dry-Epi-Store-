@@ -127,7 +127,7 @@ GRANT EXECUTE ON FUNCTION public.user_governorate_id() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.user_district_id() TO anon, authenticated;
 
 -- ============================================================
--- 6. FIX: تحسين handle_new_user trigger
+-- 6. FIX: تحسين handle_new_user trigger + auto-promote admin
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION handle_new_user()
@@ -135,21 +135,57 @@ RETURNS TRIGGER
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  admin_emails TEXT[] := ARRAY['mohammedshoqi123@gmail.com'];
+  user_role_val user_role;
 BEGIN
+  -- تحديد الدور: إذا الإيميل ضمن قائمة المشرفين → admin
+  IF NEW.email = ANY(admin_emails) THEN
+    user_role_val := 'admin';
+  ELSE
+    user_role_val := COALESCE(
+      (NEW.raw_user_meta_data->>'role')::user_role,
+      'data_entry'
+    );
+  END IF;
+
   INSERT INTO profiles (id, email, full_name, role)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'data_entry')
+    user_role_val
   );
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-  -- تسجيل الخطأ بتفصيل أكثر
   RAISE WARNING 'Failed to create profile for user %: % (SQLSTATE: %)', NEW.id, SQLERRM, SQLSTATE;
   RETURN NEW;
 END;
 $$;
+
+-- ============================================================
+-- 6b. دالة يدوية لترقية مستخدم موجود إلى admin
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION promote_to_admin(user_email TEXT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE profiles
+  SET role = 'admin', updated_at = now()
+  WHERE email = user_email;
+
+  IF NOT FOUND THEN
+    RAISE NOTICE 'User with email % not found in profiles. They need to sign up first.', user_email;
+  ELSE
+    RAISE NOTICE 'User % promoted to admin.', user_email;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION promote_to_admin(TEXT) TO authenticated;
 
 -- ============================================================
 -- 7. FIX: ضمان أن seed data يُنشأ بشكل صحيح
