@@ -5,11 +5,34 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:epi_shared/epi_shared.dart';
 import '../providers/app_providers.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final analytics = ref.watch(dashboardAnalyticsProvider);
     final authState = ref.watch(authStateProvider);
 
@@ -57,59 +80,88 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _buildWelcome(String name) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryColor, AppTheme.primaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12 ? 'صباح الخير' : hour < 17 ? 'مساء الخير' : 'مساء الخير';
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOut,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(offset: Offset(0, 20 * (1 - value)), child: child),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'مرحباً، $name 👋',
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'نظرة عامة على المنصة',
-                  style: TextStyle(
-                    fontFamily: 'Tajawal',
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                ),
-              ],
-            ),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppTheme.primaryColor, AppTheme.primaryDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
-            child: const Icon(Icons.dashboard, color: Colors.white, size: 28),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$greeting، $name 👋',
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _getDateString(),
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.dashboard_rounded, color: Colors.white, size: 28),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _getDateString() {
+    final now = DateTime.now();
+    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+                    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    const days = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    return '${days[now.weekday - 1]}، ${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
   Widget _buildDashboard(BuildContext context, WidgetRef ref, Map<String, dynamic> data) {
     final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
     final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
     final totalSubmissions = submissions['total'] as int? ?? 0;
+    final todaySubmissions = submissions['today'] as int? ?? 0;
     final totalShortages = shortages['total'] as int? ?? 0;
     final resolvedShortages = shortages['resolved'] as int? ?? 0;
     final criticalShortages = (shortages['bySeverity'] as Map<String, dynamic>?)?['critical'] as int? ?? 0;
@@ -117,83 +169,104 @@ class DashboardScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Stats Cards
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.3,
-          children: [
-            EpiStatCard(
-              title: 'الإرساليات',
-              value: '$totalSubmissions',
-              icon: Icons.upload_file,
-              color: AppTheme.primaryColor,
-              onTap: () => context.go('/submissions'),
+        // Stats Cards - staggered animation
+        ...List.generate(4, (i) {
+          final cards = [
+            _StatCardData('الإرساليات', '$totalSubmissions', 'اليوم: $todaySubmissions', Icons.upload_file, AppTheme.primaryColor),
+            _StatCardData('النواقص', '$totalShortages', 'محلول: $resolvedShortages', Icons.warning_amber, AppTheme.warningColor),
+            _StatCardData('النواقص الحرجة', '$criticalShortages', criticalShortages > 0 ? 'يحتاج انتباه!' : 'لا توجد', Icons.error_outline, AppTheme.errorColor),
+            _StatCardData('الإنجاز', totalShortages > 0 ? '${(resolvedShortages / totalShortages * 100).toStringAsFixed(0)}%' : '0%', 'نسبة الحل', Icons.check_circle, AppTheme.successColor),
+          ];
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: Duration(milliseconds: 400 + (i * 100)),
+            curve: Curves.easeOut,
+            builder: (context, value, child) => Opacity(
+              opacity: value,
+              child: Transform.translate(offset: Offset(0, 15 * (1 - value)), child: child),
             ),
-            EpiStatCard(
-              title: 'النواقص',
-              value: '$totalShortages',
-              icon: Icons.warning_amber,
-              color: AppTheme.warningColor,
-              onTap: () => context.push('/admin/audit'),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildModernStatCard(cards[i]),
             ),
-            EpiStatCard(
-              title: 'النواقص الحرجة',
-              value: '$criticalShortages',
-              icon: Icons.error_outline,
-              color: AppTheme.errorColor,
-            ),
-            EpiStatCard(
-              title: 'النواقص المحلولة',
-              value: '$resolvedShortages',
-              icon: Icons.check_circle,
-              color: AppTheme.successColor,
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
+          );
+        }),
+        const SizedBox(height: 8),
 
         // Status Chart
-        const Text(
-          'حالة الإرساليات',
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        _sectionTitle('حالة الإرساليات'),
         const SizedBox(height: 12),
         _buildStatusChart(submissions['byStatus'] as Map<String, dynamic>? ?? {}),
         const SizedBox(height: 24),
 
+        // Trend Line Chart (byDay)
+        _sectionTitle('الاتجاه الأسبوعي'),
+        const SizedBox(height: 12),
+        _buildTrendChart(submissions['byDay'] as Map<String, dynamic>? ?? {}),
+        const SizedBox(height: 24),
+
         // Quick Actions
-        const Text(
-          'إجراءات سريعة',
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        _sectionTitle('إجراءات سريعة'),
         const SizedBox(height: 12),
         _buildQuickActions(context),
       ],
     );
   }
 
+  Widget _buildModernStatCard(_StatCardData card) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: card.color.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: card.color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(card.icon, color: card.color, size: 26),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  card.title,
+                  style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  card.value,
+                  style: TextStyle(fontFamily: 'Cairo', fontSize: 24, fontWeight: FontWeight.w700, color: card.color),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            card.subtitle,
+            style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w600),
+    );
+  }
+
   Widget _buildStatusChart(Map<String, dynamic> statusData) {
     if (statusData.isEmpty) {
-      return Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Center(child: Text(AppStrings.noData)),
-      );
+      return _emptyChart('لا توجد بيانات');
     }
 
     final colors = {
@@ -212,108 +285,215 @@ class DashboardScreen extends ConsumerWidget {
       'rejected': 'مرفوض',
     };
 
+    final total = statusData.values.fold<int>(0, (sum, v) => sum + (v as int));
+
     return Container(
-      height: 200,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12)],
       ),
       child: Row(
         children: [
-          Expanded(
+          SizedBox(
+            width: 140,
+            height: 140,
             child: PieChart(
               PieChartData(
                 sections: statusData.entries.map((e) {
+                  final pct = total > 0 ? (e.value as int) / total * 100 : 0;
                   return PieChartSectionData(
                     value: (e.value as num).toDouble(),
                     color: colors[e.key] ?? Colors.grey,
-                    radius: 60,
-                    title: '${e.value}',
+                    radius: 50,
+                    title: '${pct.toStringAsFixed(0)}%',
                     titleStyle: const TextStyle(
                       fontFamily: 'Cairo',
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
                   );
                 }).toList(),
-                sectionsSpace: 2,
-                centerSpaceRadius: 30,
+                sectionsSpace: 3,
+                centerSpaceRadius: 25,
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: statusData.entries.map((e) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: colors[e.key],
-                        borderRadius: BorderRadius.circular(3),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: statusData.entries.map((e) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: colors[e.key],
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${labels[e.key] ?? e.key} (${e.value})',
-                      style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${labels[e.key] ?? e.key}',
+                        style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${e.value}',
+                        style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildTrendChart(Map<String, dynamic> dayData) {
+    if (dayData.isEmpty) return _emptyChart('لا توجد بيانات اتجاه');
+
+    final entries = dayData.entries.toList();
+
+    return Container(
+      height: 180,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12)],
+      ),
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(show: true, drawVerticalLine: false),
+          titlesData: FlTitlesData(
+            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 1,
+                getTitlesWidget: (value, meta) {
+                  final i = value.toInt();
+                  if (i >= 0 && i < entries.length && i % 2 == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        entries[i].key,
+                        style: const TextStyle(fontFamily: 'Tajawal', fontSize: 9, color: AppTheme.textHint),
+                      ),
+                    );
+                  }
+                  return const SizedBox();
+                },
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: entries.asMap().entries.map((e) {
+                return FlSpot(e.key.toDouble(), (e.value.value as num).toDouble());
+              }).toList(),
+              isCurved: true,
+              color: AppTheme.primaryColor,
+              barWidth: 2.5,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                color: AppTheme.primaryColor.withOpacity(0.1),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyChart(String message) {
+    return Container(
+      height: 160,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bar_chart_outlined, size: 36, color: Colors.grey.shade300),
+            const SizedBox(height: 8),
+            Text(message, style: TextStyle(fontFamily: 'Tajawal', color: Colors.grey.shade400)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickActions(BuildContext context) {
     final actions = [
-      _QuickAction(Icons.add_circle, 'إرسال جديد', '/forms', AppTheme.primaryColor),
-      _QuickAction(Icons.map, 'الخريطة', '/map', AppTheme.infoColor),
-      _QuickAction(Icons.bar_chart, 'التحليلات', '/analytics', AppTheme.successColor),
-      _QuickAction(Icons.smart_toy, 'المساعد', '/ai', AppTheme.secondaryColor),
+      _QuickAction(Icons.add_circle_outline, 'إرسال جديد', '/forms', AppTheme.primaryColor),
+      _QuickAction(Icons.map_outlined, 'الخريطة', '/map', AppTheme.infoColor),
+      _QuickAction(Icons.bar_chart_outlined, 'التحليلات', '/analytics', AppTheme.successColor),
+      _QuickAction(Icons.smart_toy_outlined, 'المساعد', '/ai', AppTheme.secondaryColor),
     ];
 
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Row(
       children: actions.map((a) {
-        return GestureDetector(
-          onTap: () => context.go(a.route),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: a.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(a.icon, color: a.color, size: 26),
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => context.go(a.route),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: a.color.withOpacity(0.08), blurRadius: 10)],
               ),
-              const SizedBox(height: 6),
-              Text(
-                a.label,
-                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11),
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: a.color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(a.icon, color: a.color, size: 24),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    a.label,
+                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: a.color, fontWeight: FontWeight.w500),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       }).toList(),
     );
   }
+}
+
+class _StatCardData {
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  _StatCardData(this.title, this.value, this.subtitle, this.icon, this.color);
 }
 
 class _QuickAction {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/src/analytics/local_analytics_engine.dart';
 import '../providers/app_providers.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
@@ -14,8 +15,6 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 }
 
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
-  // Period filter (reserved for future use)
-  // ignore: unused_field
   String _selectedPeriod = '30d';
 
   @override
@@ -30,9 +29,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           PopupMenuButton<String>(
             onSelected: (v) => setState(() => _selectedPeriod = v),
             itemBuilder: (_) => [
-              const PopupMenuItem(value: '7d', child: Text('آخر 7 أيام')),
-              const PopupMenuItem(value: '30d', child: Text('آخر 30 يوم')),
-              const PopupMenuItem(value: '90d', child: Text('آخر 90 يوم')),
+              PopupMenuItem(value: '7d', child: Text('آخر 7 أيام', style: TextStyle(fontWeight: _selectedPeriod == '7d' ? FontWeight.bold : null))),
+              PopupMenuItem(value: '30d', child: Text('آخر 30 يوم', style: TextStyle(fontWeight: _selectedPeriod == '30d' ? FontWeight.bold : null))),
+              PopupMenuItem(value: '90d', child: Text('آخر 90 يوم', style: TextStyle(fontWeight: _selectedPeriod == '90d' ? FontWeight.bold : null))),
             ],
             child: const Padding(
               padding: EdgeInsets.all(12),
@@ -41,7 +40,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.download),
-            onPressed: _exportData,
+            onPressed: _exportCSV,
+            tooltip: 'تصدير CSV',
+          ),
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: _exportText,
+            tooltip: 'مشاركة',
           ),
         ],
       ),
@@ -65,20 +70,46 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     final byGovernorate = submissions['byGovernorate'] as Map<String, dynamic>? ?? {};
     final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
 
+    // Generate local insights
+    final insights = LocalAnalyticsEngine.generateInsights(data);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Health Score Card
+          _buildHealthScore(data),
+          const SizedBox(height: 20),
+
           // KPI Cards
           Row(
             children: [
-              Expanded(child: _kpiCard('إجمالي الإرساليات', '${submissions['total'] ?? 0}', Icons.upload_file, AppTheme.primaryColor)),
+              Expanded(child: _kpiCard('الإرساليات', '${submissions['total'] ?? 0}', 'اليوم: ${submissions['today'] ?? 0}', Icons.upload_file, AppTheme.primaryColor)),
               const SizedBox(width: 12),
-              Expanded(child: _kpiCard('النواقص النشطة', '${shortages['unresolved'] ?? 0}', Icons.warning, AppTheme.warningColor)),
+              Expanded(child: _kpiCard('النواقص', '${shortages['total'] ?? 0}', 'محلول: ${shortages['resolved'] ?? 0}', Icons.warning, AppTheme.warningColor)),
             ],
           ),
           const SizedBox(height: 24),
+
+          // Local AI Insights
+          if (insights.isNotEmpty) ...[
+            _sectionTitle('🤖 رؤى تحليلية'),
+            const SizedBox(height: 12),
+            ...insights.map((insight) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+                ),
+                child: Text(insight, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13)),
+              ),
+            )),
+            const SizedBox(height: 24),
+          ],
 
           // Status Bar Chart
           _sectionTitle('توزيع الحالات'),
@@ -101,31 +132,89 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
   }
 
-  Widget _kpiCard(String title, String value, IconData icon, Color color) {
+  Widget _buildHealthScore(Map<String, dynamic> data) {
+    final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
+    final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
+    final bySeverity = shortages['bySeverity'] as Map<String, dynamic>? ?? {};
+
+    final score = LocalAnalyticsEngine.healthScore(
+      totalShortages: shortages['total'] as int? ?? 0,
+      resolvedShortages: shortages['resolved'] as int? ?? 0,
+      criticalShortages: bySeverity['critical'] as int? ?? 0,
+      totalSubmissions: submissions['total'] as int? ?? 0,
+    );
+
+    final color = score >= 80 ? AppTheme.successColor : score >= 50 ? AppTheme.warningColor : AppTheme.errorColor;
+    final label = score >= 80 ? 'ممتاز' : score >= 50 ? 'متوسط' : 'ضعيف';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 12)],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: Stack(
+              children: [
+                CircularProgressIndicator(
+                  value: score / 100,
+                  strokeWidth: 6,
+                  backgroundColor: Colors.grey.shade200,
+                  valueColor: AlwaysStoppedAnimation(color),
+                ),
+                Center(
+                  child: Text(
+                    '$score',
+                    style: TextStyle(fontFamily: 'Cairo', fontSize: 22, fontWeight: FontWeight.w700, color: color),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('مؤشر الأداء', style: TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text('الحالة: $label', style: TextStyle(fontFamily: 'Tajawal', fontSize: 13, color: color)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _kpiCard(String title, String value, String subtitle, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 12),
-          Text(value,
-              style: TextStyle(fontFamily: 'Cairo', fontSize: 24, fontWeight: FontWeight.w700, color: color)),
-          Text(title,
-              style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary)),
+          Text(value, style: TextStyle(fontFamily: 'Cairo', fontSize: 24, fontWeight: FontWeight.w700, color: color)),
+          Text(title, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary)),
+          Text(subtitle, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: AppTheme.textHint)),
         ],
       ),
     );
   }
 
   Widget _sectionTitle(String title) {
-    return Text(title,
-        style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w600));
+    return Text(title, style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w600));
   }
 
   Widget _buildStatusBarChart(Map<String, dynamic> data) {
@@ -249,7 +338,34 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
   }
 
-  void _exportData() {
+  void _exportCSV() {
+    final analytics = ref.read(dashboardAnalyticsProvider);
+    analytics.whenData((data) {
+      final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
+      final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
+      final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
+      final bySeverity = shortages['bySeverity'] as Map<String, dynamic>? ?? {};
+
+      final buffer = StringBuffer();
+      buffer.writeln('Category,Key,Value');
+      buffer.writeln('Submissions,Total,${submissions['total'] ?? 0}');
+      buffer.writeln('Submissions,Today,${submissions['today'] ?? 0}');
+      for (final entry in byStatus.entries) {
+        buffer.writeln('Status,${entry.key},${entry.value}');
+      }
+      buffer.writeln('Shortages,Total,${shortages['total'] ?? 0}');
+      buffer.writeln('Shortages,Resolved,${shortages['resolved'] ?? 0}');
+      buffer.writeln('Shortages,Pending,${shortages['pending'] ?? 0}');
+      for (final entry in bySeverity.entries) {
+        buffer.writeln('Severity,${entry.key},${entry.value}');
+      }
+
+      Clipboard.setData(ClipboardData(text: buffer.toString()));
+      if (mounted) context.showSuccess('تم نسخ بيانات CSV إلى الحافظة');
+    });
+  }
+
+  void _exportText() {
     final analytics = ref.read(dashboardAnalyticsProvider);
     analytics.whenData((data) {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};

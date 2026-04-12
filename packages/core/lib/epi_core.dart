@@ -12,6 +12,7 @@ export 'src/sync/sync_service.dart';
 export 'src/security/encryption_service.dart';
 export 'src/security/rbac_service.dart';
 export 'src/analytics/analytics_service.dart';
+export 'src/analytics/local_analytics_engine.dart';
 export 'src/ai/gemini_service.dart';
 export 'src/errors/app_exceptions.dart';
 export 'src/utils/connectivity_utils.dart';

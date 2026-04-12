@@ -6,7 +6,7 @@ class EpiDrawer extends StatelessWidget {
   final String? userName;
   final String? userRole;
   final String? avatarUrl;
-  final int userRoleLevel; // 1=data_entry, 2=district, 3=governorate, 4=central, 5=admin
+  final int userRoleLevel;
   final ValueChanged<String>? onNavigate;
   final VoidCallback? onLogout;
 
@@ -26,10 +26,12 @@ class EpiDrawer extends StatelessWidget {
     return Drawer(
       child: Directionality(
         textDirection: TextDirection.rtl,
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: [
-            DrawerHeader(
+            // Header with gradient
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppTheme.primaryColor, AppTheme.primaryDark],
@@ -41,14 +43,22 @@ class EpiDrawer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white24,
+                    radius: 32,
+                    backgroundColor: Colors.white.withOpacity(0.2),
                     backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
                     child: avatarUrl == null
-                        ? const Icon(Icons.person, size: 30, color: Colors.white)
+                        ? Text(
+                            (userName ?? 'م')[0],
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          )
                         : null,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   Text(
                     userName ?? 'مستخدم',
                     style: const TextStyle(
@@ -59,47 +69,86 @@ class EpiDrawer extends StatelessWidget {
                     ),
                   ),
                   if (userRole != null)
-                    Text(
-                      userRole!,
-                      style: const TextStyle(
-                        fontFamily: 'Tajawal',
-                        color: Colors.white70,
-                        fontSize: 14,
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        userRole!,
+                        style: const TextStyle(
+                          fontFamily: 'Tajawal',
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
-            _buildItem(context, Icons.dashboard, 'لوحة التحكم', '/dashboard'),
-            _buildItem(context, Icons.assignment, 'النماذج', '/forms'),
-            _buildItem(context, Icons.upload_file, 'الإرساليات', '/submissions'),
-            _buildItem(context, Icons.map, 'الخريطة', '/map'),
-            if (userRoleLevel >= 3) ...[
-              _buildItem(context, Icons.bar_chart, 'التحليلات', '/analytics'),
-              _buildItem(context, Icons.smart_toy, 'المساعد الذكي', '/ai'),
-            ],
-            if (userRoleLevel >= 4) ...[
-              const Divider(),
-              _buildItem(context, Icons.people, 'إدارة المستخدمين', '/admin/users'),
-              _buildItem(context, Icons.edit_document, 'إدارة النماذج', '/admin/forms'),
-              _buildItem(context, Icons.history, 'سجل العمليات', '/admin/audit'),
-            ],
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: AppTheme.errorColor),
-              title: const Text(
-                'تسجيل الخروج',
-                style: TextStyle(
-                  fontFamily: 'Tajawal',
-                  color: AppTheme.errorColor,
-                ),
+
+            // Menu items
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: [
+                  _SectionLabel(label: 'الرئيسية'),
+                  _buildItem(context, Icons.dashboard_rounded, 'لوحة التحكم', '/dashboard'),
+                  _buildItem(context, Icons.assignment_rounded, 'النماذج', '/forms'),
+                  _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
+                  _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
+
+                  if (userRoleLevel >= 3) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Divider(height: 1),
+                    ),
+                    _SectionLabel(label: 'التحليلات'),
+                    _buildItem(context, Icons.bar_chart_rounded, 'التقارير', '/analytics'),
+                    _buildItem(context, Icons.smart_toy_rounded, 'المساعد الذكي', '/ai'),
+                  ],
+
+                  if (userRoleLevel >= 4) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Divider(height: 1),
+                    ),
+                    _SectionLabel(label: 'الإدارة'),
+                    _buildItem(context, Icons.people_rounded, 'المستخدمين', '/admin/users'),
+                    _buildItem(context, Icons.edit_document, 'إدارة النماذج', '/admin/forms'),
+                    _buildItem(context, Icons.history_rounded, 'سجل العمليات', '/admin/audit'),
+                  ],
+                ],
               ),
-              onTap: () {
-                Navigator.pop(context);
-                onLogout?.call();
-              },
             ),
-            const SizedBox(height: 16),
+
+            // Logout
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.logout_rounded, color: AppTheme.errorColor, size: 20),
+                ),
+                title: const Text(
+                  'تسجيل الخروج',
+                  style: TextStyle(fontFamily: 'Tajawal', color: AppTheme.errorColor, fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  onLogout?.call();
+                },
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -108,24 +157,64 @@ class EpiDrawer extends StatelessWidget {
 
   Widget _buildItem(BuildContext context, IconData icon, String title, String route) {
     final isSelected = currentRoute.startsWith(route);
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary),
-      title: Text(
-        title,
-        style: TextStyle(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryColor.withOpacity(0.12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'Tajawal',
+            color: isSelected ? AppTheme.primaryColor : AppTheme.textPrimary,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            fontSize: 14,
+          ),
+        ),
+        selected: isSelected,
+        selectedTileColor: AppTheme.primarySurface.withOpacity(0.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        dense: true,
+        visualDensity: const VisualDensity(horizontal: 0, vertical: -1),
+        onTap: () {
+          Navigator.pop(context);
+          if (!isSelected && onNavigate != null) {
+            onNavigate!(route);
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
+      child: Text(
+        label,
+        style: const TextStyle(
           fontFamily: 'Tajawal',
-          color: isSelected ? AppTheme.primaryColor : AppTheme.textPrimary,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.textHint,
+          letterSpacing: 0.5,
         ),
       ),
-      selected: isSelected,
-      selectedTileColor: AppTheme.primarySurface,
-      onTap: () {
-        Navigator.pop(context); // Close drawer
-        if (!isSelected && onNavigate != null) {
-          onNavigate!(route);
-        }
-      },
     );
   }
 }
