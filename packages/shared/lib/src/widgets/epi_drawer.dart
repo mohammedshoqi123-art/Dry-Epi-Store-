@@ -8,6 +8,7 @@ class EpiDrawer extends StatelessWidget {
   final String? avatarUrl;
   final int userRoleLevel; // 1=data_entry, 2=district, 3=governorate, 4=central, 5=admin
   final ValueChanged<String>? onNavigate;
+  final VoidCallback? onLogout;
 
   const EpiDrawer({
     super.key,
@@ -17,6 +18,7 @@ class EpiDrawer extends StatelessWidget {
     this.avatarUrl,
     this.userRoleLevel = 1,
     this.onNavigate,
+    this.onLogout,
   });
 
   @override
@@ -82,6 +84,22 @@ class EpiDrawer extends StatelessWidget {
               _buildItem(context, Icons.edit_document, 'إدارة النماذج', '/admin/forms'),
               _buildItem(context, Icons.history, 'سجل العمليات', '/admin/audit'),
             ],
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppTheme.errorColor),
+              title: const Text(
+                'تسجيل الخروج',
+                style: TextStyle(
+                  fontFamily: 'Tajawal',
+                  color: AppTheme.errorColor,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                onLogout?.call();
+              },
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

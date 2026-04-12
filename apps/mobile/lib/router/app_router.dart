@@ -177,6 +177,9 @@ class AppDrawer extends ConsumerWidget {
       userRole: authState?.role?.nameAr,
       userRoleLevel: authState?.role?.hierarchyLevel ?? 1,
       onNavigate: (route) => context.go(route),
+      onLogout: () async {
+        await ref.read(authRepositoryProvider).signOut();
+      },
     );
   }
 }
