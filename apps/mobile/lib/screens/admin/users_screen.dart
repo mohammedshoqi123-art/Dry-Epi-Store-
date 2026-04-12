@@ -503,8 +503,6 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     if (confirmed != true) return;
 
     try {
-      final db = ref.read(databaseServiceProvider);
-      // Use the admin function via RPC-like approach
       await ref.read(apiClientProvider).callFunction('admin-actions', {
         'action': 'toggle_active',
         'user_id': userId,
