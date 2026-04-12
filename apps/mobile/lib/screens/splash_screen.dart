@@ -16,6 +16,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _hasNavigated = false;
+  String _status = 'جاري التحميل...';
 
   @override
   void initState() {
@@ -24,27 +25,54 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _navigate() async {
-    // Show splash for at least 2 seconds
-    await Future.delayed(const Duration(seconds: 2));
+    // Show splash for at least 1.5 seconds
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted || _hasNavigated) return;
 
-    // Check if Supabase has an active session
-    final session = SupabaseConfig.client.auth.currentSession;
+    // Check if Supabase is properly configured
+    if (!SupabaseConfig.isConfigured) {
+      setState(() => _status = 'Supabase غير مُعدّ — الانتقال لتسجيل الدخول');
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted || _hasNavigated) return;
+      _hasNavigated = true;
+      context.go('/login');
+      return;
+    }
 
-    if (session != null) {
-      // Wait for profile to load (with timeout)
-      try {
-        await ref.read(authStateProvider.future);
+    // Check if Supabase was initialized
+    try {
+      final client = Supabase.instance.client;
+      final session = client.auth.currentSession;
+
+      if (session != null) {
+        setState(() => _status = 'تم العثور على جلسة — جاري التحميل...');
+        // Try to load profile with timeout
+        try {
+          await ref.read(authStateProvider.future).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              // Profile load timed out — go to dashboard anyway
+              throw TimeoutException('Profile load timed out');
+            },
+          );
+        } catch (_) {
+          // Profile failed but user is authenticated — go to dashboard
+        }
         if (!mounted || _hasNavigated) return;
         _hasNavigated = true;
         context.go('/dashboard');
-      } catch (_) {
-        // Profile failed to load but user is authenticated — still go to dashboard
+      } else {
+        setState(() => _status = 'الانتقال لتسجيل الدخول...');
+        await Future.delayed(const Duration(milliseconds: 300));
         if (!mounted || _hasNavigated) return;
         _hasNavigated = true;
-        context.go('/dashboard');
+        context.go('/login');
       }
-    } else {
+    } catch (e) {
+      // Supabase not initialized — go to login
+      setState(() => _status = 'الانتقال لتسجيل الدخول...');
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted || _hasNavigated) return;
       _hasNavigated = true;
       context.go('/login');
     }
@@ -100,6 +128,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               const CircularProgressIndicator(
                 color: Colors.white,
                 strokeWidth: 2,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _status,
+                style: TextStyle(
+                  fontFamily: 'Tajawal',
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.6),
+                ),
               ),
             ],
           ),

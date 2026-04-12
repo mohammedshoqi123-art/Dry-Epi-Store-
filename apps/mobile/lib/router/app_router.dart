@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/epi_core.dart';
 
 import '../providers/app_providers.dart';
 import '../screens/splash_screen.dart';
@@ -33,16 +34,27 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
+    refreshListenable: GoRouterRefreshStream(ref.watch(authRepositoryProvider).authStateChanges),
     redirect: (context, state) {
       final isLoginRoute = state.matchedLocation == '/login';
       final isSplash = state.matchedLocation == '/splash';
 
       if (isSplash) return null;
 
+      // Get auth state — may be null if stream hasn't emitted yet
       final authState = authAsync.valueOrNull;
       final isAuthenticated = authState?.isAuthenticated ?? false;
 
+      // If Supabase is not configured, allow login/dashboard freely
+      if (!SupabaseConfig.isConfigured) {
+        if (isLoginRoute) return null; // Stay on login
+        if (isAuthenticated) return null; // Stay on current page
+        return '/login'; // Go to login
+      }
+
+      // Not authenticated and not on login page -> redirect to login
       if (!isAuthenticated && !isLoginRoute) return '/login';
+      // Authenticated and on login page -> redirect to dashboard
       if (isAuthenticated && isLoginRoute) return '/dashboard';
 
       // Role-based route guards
@@ -181,5 +193,13 @@ class AppDrawer extends ConsumerWidget {
         await ref.read(authRepositoryProvider).signOut();
       },
     );
+  }
+}
+
+/// Makes GoRouter rebuild when a stream emits a new value.
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    stream.asBroadcastStream().listen((_) => notifyListeners());
   }
 }
