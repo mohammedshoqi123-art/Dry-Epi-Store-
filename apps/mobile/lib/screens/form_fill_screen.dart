@@ -286,78 +286,49 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         'data': Map<String, dynamic>.from(_formData),
         if (_gpsLat != null) 'gps_lat': _gpsLat,
         if (_gpsLng != null) 'gps_lng': _gpsLng,
+        'created_at': DateTime.now().toIso8601String(),
       };
 
+      // ═══════════════════════════════════════════════════════════════════
+      // ✅ ALWAYS SAVE FIRST — data is safe in Hive before any network call
+      // This is the golden rule: local save = success. Sync = bonus.
+      // ═══════════════════════════════════════════════════════════════════
+      await offline.addToSyncQueue(submissionData);
+      await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+
+      // Now try to send online (optimistic — failure is OK, data is safe)
+      bool sentOnline = false;
       if (offline.isOnline) {
-        final db = ref.read(databaseServiceProvider);
-        // Add timeout to prevent hanging (30 seconds)
-        await db.submitForm(submissionData).timeout(
-          const Duration(seconds: 30),
-          onTimeout: () {
-            throw TimeoutException('Request timed out. Saving as draft.');
-          },
-        );
-        if (mounted) {
-          // Remove draft after successful submission
+        try {
+          final db = ref.read(databaseServiceProvider);
+          await db.submitForm(submissionData).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('timeout'),
+          );
+          sentOnline = true;
+          // Remove draft after successful server submission
           try { await offline.removeDraft(widget.formId); } catch (_) {}
-          if (mounted) context.showSuccess(AppStrings.formSubmitted);
-          if (mounted) context.pop();
-        }
-      } else {
-        await offline.addToSyncQueue({
-          ...submissionData,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        if (mounted) {
-          context.showSuccess(AppStrings.formSubmittedOffline);
-          context.pop();
+        } catch (_) {
+          // Online failed — but data is already saved locally, so this is fine
+          sentOnline = false;
         }
       }
-    } on TimeoutException {
-      // Save as draft on timeout, then queue for sync — use cached offline
+
       if (mounted) {
-        try {
-          await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
-          await offline.addToSyncQueue({
-            'form_id': widget.formId,
-            'data': Map<String, dynamic>.from(_formData),
-            if (_gpsLat != null) 'gps_lat': _gpsLat,
-            if (_gpsLng != null) 'gps_lng': _gpsLng,
-            'created_at': DateTime.now().toIso8601String(),
-          });
-          if (mounted) {
-            context.showWarning('انتهت مهلة الإرسال. تم حفظ البيانات وسيتم إرسالها تلقائياً عند عودة الاتصال.');
-            if (mounted) context.pop();
-          }
-        } catch (_) {
-          if (mounted) context.showError('فشل الإرسال بسبب انتهاء المهلة.');
+        if (sentOnline) {
+          context.showSuccess(AppStrings.formSubmitted);
+        } else if (offline.isOnline) {
+          context.showInfo('تم الحفظ — سيتم الإرسال تلقائياً عند استقرار الاتصال');
+        } else {
+          context.showSuccess(AppStrings.formSubmittedOffline);
         }
+        context.pop();
       }
     } catch (e) {
-      final errorMsg = e.toString();
+      // This catch only fires if addToSyncQueue/saveDraft themselves fail
       if (mounted) {
-        if (errorMsg.contains('Network') || errorMsg.contains('Socket') || errorMsg.contains('connection')) {
-          context.showError('لا يوجد اتصال بالإنترنت. تم حفظ البيانات محلياً.');
-          // Auto-save as draft on network error
-          try {
-            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
-            if (mounted) context.showInfo('تم حفظ المسودة تلقائياً');
-          } catch (_) {}
-        } else if (errorMsg.contains('Unauthorized') || errorMsg.contains('401')) {
-          // Save draft BEFORE showing session expired message — preserve user data!
-          try {
-            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
-          } catch (_) {}
-          if (mounted) {
-            context.showError('انتهت الجلسة. تم حفظ بياناتك كمسودة. يرجى تسجيل الدخول وإعادة الإرسال.');
-          }
-        } else {
-          // On any error, try to save as draft
-          try {
-            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
-          } catch (_) {}
-          if (mounted) context.showError('فشل الإرسال: $errorMsg (تم حفظ البيانات كمسودة)');
-        }
+        context.showError('فشل حفظ البيانات محلياً: ${e.toString()}');
+        // Don't pop — let user retry. Form data is still in _formData.
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

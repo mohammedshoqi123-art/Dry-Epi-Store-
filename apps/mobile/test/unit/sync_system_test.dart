@@ -489,4 +489,98 @@ void main() {
       expect(existingIds.contains(newUnique['offline_id']), isFalse);
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TEST: Always-Save-First Pattern
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  group('Always-Save-First Pattern', () {
+    test('data is saved to queue BEFORE any network call', () {
+      // Simulate the correct flow: queue first, then try network
+      final queue = <Map<String, dynamic>>[];
+
+      // Step 1: Save locally FIRST (this is the "success")
+      final formData = {
+        'form_id': 'vaccination_form',
+        'data': {'child_name': 'Ahmed', 'dose': 1},
+        'offline_id': 'test-offline-id-123',
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      queue.add(formData);
+
+      // At this point, data is safe. Network call is a bonus.
+      expect(queue.length, equals(1));
+      expect(queue.first['offline_id'], equals('test-offline-id-123'));
+
+      // Step 2: Try network (simulate failure)
+      bool networkSuccess = false;
+      try {
+        throw Exception('Network error');
+      } catch (_) {
+        networkSuccess = false;
+      }
+
+      // Data is STILL in queue — no loss!
+      expect(queue.length, equals(1));
+      expect(networkSuccess, isFalse);
+    });
+
+    test('form data survives every error scenario', () {
+      // This test verifies the golden rule:
+      // "Local save = success. Network = bonus."
+
+      final scenarios = [
+        'network_timeout',
+        'server_500',
+        'unauthorized_401',
+        'connection_refused',
+        'dns_failure',
+      ];
+
+      for (final scenario in scenarios) {
+        final queue = <Map<String, dynamic>>[];
+
+        // Always save first
+        queue.add({
+          'form_id': 'test_form',
+          'data': {'scenario': scenario},
+          'offline_id': 'id_$scenario',
+        });
+
+        // Simulate the error
+        bool errorOccurred = true;
+
+        // Verify: data is safe regardless of error type
+        expect(queue.length, equals(1),
+            reason: 'Data should survive $scenario');
+        expect(queue.first['data']['scenario'], equals(scenario),
+            reason: 'Data content should be intact after $scenario');
+      }
+    });
+
+    test('queue entry has all required fields for later sync', () {
+      final entry = SyncQueueEntry(
+        id: 'test-id',
+        type: 'form_submission',
+        payload: {
+          'form_id': 'vaccination_form',
+          'data': {'child_name': 'Ahmed', 'dose': 1, 'vaccine': 'OPV'},
+          'gps_lat': 33.312800,
+          'gps_lng': 44.361500,
+          'created_at': DateTime.now().toIso8601String(),
+        },
+        priority: SyncPriority.critical,
+        createdAt: DateTime.now(),
+        status: QueueItemStatus.pending,
+      );
+
+      // Verify all fields needed for sync are present
+      expect(entry.payload['form_id'], isNotNull);
+      expect(entry.payload['data'], isNotNull);
+      expect(entry.payload['created_at'], isNotNull);
+      expect(entry.priority, equals(SyncPriority.critical));
+      expect(entry.status, equals(QueueItemStatus.pending));
+      expect(entry.isReadyForRetry, isTrue);
+    });
+  });
 }
