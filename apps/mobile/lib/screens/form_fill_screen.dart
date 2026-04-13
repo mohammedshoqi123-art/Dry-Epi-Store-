@@ -138,7 +138,17 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     }
   }
 
+  /// Sync all text controllers back to _formData before validation/submission
+  void _syncControllersToFormData() {
+    for (final entry in _textControllers.entries) {
+      _formData[entry.key] = entry.value.text;
+    }
+  }
+
   Future<void> _submit() async {
+    // Sync controllers FIRST — ensures _formData has latest text field values
+    _syncControllersToFormData();
+
     final formState = _formKey.currentState;
     if (formState == null) return;
     if (!formState.validate()) return;
@@ -211,12 +221,15 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         if (_gpsLng != null) 'gps_lng': _gpsLng,
       };
 
-      final offline = await ref.read(offlineManagerProvider.future);
+      final offlineManager = ref.read(offlineManagerProvider);
+      final offline = await offlineManager.future;
 
       if (offline.isOnline) {
         final db = ref.read(databaseServiceProvider);
-        await db.submitForm(submissionData);
+        final result = await db.submitForm(submissionData);
         if (mounted) {
+          // Remove draft after successful submission
+          try { await offline.removeDraft(widget.formId); } catch (_) {}
           context.showSuccess(AppStrings.formSubmitted);
           context.pop();
         }
@@ -231,24 +244,50 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         }
       }
     } catch (e) {
-      if (mounted) context.showError('فشل الإرسال: ${e.toString()}');
+      final errorMsg = e.toString();
+      if (mounted) {
+        if (errorMsg.contains('Network') || errorMsg.contains('Socket') || errorMsg.contains('connection')) {
+          context.showError('لا يوجد اتصال بالإنترنت. تم حفظ البيانات محلياً.');
+          // Auto-save as draft on network error
+          try {
+            final offline = await ref.read(offlineManagerProvider.future);
+            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+            if (mounted) context.showInfo('تم حفظ المسودة تلقائياً');
+          } catch (_) {}
+        } else if (errorMsg.contains('Unauthorized') || errorMsg.contains('401')) {
+          context.showError('انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.');
+        } else {
+          context.showError('فشل الإرسال: $errorMsg');
+        }
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _saveDraft() async {
+    // Sync controllers first so we save the latest text values
+    _syncControllersToFormData();
+
     if (_formData.isEmpty) {
       context.showWarning('املأ بعض الحقول أولاً قبل الحفظ');
       return;
     }
     setState(() => _isSavingDraft = true);
     try {
-      final offline = await ref.read(offlineManagerProvider.future);
+      final offlineManager = ref.read(offlineManagerProvider);
+      final offline = await offlineManager.future;
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
       if (mounted) context.showSuccess(AppStrings.draftSaved);
     } catch (e) {
-      if (mounted) context.showError('فشل حفظ المسودة: ${e.toString()}');
+      final errorMsg = e.toString();
+      if (mounted) {
+        if (errorMsg.contains('LateInitializationError') || errorMsg.contains('Hive')) {
+          context.showError('خطأ في التخزين المحلي. حاول إعادة فتح التطبيق.');
+        } else {
+          context.showError('فشل حفظ المسودة: $errorMsg');
+        }
+      }
     } finally {
       if (mounted) setState(() => _isSavingDraft = false);
     }

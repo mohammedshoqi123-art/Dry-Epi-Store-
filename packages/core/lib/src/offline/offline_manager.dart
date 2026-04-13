@@ -52,7 +52,7 @@ class OfflineManager {
   static const int _maxRetries = 3;
   static const int _maxPayloadSize = 1024 * 1024; // 1MB
 
-  late Box<String> _box;
+  Box<String>? _box;
   final EncryptionService _encryption;
   final Connectivity _connectivity = Connectivity();
   final _connectivityController = StreamController<bool>.broadcast();
@@ -62,26 +62,33 @@ class OfflineManager {
   bool get isOnline => _isOnline;
   Stream<bool> get connectivityStream => _connectivityController.stream;
 
+  /// Whether the offline storage is initialized and ready
+  bool get isInitialized => _box != null && _box!.isOpen;
+
   OfflineManager(this._encryption);
 
   Future<void> init() async {
     try {
       await Hive.initFlutter();
     } catch (e) {
-      if (kDebugMode) print('Hive.initFlutter failed, using default: $e');
+      if (kDebugMode) print('Hive.initFlutter failed, trying default: $e');
     }
     _box = await Hive.openBox<String>(_boxName);
 
     // Listen to connectivity changes
-    _connectivity.onConnectivityChanged.listen((results) {
-      final wasOnline = _isOnline;
-      final resultList = results;
-      _isOnline = resultList.isNotEmpty &&
-          resultList.any((r) => r != ConnectivityResult.none);
-      if (wasOnline != _isOnline) {
-        _connectivityController.add(_isOnline);
-      }
-    });
+    try {
+      _connectivity.onConnectivityChanged.listen((results) {
+        final wasOnline = _isOnline;
+        final resultList = results;
+        _isOnline = resultList.isNotEmpty &&
+            resultList.any((r) => r != ConnectivityResult.none);
+        if (wasOnline != _isOnline) {
+          _connectivityController.add(_isOnline);
+        }
+      });
+    } catch (e) {
+      if (kDebugMode) print('Connectivity listener failed: $e');
+    }
 
     // Initial check
     try {
@@ -90,7 +97,7 @@ class OfflineManager {
       _isOnline = resultList.isNotEmpty &&
           resultList.any((r) => r != ConnectivityResult.none);
     } catch (e) {
-      _isOnline = true;
+      _isOnline = true; // Assume online if check fails
     }
   }
 
@@ -118,21 +125,30 @@ class OfflineManager {
     return offlineId;
   }
 
+  /// Safe box access — throws if not initialized
+  Box<String> get _safeBox {
+    final b = _box;
+    if (b == null || !b.isOpen) {
+      throw StateError('OfflineManager not initialized. Call init() first.');
+    }
+    return b;
+  }
+
   List<Map<String, dynamic>> _getQueue() {
-    final data = _box.get(_syncQueueKey);
+    final data = _safeBox.get(_syncQueueKey);
     if (data == null || data.isEmpty) return [];
     try {
       final decoded = jsonDecode(_encryption.decrypt(data));
       return List<Map<String, dynamic>>.from(decoded);
     } catch (e) {
-      _box.delete(_syncQueueKey);
+      _safeBox.delete(_syncQueueKey);
       return [];
     }
   }
 
   Future<void> _saveQueue(List<Map<String, dynamic>> queue) async {
     final encrypted = _encryption.encrypt(jsonEncode(queue));
-    await _box.put(_syncQueueKey, encrypted);
+    await _safeBox.put(_syncQueueKey, encrypted);
   }
 
   Future<List<Map<String, dynamic>>> getPendingItems() async {
@@ -146,7 +162,7 @@ class OfflineManager {
   }
 
   Future<void> clearQueue() async {
-    await _box.delete(_syncQueueKey);
+    await _safeBox.delete(_syncQueueKey);
   }
 
   int get pendingCount => _getQueue().length;
@@ -239,14 +255,14 @@ class OfflineManager {
         'resolved': false,
       };
       final encrypted = _encryption.encrypt(jsonEncode(conflicts));
-      await _box.put(_conflictsKey, encrypted);
+      await _safeBox.put(_conflictsKey, encrypted);
     } catch (e) {
       if (kDebugMode) print('Failed to save conflict: $e');
     }
   }
 
   Map<String, dynamic> _getConflicts() {
-    final data = _box.get(_conflictsKey);
+    final data = _safeBox.get(_conflictsKey);
     if (data == null || data.isEmpty) return {};
     try {
       return Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(data)));
@@ -270,7 +286,7 @@ class OfflineManager {
       conflicts[offlineId]['resolution'] = useLocal ? 'local_wins' : 'server_wins';
       conflicts[offlineId]['resolved_at'] = DateTime.now().toIso8601String();
       final encrypted = _encryption.encrypt(jsonEncode(conflicts));
-      await _box.put(_conflictsKey, encrypted);
+      await _safeBox.put(_conflictsKey, encrypted);
     }
   }
 
@@ -299,16 +315,16 @@ class OfflineManager {
       'saved_at': DateTime.now().toIso8601String(),
     };
     final encrypted = _encryption.encrypt(jsonEncode(drafts));
-    await _box.put(_draftsKey, encrypted);
+    await _safeBox.put(_draftsKey, encrypted);
   }
 
   Map<String, dynamic> _getDrafts() {
-    final data = _box.get(_draftsKey);
+    final data = _safeBox.get(_draftsKey);
     if (data == null || data.isEmpty) return {};
     try {
       return Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(data)));
     } catch (e) {
-      _box.delete(_draftsKey);
+      _safeBox.delete(_draftsKey);
       return {};
     }
   }
@@ -322,7 +338,7 @@ class OfflineManager {
     final drafts = _getDrafts();
     drafts.remove(formId);
     final encrypted = _encryption.encrypt(jsonEncode(drafts));
-    await _box.put(_draftsKey, encrypted);
+    await _safeBox.put(_draftsKey, encrypted);
   }
 
   // ===== CACHE =====
@@ -334,11 +350,11 @@ class OfflineManager {
       'cached_at': DateTime.now().toIso8601String(),
     };
     final encrypted = _encryption.encrypt(jsonEncode(cache));
-    await _box.put(_cacheKey, encrypted);
+    await _safeBox.put(_cacheKey, encrypted);
   }
 
   Map<String, dynamic> _getCache() {
-    final data = _box.get(_cacheKey);
+    final data = _safeBox.get(_cacheKey);
     if (data == null || data.isEmpty) return {};
     try {
       // Try decrypting first (new encrypted format)
@@ -369,7 +385,7 @@ class OfflineManager {
   }
 
   Future<void> clearCache() async {
-    await _box.delete(_cacheKey);
+    await _safeBox.delete(_cacheKey);
   }
 
   void dispose() {
