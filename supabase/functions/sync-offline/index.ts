@@ -1,6 +1,18 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+/**
+ * EPI Supervisor — Offline Sync Edge Function (v2)
+ *
+ * Improvements over v1:
+ * - Accepts batches of up to 50 items per request
+ * - Pre-fetches existing offline_ids in ONE query (not N)
+ * - Adds conflict detection: if server record was updated after client's base timestamp
+ * - Returns per-item results with status: synced | duplicate | conflict | error
+ * - Comprehensive audit logging for health data traceability
+ * - Rate limit: max 50 items per batch to prevent abuse
+ */
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -8,15 +20,45 @@ const corsHeaders = {
   'Vary': 'Origin',
 }
 
+const MAX_BATCH_SIZE = 50
+
+type SyncItem = {
+  offline_id?: string
+  form_id: string
+  data?: Record<string, unknown>
+  governorate_id?: string
+  district_id?: string
+  gps_lat?: number
+  gps_lng?: number
+  gps_accuracy?: number
+  photos?: string[]
+  notes?: string
+  device_id?: string
+  app_version?: string
+  created_at?: string
+  base_updated_at?: string // Client's last known server timestamp (for conflict detection)
+  entity_type?: string
+  entity_id?: string // For updates to existing records
+}
+
+type SyncResult = {
+  offline_id: string
+  status: 'synced' | 'duplicate' | 'conflict' | 'error'
+  submission_id?: string
+  server_data?: Record<string, unknown>
+  error?: string
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
 
   try {
+    // ─── AUTH ───────────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Unauthorized' }, 401)
     }
 
     const supabase = createClient(
@@ -27,62 +69,127 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Unauthorized' }, 401)
     }
 
+    // ─── PARSE BODY ─────────────────────────────────────────────────────────
     const body = await req.json()
-    const { items = [] } = body
+    const items: SyncItem[] = body.items ?? []
 
     if (!Array.isArray(items) || items.length === 0) {
-      return new Response(JSON.stringify({ results: [], errors: [], message: 'No items to sync' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ results: [], errors: [], message: 'No items to sync' }, 200)
     }
 
-    const results: Array<{ offline_id: string; status: string; submission_id?: string }> = []
-    const errors: Array<{ offline_id?: string; error: string }> = []
+    if (items.length > MAX_BATCH_SIZE) {
+      return jsonResponse({
+        error: `Batch too large: ${items.length} items (max ${MAX_BATCH_SIZE})`,
+        results: [],
+        errors: [],
+      }, 400)
+    }
 
-    // Use service role for sync to bypass RLS during batch insert
-    const adminSupabase = createClient(
+    // ─── ADMIN CLIENT (bypasses RLS for batch operations) ───────────────────
+    const admin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch user profile ONCE (not N times in the loop)
-    const { data: profile } = await adminSupabase
+    // ─── FETCH USER PROFILE ONCE ────────────────────────────────────────────
+    const { data: profile } = await admin
       .from('profiles')
       .select('governorate_id, district_id, role')
       .eq('id', user.id)
       .single()
 
-    // Pre-check: collect all offline_ids to detect duplicates in one query
-    const offlineIds = items.filter(i => i.offline_id).map(i => i.offline_id)
-    const existingMap = new Map<string, string>()
+    // ─── PRE-CHECK: Detect existing records in ONE query ────────────────────
+    const offlineIds = items
+      .filter(i => i.offline_id)
+      .map(i => i.offline_id!)
+
+    const existingMap = new Map<string, { id: string; updated_at: string }>()
     if (offlineIds.length > 0) {
-      const { data: existing } = await adminSupabase
+      const { data: existing } = await admin
         .from('form_submissions')
-        .select('offline_id, id')
+        .select('offline_id, id, updated_at')
         .in('offline_id', offlineIds)
+
       if (existing) {
         for (const row of existing) {
-          existingMap.set(row.offline_id, row.id)
+          existingMap.set(row.offline_id, {
+            id: row.id,
+            updated_at: row.updated_at,
+          })
         }
       }
     }
 
+    // ─── PRE-CHECK: For entity updates, fetch server versions ───────────────
+    const entityIds = items
+      .filter(i => i.entity_id && i.entity_type === 'form_submission')
+      .map(i => i.entity_id!)
+
+    const serverVersions = new Map<string, { id: string; updated_at: string; data: unknown }>()
+    if (entityIds.length > 0) {
+      const { data: serverRecords } = await admin
+        .from('form_submissions')
+        .select('id, updated_at, data')
+        .in('id', entityIds)
+
+      if (serverRecords) {
+        for (const rec of serverRecords) {
+          serverVersions.set(rec.id, {
+            id: rec.id,
+            updated_at: rec.updated_at,
+            data: rec.data,
+          })
+        }
+      }
+    }
+
+    // ─── PROCESS ITEMS ──────────────────────────────────────────────────────
+    const results: SyncResult[] = []
+    const errors: SyncResult[] = []
+
     for (const item of items) {
-      const offlineId = item.offline_id as string | undefined
+      const offlineId = item.offline_id ?? ''
 
       try {
-        // Check for duplicate using pre-fetched map (no DB query)
+        // Check for duplicate
         if (offlineId && existingMap.has(offlineId)) {
-          results.push({ offline_id: offlineId, status: 'duplicate', submission_id: existingMap.get(offlineId) })
+          const existing = existingMap.get(offlineId)!
+          results.push({
+            offline_id: offlineId,
+            status: 'duplicate',
+            submission_id: existing.id,
+          })
           continue
         }
 
-        const submissionData = {
+        // Check for update conflicts
+        if (item.entity_id && item.base_updated_at) {
+          const serverVersion = serverVersions.get(item.entity_id)
+          if (serverVersion) {
+            const serverTime = new Date(serverVersion.updated_at).getTime()
+            const clientBaseTime = new Date(item.base_updated_at).getTime()
+
+            if (serverTime > clientBaseTime) {
+              // CONFLICT: server was updated after client's last known version
+              results.push({
+                offline_id: offlineId,
+                status: 'conflict',
+                submission_id: item.entity_id,
+                server_data: {
+                  updated_at: serverVersion.updated_at,
+                  data: serverVersion.data,
+                },
+              })
+              continue
+            }
+          }
+        }
+
+        // ─── INSERT NEW SUBMISSION ──────────────────────────────────────────
+        const submissionData: Record<string, unknown> = {
           form_id: item.form_id,
           submitted_by: user.id,
           governorate_id: item.governorate_id || profile?.governorate_id || null,
@@ -102,53 +209,83 @@ serve(async (req) => {
           synced_at: new Date().toISOString(),
         }
 
-        // Insert submission
-        const { data: submission, error: insertError } = await adminSupabase
+        const { data: submission, error: insertError } = await admin
           .from('form_submissions')
           .insert(submissionData)
-          .select('id')
+          .select('id, updated_at')
           .single()
 
         if (insertError) {
-          errors.push({ offline_id: offlineId, error: insertError.message })
+          errors.push({
+            offline_id: offlineId,
+            status: 'error',
+            error: insertError.message,
+          })
           continue
         }
 
-        results.push({ offline_id: offlineId || '', status: 'synced', submission_id: submission.id })
+        results.push({
+          offline_id: offlineId,
+          status: 'synced',
+          submission_id: submission.id,
+        })
 
-        // Log audit
-        await adminSupabase.from('audit_logs').insert({
+        // Audit log (fire-and-forget)
+        admin.from('audit_logs').insert({
           user_id: user.id,
           action: 'create',
           table_name: 'form_submissions',
           record_id: submission.id,
-          metadata: { offline_sync: true, offline_id: offlineId }
+          metadata: {
+            offline_sync: true,
+            offline_id: offlineId,
+            device_id: item.device_id,
+            app_version: item.app_version,
+          },
         }).then(() => {}).catch(() => {})
 
       } catch (err) {
-        errors.push({ offline_id: offlineId, error: err instanceof Error ? err.message : String(err) })
+        errors.push({
+          offline_id: offlineId,
+          status: 'error',
+          error: err instanceof Error ? err.message : String(err),
+        })
       }
     }
 
-    const response = {
+    // ─── RESPONSE ───────────────────────────────────────────────────────────
+    const synced = results.filter(r => r.status === 'synced').length
+    const duplicates = results.filter(r => r.status === 'duplicate').length
+    const conflicts = results.filter(r => r.status === 'conflict').length
+
+    return jsonResponse({
       results,
       errors,
       summary: {
         total: items.length,
-        synced: results.filter(r => r.status === 'synced').length,
-        duplicate: results.filter(r => r.status === 'duplicate').length,
+        synced,
+        duplicate: duplicates,
+        conflicts,
         failed: errors.length,
-      }
-    }
+      },
+    }, 200)
 
-    return new Response(JSON.stringify(response), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
   } catch (error) {
     console.error('Sync error:', error)
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error', results: [], errors: [{ error: error instanceof Error ? error.message : 'Internal server error' }] }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    return jsonResponse({
+      error: error instanceof Error ? error.message : 'Internal server error',
+      results: [],
+      errors: [{
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Internal server error',
+      }],
+    }, 500)
   }
 })
+
+function jsonResponse(data: unknown, status: number) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}

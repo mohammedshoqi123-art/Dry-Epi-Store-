@@ -1,0 +1,570 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:uuid/uuid.dart';
+import '../config/app_config.dart';
+import '../security/encryption_service.dart';
+import '../errors/app_exceptions.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENUMS & MODELS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Priority levels for sync queue items.
+/// Higher priority items are synced first.
+enum SyncPriority {
+  critical(100), // Form submissions with health data
+  high(75),      // Shortage reports
+  normal(50),    // Profile updates
+  low(25);       // Analytics, logs
+
+  const SyncPriority(this.value);
+  final int value;
+}
+
+/// Status of a queue item through its lifecycle.
+enum QueueItemStatus {
+  pending,    // Waiting to be synced
+  syncing,    // Currently being sent
+  retrying,   // Failed, waiting for retry
+  failed,     // Exceeded max retries, moved to failed box
+  completed;  // Successfully synced
+}
+
+/// A single item in the sync queue with full metadata.
+class SyncQueueEntry {
+  final String id;
+  final String type; // 'form_submission', 'shortage', 'profile_update', etc.
+  final Map<String, dynamic> payload;
+  final SyncPriority priority;
+  final QueueItemStatus status;
+  final DateTime createdAt;
+  final DateTime? lastAttemptAt;
+  final int retryCount;
+  final String? lastError;
+  final Map<String, dynamic> metadata;
+
+  // Exponential backoff delays: 10s, 30s, 90s, 5min, 15min
+  static const List<int> _backoffSeconds = [10, 30, 90, 300, 900];
+  static const int maxRetries = 5;
+
+  const SyncQueueEntry({
+    required this.id,
+    required this.type,
+    required this.payload,
+    this.priority = SyncPriority.normal,
+    this.status = QueueItemStatus.pending,
+    required this.createdAt,
+    this.lastAttemptAt,
+    this.retryCount = 0,
+    this.lastError,
+    this.metadata = const {},
+  });
+
+  /// Whether this item is ready to be retried (backoff has elapsed).
+  bool get isReadyForRetry {
+    if (status != QueueItemStatus.retrying) return status == QueueItemStatus.pending;
+    if (lastAttemptAt == null) return true;
+    final backoffIndex = min(retryCount, _backoffSeconds.length - 1);
+    final backoffDuration = Duration(seconds: _backoffSeconds[backoffIndex]);
+    return DateTime.now().difference(lastAttemptAt!) >= backoffDuration;
+  }
+
+  /// Whether this item has permanently failed.
+  bool get hasFailed => status == QueueItemStatus.failed || retryCount >= maxRetries;
+
+  Duration get nextRetryDelay {
+    final backoffIndex = min(retryCount, _backoffSeconds.length - 1);
+    return Duration(seconds: _backoffSeconds[backoffIndex]);
+  }
+
+  SyncQueueEntry copyWith({
+    String? id,
+    String? type,
+    Map<String, dynamic>? payload,
+    SyncPriority? priority,
+    QueueItemStatus? status,
+    DateTime? createdAt,
+    DateTime? lastAttemptAt,
+    int? retryCount,
+    String? lastError,
+    Map<String, dynamic>? metadata,
+  }) {
+    return SyncQueueEntry(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      payload: payload ?? this.payload,
+      priority: priority ?? this.priority,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      lastAttemptAt: lastAttemptAt ?? this.lastAttemptAt,
+      retryCount: retryCount ?? this.retryCount,
+      lastError: lastError ?? this.lastError,
+      metadata: metadata ?? this.metadata,
+    );
+  }
+
+  /// Convert to JSON for Hive storage.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+        'payload': payload,
+        'priority': priority.name,
+        'status': status.name,
+        'created_at': createdAt.toIso8601String(),
+        'last_attempt_at': lastAttemptAt?.toIso8601String(),
+        'retry_count': retryCount,
+        'last_error': lastError,
+        'metadata': metadata,
+      };
+
+  /// Restore from JSON.
+  factory SyncQueueEntry.fromJson(Map<String, dynamic> json) {
+    return SyncQueueEntry(
+      id: json['id'] as String,
+      type: json['type'] as String,
+      payload: Map<String, dynamic>.from(json['payload'] as Map),
+      priority: SyncPriority.values.firstWhere(
+        (p) => p.name == json['priority'],
+        orElse: () => SyncPriority.normal,
+      ),
+      status: QueueItemStatus.values.firstWhere(
+        (s) => s.name == json['status'],
+        orElse: () => QueueItemStatus.pending,
+      ),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      lastAttemptAt: json['last_attempt_at'] != null
+          ? DateTime.tryParse(json['last_attempt_at'] as String)
+          : null,
+      retryCount: json['retry_count'] as int? ?? 0,
+      lastError: json['last_error'] as String?,
+      metadata: Map<String, dynamic>.from(json['metadata'] as Map? ?? {}),
+    );
+  }
+
+  @override
+  String toString() =>
+      'SyncQueueEntry($id, type=$type, priority=${priority.name}, status=${status.name}, retries=$retryCount)';
+}
+
+/// Result of a single item sync attempt.
+class SyncItemResult {
+  final String entryId;
+  final bool success;
+  final bool isDuplicate;
+  final bool hasConflict;
+  final Map<String, dynamic>? serverData;
+  final String? error;
+
+  const SyncItemResult._({
+    required this.entryId,
+    required this.success,
+    this.isDuplicate = false,
+    this.hasConflict = false,
+    this.serverData,
+    this.error,
+  });
+
+  factory SyncItemResult.ok(String id, [Map<String, dynamic>? data]) =>
+      SyncItemResult._(entryId: id, success: true, serverData: data);
+
+  factory SyncItemResult.duplicate(String id, [Map<String, dynamic>? data]) =>
+      SyncItemResult._(entryId: id, success: true, isDuplicate: true, serverData: data);
+
+  factory SyncItemResult.conflict(String id, Map<String, dynamic> serverData) =>
+      SyncItemResult._(entryId: id, success: false, hasConflict: true, serverData: serverData);
+
+  factory SyncItemResult.error(String id, String error) =>
+      SyncItemResult._(entryId: id, success: false, error: error);
+
+  @override
+  String toString() =>
+      'SyncItemResult($entryId: ${success ? "ok" : "error"}${isDuplicate ? " [dup]" : ""}${hasConflict ? " [conflict]" : ""})';
+}
+
+/// Summary of a full sync cycle.
+class SyncCycleSummary {
+  final int totalItems;
+  final int synced;
+  final int duplicates;
+  final int conflicts;
+  final int failed;
+  final int retried;
+  final List<String> errors;
+  final DateTime completedAt;
+
+  SyncCycleSummary({
+    this.totalItems = 0,
+    this.synced = 0,
+    this.duplicates = 0,
+    this.conflicts = 0,
+    this.failed = 0,
+    this.retried = 0,
+    this.errors = const [],
+    DateTime? completedAt,
+  }) : completedAt = completedAt ?? DateTime.now();
+
+  bool get allSuccessful => failed == 0 && conflicts == 0;
+  bool get hasErrors => failed > 0 || errors.isNotEmpty;
+
+  @override
+  String toString() =>
+      'SyncCycle($totalItems items: $synced ok, $duplicates dup, $conflicts conflict, $failed fail, $retried retry)';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PRODUCTION SYNC QUEUE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Production-grade sync queue with:
+/// - Priority-based ordering (critical health data first)
+/// - Exponential backoff retry (10s → 30s → 90s → 5min → 15min)
+/// - Automatic dead-letter (failed) box after max retries
+/// - Batch submission support
+/// - Auto-cleanup of completed items older than 24h
+/// - Full encryption at rest
+class ProductionSyncQueue {
+  static const String _queueBoxName = 'epi_sync_queue_v2';
+  static const String _failedBoxName = 'epi_sync_failed';
+  static const String _statsKey = 'queue_stats';
+
+  final EncryptionService _encryption;
+  final _uuid = const Uuid();
+
+  Box<String>? _queueBox;
+  Box<String>? _failedBox;
+
+  final _countController = StreamController<QueueCounts>.broadcast();
+  Stream<QueueCounts> get countsStream => _countController.stream;
+
+  // Auto-cleanup timer
+  Timer? _cleanupTimer;
+
+  ProductionSyncQueue(this._encryption);
+
+  /// Initialize Hive boxes. Must be called before any other method.
+  Future<void> init() async {
+    _queueBox = await Hive.openBox<String>(_queueBoxName);
+    _failedBox = await Hive.openBox<String>(_failedBoxName);
+
+    // Auto-cleanup every hour: remove completed items older than 24h
+    _cleanupTimer = Timer.periodic(const Duration(hours: 1), (_) => _autoCleanup());
+
+    // Emit initial counts
+    _emitCounts();
+  }
+
+  // ─── ENQUEUE ─────────────────────────────────────────────────────────────
+
+  /// Add a new item to the sync queue. Returns the entry ID.
+  Future<String> enqueue({
+    required String type,
+    required Map<String, dynamic> payload,
+    SyncPriority priority = SyncPriority.normal,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final entry = SyncQueueEntry(
+      id: _uuid.v4(),
+      type: type,
+      payload: payload,
+      priority: priority,
+      status: QueueItemStatus.pending,
+      createdAt: DateTime.now(),
+      metadata: metadata ?? {},
+    );
+
+    await _saveEntry(entry);
+    _emitCounts();
+
+    if (kDebugMode) print('[SyncQueue] Enqueued: ${entry.id} (type=$type, priority=${priority.name})');
+    return entry.id;
+  }
+
+  // ─── DEQUEUE (priority-ordered) ──────────────────────────────────────────
+
+  /// Get all pending/retrying items sorted by priority (highest first),
+  /// then by creation time (oldest first within same priority).
+  List<SyncQueueEntry> getReadyItems() {
+    final entries = _getAllEntries();
+    return entries
+        .where((e) =>
+            (e.status == QueueItemStatus.pending || e.status == QueueItemStatus.retrying) &&
+            e.isReadyForRetry)
+        .toList()
+      ..sort((a, b) {
+        // Higher priority first
+        final priorityCompare = b.priority.value.compareTo(a.priority.value);
+        if (priorityCompare != 0) return priorityCompare;
+        // Older items first within same priority
+        return a.createdAt.compareTo(b.createdAt);
+      });
+  }
+
+  /// Get items ready for batch submission (max [batchSize] items).
+  List<SyncQueueEntry> getBatch(int batchSize) {
+    return getReadyItems().take(batchSize).toList();
+  }
+
+  // ─── STATUS UPDATES ──────────────────────────────────────────────────────
+
+  /// Mark an item as currently being synced.
+  Future<void> markSyncing(String id) async {
+    final entry = _getEntry(id);
+    if (entry == null) return;
+    await _saveEntry(entry.copyWith(
+      status: QueueItemStatus.syncing,
+      lastAttemptAt: DateTime.now(),
+    ));
+  }
+
+  /// Mark an item as successfully synced. Removes it from the queue.
+  Future<void> markCompleted(String id) async {
+    await _deleteEntry(id);
+    _emitCounts();
+    if (kDebugMode) print('[SyncQueue] Completed: $id');
+  }
+
+  /// Mark an item as failed. Increments retry count.
+  /// If max retries exceeded, moves to the failed (dead-letter) box.
+  Future<void> markFailed(String id, String error) async {
+    final entry = _getEntry(id);
+    if (entry == null) return;
+
+    final newRetryCount = entry.retryCount + 1;
+
+    if (newRetryCount >= SyncQueueEntry.maxRetries) {
+      // Move to dead-letter (failed) box
+      final failedEntry = entry.copyWith(
+        status: QueueItemStatus.failed,
+        retryCount: newRetryCount,
+        lastError: error,
+        lastAttemptAt: DateTime.now(),
+      );
+      await _saveFailedEntry(failedEntry);
+      await _deleteEntry(id);
+      if (kDebugMode) print('[SyncQueue] Moved to failed box: $id (retries=$newRetryCount)');
+    } else {
+      // Update for retry with backoff
+      final retryEntry = entry.copyWith(
+        status: QueueItemStatus.retrying,
+        retryCount: newRetryCount,
+        lastError: error,
+        lastAttemptAt: DateTime.now(),
+      );
+      await _saveEntry(retryEntry);
+      if (kDebugMode) {
+        print('[SyncQueue] Retry $newRetryCount/${SyncQueueEntry.maxRetries} for $id '
+              '(next retry in ${retryEntry.nextRetryDelay.inSeconds}s)');
+      }
+    }
+    _emitCounts();
+  }
+
+  // ─── FAILED (DEAD-LETTER) QUEUE ─────────────────────────────────────────
+
+  /// Get all permanently failed items for manual review.
+  List<SyncQueueEntry> getFailedItems() {
+    if (_failedBox == null || !_failedBox!.isOpen) return [];
+    return _failedBox!.values.map((raw) {
+      try {
+        return SyncQueueEntry.fromJson(
+          Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+        );
+      } catch (_) {
+        return null;
+      }
+    }).whereType<SyncQueueEntry>().toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Retry a specific failed item (reset retry count, move back to queue).
+  Future<void> retryFailed(String id) async {
+    if (_failedBox == null) return;
+    final raw = _failedBox!.get(id);
+    if (raw == null) return;
+
+    try {
+      final entry = SyncQueueEntry.fromJson(
+        Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+      );
+      final resetEntry = entry.copyWith(
+        status: QueueItemStatus.pending,
+        retryCount: 0,
+        lastError: null,
+        lastAttemptAt: null,
+      );
+      await _saveEntry(resetEntry);
+      await _failedBox!.delete(id);
+      _emitCounts();
+    } catch (_) {}
+  }
+
+  /// Retry ALL failed items at once.
+  Future<void> retryAllFailed() async {
+    final failed = getFailedItems();
+    for (final entry in failed) {
+      await retryFailed(entry.id);
+    }
+  }
+
+  /// Permanently delete a failed item.
+  Future<void> deleteFailed(String id) async {
+    await _failedBox?.delete(id);
+    _emitCounts();
+  }
+
+  // ─── COUNTS & STATS ─────────────────────────────────────────────────────
+
+  QueueCounts getCounts() {
+    final entries = _getAllEntries();
+    final pending = entries.where((e) => e.status == QueueItemStatus.pending).length;
+    final retrying = entries.where((e) => e.status == QueueItemStatus.retrying).length;
+    final syncing = entries.where((e) => e.status == QueueItemStatus.syncing).length;
+    final failed = getFailedItems().length;
+
+    return QueueCounts(
+      pending: pending,
+      retrying: retrying,
+      syncing: syncing,
+      failed: failed,
+      total: pending + retrying + syncing,
+    );
+  }
+
+  int get pendingCount => getCounts().total;
+  int get failedCount => getCounts().failed;
+
+  // ─── CLEANUP ─────────────────────────────────────────────────────────────
+
+  /// Remove completed items older than [maxAge] (default: 24 hours).
+  /// Also cleans up corrupted entries.
+  Future<void> _autoCleanup() async {
+    if (_queueBox == null) return;
+    final cutoff = DateTime.now().subtract(const Duration(hours: 24));
+    int cleaned = 0;
+
+    final keysToDelete = <String>[];
+    for (final key in _queueBox!.keys) {
+      final raw = _queueBox!.get(key);
+      if (raw == null) continue;
+      try {
+        final entry = SyncQueueEntry.fromJson(
+          Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+        );
+        // Remove old completed items
+        if (entry.status == QueueItemStatus.completed && entry.createdAt.isBefore(cutoff)) {
+          keysToDelete.add(key as String);
+        }
+      } catch (_) {
+        // Remove corrupted entries
+        keysToDelete.add(key as String);
+      }
+    }
+
+    for (final key in keysToDelete) {
+      await _queueBox!.delete(key);
+      cleaned++;
+    }
+
+    if (cleaned > 0 && kDebugMode) {
+      print('[SyncQueue] Auto-cleanup removed $cleaned old entries');
+    }
+  }
+
+  /// Clear the entire queue (use with caution).
+  Future<void> clearAll() async {
+    await _queueBox?.clear();
+    _emitCounts();
+  }
+
+  /// Clear the failed box.
+  Future<void> clearFailed() async {
+    await _failedBox?.clear();
+    _emitCounts();
+  }
+
+  // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────
+
+  Box<String> get _safeQueueBox {
+    final b = _queueBox;
+    if (b == null || !b.isOpen) {
+      throw StateError('ProductionSyncQueue not initialized. Call init() first.');
+    }
+    return b;
+  }
+
+  Future<void> _saveEntry(SyncQueueEntry entry) async {
+    final encrypted = _encryption.encrypt(jsonEncode(entry.toJson()));
+    await _safeQueueBox.put(entry.id, encrypted);
+  }
+
+  Future<void> _deleteEntry(String id) async {
+    await _safeQueueBox.delete(id);
+  }
+
+  SyncQueueEntry? _getEntry(String id) {
+    final raw = _safeQueueBox.get(id);
+    if (raw == null) return null;
+    try {
+      return SyncQueueEntry.fromJson(
+        Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<SyncQueueEntry> _getAllEntries() {
+    return _safeQueueBox.values.map((raw) {
+      try {
+        return SyncQueueEntry.fromJson(
+          Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+        );
+      } catch (_) {
+        return null;
+      }
+    }).whereType<SyncQueueEntry>().toList();
+  }
+
+  Future<void> _saveFailedEntry(SyncQueueEntry entry) async {
+    if (_failedBox == null || !_failedBox!.isOpen) return;
+    final encrypted = _encryption.encrypt(jsonEncode(entry.toJson()));
+    await _failedBox!.put(entry.id, encrypted);
+  }
+
+  void _emitCounts() {
+    if (!_countController.isClosed) {
+      _countController.add(getCounts());
+    }
+  }
+
+  void dispose() {
+    _cleanupTimer?.cancel();
+    _countController.close();
+  }
+}
+
+/// Snapshot of queue counts for UI display.
+class QueueCounts {
+  final int pending;
+  final int retrying;
+  final int syncing;
+  final int failed;
+  final int total;
+
+  const QueueCounts({
+    this.pending = 0,
+    this.retrying = 0,
+    this.syncing = 0,
+    this.failed = 0,
+    this.total = 0,
+  });
+
+  bool get isEmpty => total == 0;
+  bool get hasActivity => syncing > 0;
+
+  @override
+  String toString() => 'QueueCounts(pending=$pending, retrying=$retrying, syncing=$syncing, failed=$failed)';
+}
