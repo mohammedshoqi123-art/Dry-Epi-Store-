@@ -3032,3 +3032,180 @@ GRANT EXECUTE ON FUNCTION public.user_governorate_id() TO anon, authenticated, s
 GRANT EXECUTE ON FUNCTION public.user_district_id() TO anon, authenticated, service_role;
 
 COMMIT;
+
+-- ============================================================
+-- MIGRATION 004: Improvements (from expert audit)
+-- ============================================================
+
+BEGIN;
+
+-- Notifications table (persistent)
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'info',
+  category TEXT DEFAULT 'general',
+  data JSONB DEFAULT '{}',
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "notifications_select_own" ON notifications
+  FOR SELECT USING (recipient_id = auth.uid());
+CREATE POLICY "notifications_update_own" ON notifications
+  FOR UPDATE USING (recipient_id = auth.uid());
+CREATE POLICY "notifications_insert_system" ON notifications
+  FOR INSERT WITH CHECK (true);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient_unread ON notifications(recipient_id, is_read, created_at DESC);
+
+-- Backup history table
+CREATE TABLE IF NOT EXISTS backup_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  backup_type TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  file_path TEXT,
+  file_size_bytes BIGINT,
+  tables_included TEXT[],
+  record_count INTEGER,
+  started_at TIMESTAMPTZ DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  error_message TEXT,
+  created_by UUID REFERENCES profiles(id)
+);
+
+ALTER TABLE backup_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "backup_admin_only" ON backup_history
+  FOR ALL USING (public.user_role() = 'admin');
+
+-- Additional indexes
+CREATE INDEX IF NOT EXISTS idx_submissions_form_status_date
+  ON form_submissions(form_id, status, created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_submission_offline_unique
+  ON form_submissions(submitted_by, offline_id) WHERE offline_id IS NOT NULL;
+
+-- Dashboard stats function
+CREATE OR REPLACE FUNCTION public.get_dashboard_stats(p_user_id UUID)
+RETURNS JSON
+LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_role TEXT;
+  v_gov_id UUID;
+  v_dist_id UUID;
+  v_result JSON;
+BEGIN
+  SELECT role, governorate_id, district_id INTO v_role, v_gov_id, v_dist_id
+  FROM profiles WHERE id = p_user_id AND is_active = true;
+  IF v_role IS NULL THEN RETURN '{"error": "User not found"}'::JSON; END IF;
+
+  IF v_role IN ('admin', 'central') THEN
+    SELECT json_build_object(
+      'total_users', (SELECT COUNT(*) FROM profiles WHERE is_active = true AND deleted_at IS NULL),
+      'total_forms', (SELECT COUNT(*) FROM forms WHERE is_active = true AND deleted_at IS NULL),
+      'total_submissions', (SELECT COUNT(*) FROM form_submissions WHERE deleted_at IS NULL),
+      'pending_reviews', (SELECT COUNT(*) FROM form_submissions WHERE status = 'pending' AND deleted_at IS NULL),
+      'today_submissions', (SELECT COUNT(*) FROM form_submissions WHERE created_at::date = CURRENT_DATE AND deleted_at IS NULL),
+      'unread_notifications', (SELECT COUNT(*) FROM notifications WHERE recipient_id = p_user_id AND is_read = false)
+    ) INTO v_result;
+  ELSE
+    SELECT json_build_object(
+      'my_submissions', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND deleted_at IS NULL),
+      'pending', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'pending' AND deleted_at IS NULL),
+      'approved', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'approved' AND deleted_at IS NULL),
+      'rejected', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'rejected' AND deleted_at IS NULL),
+      'unread_notifications', (SELECT COUNT(*) FROM notifications WHERE recipient_id = p_user_id AND is_read = false)
+    ) INTO v_result;
+  END IF;
+  RETURN COALESCE(v_result, '{}'::JSON);
+END;
+$$;
+
+-- Governorate report function
+CREATE OR REPLACE FUNCTION public.get_governorate_report(
+  p_start_date DATE DEFAULT (CURRENT_DATE - INTERVAL '30 days')::DATE,
+  p_end_date DATE DEFAULT CURRENT_DATE
+)
+RETURNS TABLE (
+  governorate_id UUID, governorate_name TEXT,
+  total_submissions BIGINT, approved BIGINT, pending BIGINT, rejected BIGINT,
+  completion_rate NUMERIC, avg_daily_submissions NUMERIC
+)
+LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT g.id, g.name_ar::TEXT,
+    COUNT(fs.id), COUNT(fs.id) FILTER (WHERE fs.status = 'approved'),
+    COUNT(fs.id) FILTER (WHERE fs.status = 'pending'), COUNT(fs.id) FILTER (WHERE fs.status = 'rejected'),
+    ROUND(COUNT(fs.id) FILTER (WHERE fs.status = 'approved')::NUMERIC / NULLIF(COUNT(fs.id), 0) * 100, 2),
+    ROUND(COUNT(fs.id)::NUMERIC / NULLIF(p_end_date - p_start_date, 0), 2)
+  FROM governorates g
+  LEFT JOIN form_submissions fs ON g.id = fs.governorate_id
+    AND fs.created_at::DATE BETWEEN p_start_date AND p_end_date AND fs.deleted_at IS NULL
+  WHERE g.deleted_at IS NULL
+  GROUP BY g.id, g.name_ar ORDER BY COUNT(fs.id) DESC;
+END;
+$$;
+
+-- Notification trigger on submission
+CREATE OR REPLACE FUNCTION public.notify_on_submission()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO notifications (recipient_id, title, body, type, category, data)
+  SELECT p.id, 'استمارة جديدة',
+    'تم تقديم استمارة جديدة في ' || COALESCE((SELECT name_ar FROM governorates WHERE id = NEW.governorate_id), 'غير محدد'),
+    'info', 'form', json_build_object('submission_id', NEW.id, 'form_id', NEW.form_id)
+  FROM profiles p
+  WHERE p.is_active = true AND p.deleted_at IS NULL AND p.id != NEW.submitted_by
+    AND (p.role IN ('admin', 'central') OR (p.role = 'governorate' AND p.governorate_id = NEW.governorate_id));
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_notify_submission ON form_submissions;
+CREATE TRIGGER trigger_notify_submission AFTER INSERT ON form_submissions
+  FOR EACH ROW EXECUTE FUNCTION notify_on_submission();
+
+-- Notification trigger on status change
+CREATE OR REPLACE FUNCTION public.notify_on_status_change()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF OLD.status = NEW.status THEN RETURN NEW; END IF;
+  IF NEW.status IN ('approved', 'rejected', 'reviewed') THEN
+    INSERT INTO notifications (recipient_id, title, body, type, category, data)
+    VALUES (NEW.submitted_by, 'تحديث حالة الاستمارة',
+      CASE NEW.status WHEN 'approved' THEN 'تمت الموافقة' WHEN 'rejected' THEN 'تم الرفض' ELSE 'تمت المراجعة' END ||
+      CASE WHEN NEW.review_notes IS NOT NULL THEN ': ' || NEW.review_notes ELSE '' END,
+      CASE NEW.status WHEN 'approved' THEN 'success' WHEN 'rejected' THEN 'error' ELSE 'info' END,
+      'form', json_build_object('submission_id', NEW.id, 'old_status', OLD.status, 'new_status', NEW.status));
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_notify_status_change ON form_submissions;
+CREATE TRIGGER trigger_notify_status_change AFTER UPDATE OF status ON form_submissions
+  FOR EACH ROW EXECUTE FUNCTION notify_on_status_change();
+
+-- App settings additions
+INSERT INTO app_settings (key, value, label_ar, type, category) VALUES
+  ('notification_enabled', 'true', 'تفعيل الإشعارات', 'boolean', 'notifications'),
+  ('backup_enabled', 'true', 'تفعيل النسخ الاحتياطي', 'boolean', 'backup'),
+  ('session_timeout_minutes', '480', 'مهلة انتهاء الجلسة بالدقائق', 'number', 'security')
+ON CONFLICT (key) DO NOTHING;
+
+GRANT EXECUTE ON FUNCTION public.get_dashboard_stats(UUID) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_governorate_report(DATE, DATE) TO authenticated, service_role;
+
+COMMIT;

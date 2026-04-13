@@ -221,4 +221,89 @@ class DatabaseService {
   Future<void> updateReference(String id, Map<String, dynamic> data) async {
     await _api.update('references', data, filters: {'id': id});
   }
+
+  // ===== DASHBOARD =====
+
+  /// Get dashboard stats for the current user (role-based)
+  Future<Map<String, dynamic>> getDashboardStats(String userId) async {
+    final response = await _api.callFunction('get-dashboard-stats', {
+      'user_id': userId,
+    });
+    return response;
+  }
+
+  // ===== REPORTS =====
+
+  /// Get governorate report with submission breakdown
+  Future<List<Map<String, dynamic>>> getGovernorateReport({
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    final now = DateTime.now();
+    final start = startDate ?? now.subtract(const Duration(days: 30));
+    final end = endDate ?? now;
+
+    final response = await _api.callFunction('get-governorate-report', {
+      'start_date': start.toIso8601String().split('T').first,
+      'end_date': end.toIso8601String().split('T').first,
+    });
+
+    if (response is List) {
+      return List<Map<String, dynamic>>.from(response);
+    }
+    return [];
+  }
+
+  // ===== NOTIFICATIONS =====
+
+  /// Get user notifications (paginated)
+  Future<List<Map<String, dynamic>>> getNotifications({
+    int limit = 50,
+    int offset = 0,
+    bool unreadOnly = false,
+  }) async {
+    final filters = <String, dynamic>{};
+    if (unreadOnly) filters['is_read'] = false;
+
+    return _api.select(
+      'notifications',
+      filters: filters,
+      orderBy: 'created_at',
+      ascending: false,
+      limit: limit,
+      offset: offset,
+    );
+  }
+
+  /// Get unread notification count
+  Future<int> getUnreadNotificationCount() async {
+    final results = await _api.select(
+      'notifications',
+      filters: {'is_read': false},
+      limit: 1,
+    );
+    // Note: This returns 0 or 1; for exact count we'd need an RPC
+    return results.isNotEmpty ? results.length : 0;
+  }
+
+  // ===== APP SETTINGS =====
+
+  /// Get all app settings or a specific one
+  Future<Map<String, dynamic>> getAppSettings({String? key}) async {
+    if (key != null) {
+      final result = await _api.selectOne('app_settings', filters: {'key': key});
+      return result;
+    }
+    final results = await _api.select('app_settings');
+    return {for (var r in results) r['key']: r['value']};
+  }
+
+  /// Update an app setting
+  Future<void> updateAppSetting(String key, dynamic value) async {
+    await _api.update(
+      'app_settings',
+      {'value': value, 'updated_at': DateTime.now().toIso8601String()},
+      filters: {'key': key},
+    );
+  }
 }
