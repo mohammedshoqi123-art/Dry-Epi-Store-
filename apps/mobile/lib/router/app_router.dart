@@ -19,6 +19,7 @@ import '../screens/admin/audit_screen.dart';
 import '../screens/admin/forms_management_screen.dart';
 import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
+import '../screens/forms_status_screen.dart';
 import 'package:epi_features/epi_features.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -97,6 +98,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => FormFillScreen(
                   formId: state.pathParameters['formId']!,
                 ),
+              ),
+              GoRoute(
+                path: 'status',
+                builder: (context, state) => const FormsStatusScreen(),
               ),
             ],
           ),

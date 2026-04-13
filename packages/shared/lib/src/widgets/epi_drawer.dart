@@ -97,6 +97,7 @@ class EpiDrawer extends StatelessWidget {
                   _SectionLabel(label: 'الرئيسية'),
                   _buildItem(context, Icons.dashboard_rounded, 'لوحة التحكم', '/dashboard'),
                   _buildItem(context, Icons.assignment_rounded, 'النماذج', '/forms'),
+                  _buildItem(context, Icons.dashboard_customize_outlined, 'حالة الاستمارات', '/forms/status'),
                   _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
                   _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
 

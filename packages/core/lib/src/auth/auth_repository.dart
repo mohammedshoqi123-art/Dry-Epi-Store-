@@ -6,6 +6,7 @@ import 'auth_state.dart' as app_auth;
 class AuthRepository {
   SupabaseClient? _client;
   bool _isConfigured = false;
+  Timer? _sessionRefreshTimer;
   final _authStateController = StreamController<app_auth.AuthState>.broadcast();
 
   Stream<app_auth.AuthState> get authStateChanges => _authStateController.stream;
@@ -61,7 +62,24 @@ class AuthRepository {
         _currentState = const app_auth.AuthState();
         _authStateController.add(_currentState);
       } else if (event == AuthChangeEvent.tokenRefreshed && session != null) {
+        // Token was refreshed — reload profile to keep state in sync
         await _loadProfile(session.user.id);
+      } else if (event == AuthChangeEvent.passwordRecovery && session != null) {
+        await _loadProfile(session.user.id);
+      }
+    });
+
+    // Proactive session refresh: check every 4 minutes if token is near expiry
+    _sessionRefreshTimer = Timer.periodic(const Duration(minutes: 4), (_) async {
+      try {
+        final session = _client?.auth.currentSession;
+        if (session == null) return;
+        final expiresAt = DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
+        if (DateTime.now().isAfter(expiresAt.subtract(const Duration(minutes: 10)))) {
+          await _client?.auth.refreshSession();
+        }
+      } catch (_) {
+        // Silent fail — the next API call will trigger a retry
       }
     });
   }
@@ -196,6 +214,7 @@ class AuthRepository {
   String? get accessToken => _client?.auth.currentSession?.accessToken;
 
   void dispose() {
+    _sessionRefreshTimer?.cancel();
     _authStateController.close();
   }
 }

@@ -12,9 +12,16 @@ class FormsScreen extends ConsumerWidget {
     final forms = ref.watch(formsProvider);
 
     return Scaffold(
-      appBar: const EpiAppBar(
+      appBar: EpiAppBar(
         title: AppStrings.forms,
         showBackButton: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.dashboard_customize_outlined),
+            onPressed: () => context.go('/forms/status'),
+            tooltip: 'حالة الاستمارات',
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(formsProvider),

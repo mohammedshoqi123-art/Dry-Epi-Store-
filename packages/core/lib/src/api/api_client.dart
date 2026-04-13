@@ -166,17 +166,66 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     try {
+      // Ensure token is fresh before calling the function
+      await _ensureFreshSession();
+
       final response = await _safeClient.functions.invoke(
         functionName,
         body: body,
       );
       return Map<String, dynamic>.from(response.data);
     } on FunctionException catch (e) {
+      // If 401, try refreshing the token ONCE and retry
+      if (e.status == 401) {
+        try {
+          await _forceRefreshSession();
+          final response = await _safeClient.functions.invoke(
+            functionName,
+            body: body,
+          );
+          return Map<String, dynamic>.from(response.data);
+        } on FunctionException catch (retryError) {
+          throw _mapFunctionException(retryError);
+        } catch (retryError) {
+          throw const UnauthorizedException();
+        }
+      }
       throw _mapFunctionException(e);
     } catch (e, stack) {
       _reportUnexpectedError(e, stack, context: 'callFunction($functionName)');
       if (_isNetworkError(e)) throw const NetworkException();
       throw ApiException('Unexpected error calling $functionName: ${e.runtimeType}', code: 'unknown');
+    }
+  }
+
+  /// Ensure the current session has a fresh token (refresh if expiring within 5 min).
+  Future<void> _ensureFreshSession() async {
+    try {
+      final session = _safeClient.auth.currentSession;
+      if (session == null) return;
+
+      final expiresAt = DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
+      final now = DateTime.now();
+
+      // Refresh if token expires within 5 minutes
+      if (expiresAt.difference(now).inMinutes < 5) {
+        await _safeClient.auth.refreshSession();
+      }
+    } catch (_) {
+      // If refresh fails here, the main call will handle the 401
+    }
+  }
+
+  /// Force a session refresh (used as retry after 401).
+  Future<void> _forceRefreshSession() async {
+    final session = _safeClient.auth.currentSession;
+    if (session == null) throw const UnauthorizedException();
+
+    try {
+      final result = await _safeClient.auth.refreshSession();
+      if (result.session == null) throw const UnauthorizedException();
+    } catch (_) {
+      throw const UnauthorizedException();
     }
   }
 

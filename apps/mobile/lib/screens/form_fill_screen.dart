@@ -22,16 +22,21 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   bool _isLoading = false;
   bool _isSavingDraft = false;
   bool _isGettingLocation = false;
+  bool _hasUnsavedChanges = false;
   Map<String, dynamic>? _formSchema;
-  
+
   // Support both formats: sections (new) and flat fields (old)
   List<dynamic> _sections = [];
   List<dynamic> _flatFields = [];
-  
+
   double? _gpsLat;
   double? _gpsLng;
   final List<XFile> _pickedPhotos = [];
   String? _signatureData; // base64 or path of signature image
+
+  // Auto-save timer
+  Timer? _autoSaveTimer;
+  DateTime? _lastAutoSave;
 
   /// Get or create a TextEditingController for a field key
   TextEditingController _getController(String key, {String? initialValue}) {
@@ -45,6 +50,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   void initState() {
     super.initState();
     _loadForm();
+    // Auto-save every 30 seconds if there are changes
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_hasUnsavedChanges && _formData.isNotEmpty) {
+        _autoSave(showFeedback: false);
+      }
+    });
   }
 
   Future<void> _loadForm() async {
@@ -53,21 +64,51 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       final db = ref.read(databaseServiceProvider);
       final form = await db.getForm(widget.formId);
       final schema = form['schema'] as Map<String, dynamic>? ?? {};
-      
+
       setState(() {
         _formSchema = form;
         _sections = (schema['sections'] as List?) ?? [];
         _flatFields = (schema['fields'] as List?) ?? [];
         _isLoading = false;
       });
+
+      // Load existing draft if available
+      await _loadDraft();
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) context.showError('فشل تحميل النموذج');
     }
   }
 
+  /// Load saved draft data into the form
+  Future<void> _loadDraft() async {
+    try {
+      final offline = await ref.read(offlineManagerProvider.future);
+      final draft = offline.getDraft(widget.formId);
+      if (draft != null && draft['data'] != null) {
+        final draftData = Map<String, dynamic>.from(draft['data']);
+        setState(() {
+          _formData.addAll(draftData);
+          _hasUnsavedChanges = false;
+        });
+        // Restore text controller values
+        for (final entry in draftData.entries) {
+          if (_textControllers.containsKey(entry.key)) {
+            _textControllers[entry.key]!.text = entry.value?.toString() ?? '';
+          }
+        }
+        if (mounted) {
+          context.showInfo('تم استعادة المسودة السابقة');
+        }
+      }
+    } catch (_) {
+      // Draft loading is non-critical — silently ignore errors
+    }
+  }
+
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     for (final controller in _textControllers.values) {
       controller.dispose();
     }
@@ -130,6 +171,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           _formData[key] = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
         }
       }
+      _markChanged();
 
       if (mounted) context.showSuccess('تم تحديد الموقع بنجاح');
     } catch (e) {
@@ -254,9 +296,21 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             if (mounted) context.showInfo('تم حفظ المسودة تلقائياً');
           } catch (_) {}
         } else if (errorMsg.contains('Unauthorized') || errorMsg.contains('401')) {
-          context.showError('انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.');
+          // Save draft BEFORE showing session expired message — preserve user data!
+          try {
+            final offline = await ref.read(offlineManagerProvider.future);
+            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+          } catch (_) {}
+          if (mounted) {
+            context.showError('انتهت الجلسة. تم حفظ بياناتك كمسودة. يرجى تسجيل الدخول وإعادة الإرسال.');
+          }
         } else {
-          context.showError('فشل الإرسال: $errorMsg');
+          // On any error, try to save as draft
+          try {
+            final offline = await ref.read(offlineManagerProvider.future);
+            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+          } catch (_) {}
+          if (mounted) context.showError('فشل الإرسال: $errorMsg (تم حفظ البيانات كمسودة)');
         }
       }
     } finally {
@@ -276,6 +330,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     try {
       final offline = await ref.read(offlineManagerProvider.future);
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+      _hasUnsavedChanges = false;
+      _lastAutoSave = DateTime.now();
       if (mounted) context.showSuccess(AppStrings.draftSaved);
     } catch (e) {
       final errorMsg = e.toString();
@@ -289,6 +345,29 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     } finally {
       if (mounted) setState(() => _isSavingDraft = false);
     }
+  }
+
+  /// Silent auto-save (no UI feedback unless showFeedback is true)
+  Future<void> _autoSave({bool showFeedback = false}) async {
+    _syncControllersToFormData();
+    if (_formData.isEmpty) return;
+
+    try {
+      final offline = await ref.read(offlineManagerProvider.future);
+      await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+      _hasUnsavedChanges = false;
+      _lastAutoSave = DateTime.now();
+      if (showFeedback && mounted) {
+        context.showSuccess('تم الحفظ التلقائي');
+      }
+    } catch (_) {
+      // Auto-save failures are silent
+    }
+  }
+
+  /// Mark that data has changed (triggers auto-save on next cycle)
+  void _markChanged() {
+    _hasUnsavedChanges = true;
   }
 
   @override
@@ -437,7 +516,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         return EpiTextField(
           controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
-          onChanged: (v) => _formData[key] = v,
+          onChanged: (v) { _formData[key] = v; _markChanged(); },
           validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
         );
 
@@ -446,7 +525,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint ?? '07XXXXXXXXX',
           keyboardType: TextInputType.phone,
-          onChanged: (v) => _formData[key] = v,
+          onChanged: (v) { _formData[key] = v; _markChanged(); },
           validator: isRequired
               ? (v) {
                   if (v == null || v.isEmpty) return AppStrings.required;
@@ -461,7 +540,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           maxLines: 4,
-          onChanged: (v) => _formData[key] = v,
+          onChanged: (v) { _formData[key] = v; _markChanged(); },
           validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
         );
 
@@ -470,7 +549,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           keyboardType: TextInputType.number,
-          onChanged: (v) => _formData[key] = num.tryParse(v),
+          onChanged: (v) { _formData[key] = num.tryParse(v); _markChanged(); },
           validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
         );
 
@@ -480,7 +559,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           hint: hint,
           value: _formData[key],
           items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontFamily: 'Tajawal')))).toList(),
-          onChanged: (v) => setState(() => _formData[key] = v),
+          onChanged: (v) => setState(() { _formData[key] = v; _markChanged(); }),
           validator: isRequired ? (v) => v == null ? AppStrings.required : null : null,
         );
 
@@ -505,6 +584,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                     selected.remove(o);
                   }
                   _formData[key] = selected;
+                  _markChanged();
                 });
               },
             );
@@ -522,7 +602,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             children: [
               Expanded(
                 child: InkWell(
-                  onTap: () => setState(() => _formData[key] = true),
+                  onTap: () => setState(() { _formData[key] = true; _markChanged(); }),
                   borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -555,7 +635,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               Container(width: 1, height: 40, color: Colors.grey.shade300),
               Expanded(
                 child: InkWell(
-                  onTap: () => setState(() => _formData[key] = false),
+                  onTap: () => setState(() { _formData[key] = false; _markChanged(); }),
                   borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -601,7 +681,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               locale: const Locale('ar'),
             );
             if (date != null) {
-              setState(() => _formData[key] = date.toIso8601String().split('T')[0]);
+              setState(() { _formData[key] = date.toIso8601String().split('T')[0]; _markChanged(); });
             }
           },
           child: InputDecorator(
@@ -630,7 +710,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               initialTime: TimeOfDay.now(),
             );
             if (time != null) {
-              setState(() => _formData[key] = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}');
+              setState(() { _formData[key] = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'; _markChanged(); });
             }
           },
           child: InputDecorator(
@@ -701,6 +781,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             // Clear district when governorate changes
             _formData['district_id'] = null;
             _formData['district'] = null;
+            _markChanged();
           }),
           isRequired: isRequired,
         );
@@ -709,7 +790,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         return _DistrictDropdown(
           governorateId: _formData['governorate_id'] as String?,
           value: _formData[key],
-          onChanged: (v) => setState(() => _formData[key] = v),
+          onChanged: (v) => setState(() { _formData[key] = v; _markChanged(); }),
           isRequired: isRequired,
         );
 
@@ -723,6 +804,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               _pickedPhotos.clear();
               _pickedPhotos.addAll(photos);
               _formData[key] = photos.map((p) => p.path).toList();
+              _markChanged();
             });
           },
           isRequired: isRequired,
@@ -736,6 +818,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             setState(() {
               _signatureData = data;
               _formData[key] = data;
+              _markChanged();
             });
           },
           isRequired: isRequired,
@@ -745,7 +828,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         return EpiTextField(
           controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
-          onChanged: (v) => _formData[key] = v,
+          onChanged: (v) { _formData[key] = v; _markChanged(); },
         );
     }
   }
