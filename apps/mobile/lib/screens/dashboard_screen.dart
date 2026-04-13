@@ -31,11 +31,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     // Reading it here guarantees auto-sync is active after login.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(syncServiceProvider.future).then((service) {
-        // Trigger immediate sync if there are pending items
         if (service.currentState.pendingCount > 0) {
-          service.sync().catchError((_) {});
+          service.sync().catchError((_) => SyncCycleResult.empty());
         }
-      }).catchError((_) {});
+      }).catchError((_) => null);
     });
   }
 
@@ -209,7 +208,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
               ),
               TextButton(
                 onPressed: () {
-                  ref.read(syncServiceProvider.future).then((s) => s.sync().catchError((_) {}));
+                  ref.read(syncServiceProvider.future).then((s) => s.sync().catchError((_) => SyncCycleResult.empty()));
                 },
                 child: Text('مزامنة الآن', style: TextStyle(color: Colors.orange.shade800)),
               ),
