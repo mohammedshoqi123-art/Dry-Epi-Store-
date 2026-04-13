@@ -291,7 +291,7 @@ void main() {
     });
 
     test('statusText includes pending count when offline', () {
-      final snap = const NetworkSnapshot(
+      const snap = NetworkSnapshot(
         status: NetworkStatus.offline,
         pendingItems: 12,
       );
@@ -547,8 +547,7 @@ void main() {
           'offline_id': 'id_$scenario',
         });
 
-        // Simulate the error
-        bool errorOccurred = true;
+        // Simulate the error (error scenario for this test case)
 
         // Verify: data is safe regardless of error type
         expect(queue.length, equals(1),

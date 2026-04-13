@@ -266,7 +266,7 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
     text.writeln('');
     text.writeln('━━━━ EPI Supervisor ━━━━');
 
-    Share.share(text.toString());
+    await SharePlus.instance.share(ShareParams(text: text.toString()));
   }
 
   void _copyData() {
@@ -289,10 +289,10 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
         period: 'إرسال واحدة — ${(_submission!['created_at'] ?? '').toString().substring(0, 10)}',
       );
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
         subject: 'تقرير استمارة EPI',
-      );
+      ));
     } catch (e) {
       if (mounted) context.showError('فشل إنشاء التقرير: $e');
     }

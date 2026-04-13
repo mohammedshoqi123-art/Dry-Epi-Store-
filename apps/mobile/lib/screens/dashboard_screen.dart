@@ -517,10 +517,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
           recommendations: LocalAnalyticsEngine.generateInsights(data),
         );
 
-        await Share.shareXFiles(
-          [XFile(file.path)],
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(file.path)],
           subject: 'تقرير لوحة التحكم EPI',
-        );
+        ));
       } catch (e) {
         if (mounted) context.showError('فشل إنشاء التقرير: $e');
       }

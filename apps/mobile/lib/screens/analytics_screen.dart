@@ -406,7 +406,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       buffer.writeln('═══════════════════════════════════');
       buffer.writeln('تاريخ التصدير: ${DateTime.now().toString().split('.')[0]}');
 
-      Share.share(buffer.toString(), subject: 'تقرير تحليلات EPI Supervisor');
+      await SharePlus.instance.share(ShareParams(text: buffer.toString(), subject: 'تقرير تحليلات EPI Supervisor'));
     });
   }
 
@@ -440,10 +440,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           recommendations: LocalAnalyticsEngine.generateInsights(data),
         );
 
-        await Share.shareXFiles(
-          [XFile(file.path)],
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(file.path)],
           subject: 'تقرير تحليلات EPI - $periodLabel',
-        );
+        ));
       } catch (e) {
         if (mounted) context.showError('فشل إنشاء التقرير: $e');
       }
