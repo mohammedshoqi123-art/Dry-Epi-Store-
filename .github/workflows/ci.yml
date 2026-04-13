@@ -95,13 +95,13 @@ jobs:
         run: |
           echo "flutter.sdk=$FLUTTER_ROOT" > apps/mobile/android/local.properties
 
-      - name: Clear corrupted Gradle cache
+      - name: Clear Gradle cache & flutter clean (fix bcprov-jdk18on corruption)
         run: |
-          echo "=== Cleaning Gradle cache (fix bcprov-jdk18on JAR corruption) ==="
-          rm -rf ~/.gradle/caches/jars-9/
-          rm -rf ~/.gradle/caches/transforms-3/
-          rm -rf ~/.gradle/caches/modules-2/files-2.1/org.bouncycastle/
-          echo "=== Gradle cache cleaned ==="
+          echo "=== Full Gradle cache cleanup (bcprov-jdk18on bug in Gradle 8.2) ==="
+          rm -rf ~/.gradle/caches/
+          echo "=== flutter clean ==="
+          cd apps/mobile && flutter clean
+          echo "=== Cache cleaned ==="
 
       - name: Setup project
         run: |
