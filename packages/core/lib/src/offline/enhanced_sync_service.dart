@@ -169,9 +169,15 @@ class EnhancedSyncService {
   Timer? _syncTimer;
   Timer? _qualityTimer;
   bool _isOnline = false;
+  bool _isAutoSyncRunning = false;
   DateTime? _lastOnline;
   DateTime? _lastSync;
+  DateTime? _lastStateEmit;
   int _pendingCount = 0;
+  NetworkState? _lastEmittedState;
+
+  // Minimum interval between state emissions to prevent flickering
+  static const Duration _minEmitInterval = Duration(milliseconds: 500);
 
   final _stateController = StreamController<NetworkState>.broadcast();
   final _conflictController = StreamController<DataConflict>.broadcast();
@@ -208,15 +214,20 @@ class EnhancedSyncService {
     _pendingCount = _getPendingChanges().length;
     _initConnectivityListener();
     _startQualityMonitoring();
-    _emitState();
+    _forceEmitState();
   }
 
   void _initConnectivityListener() {
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen((results) {
       final wasOffline = !_isOnline;
-      _isOnline = results.isNotEmpty &&
+      final newOnline = results.isNotEmpty &&
           results.any((r) => r != ConnectivityResult.none);
+
+      // Deduplicate: skip if status didn't actually change
+      if (wasOffline == !newOnline) return;
+
+      _isOnline = newOnline;
 
       if (_isOnline) {
         _lastOnline = DateTime.now();
@@ -236,12 +247,13 @@ class EnhancedSyncService {
       _isOnline = results.isNotEmpty &&
           results.any((r) => r != ConnectivityResult.none);
       if (_isOnline) _lastOnline = DateTime.now();
-      _emitState();
+      _forceEmitState();
     });
   }
 
   void _startQualityMonitoring() {
-    _qualityTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    _qualityTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      // Only emit if quality actually changed or pending count changed
       _emitState();
     });
   }
@@ -261,7 +273,10 @@ class EnhancedSyncService {
         syncWithConflictResolution();
       }
     });
-    startAutoSync();
+    // Only start auto-sync if not already running
+    if (!_isAutoSyncRunning) {
+      startAutoSync();
+    }
   }
 
   void _onDisconnected() {
@@ -269,8 +284,38 @@ class EnhancedSyncService {
     stopAutoSync();
   }
 
+  /// Emit state only if it actually changed or enough time has passed.
+  /// This prevents flickering from rapid connectivity changes.
   void _emitState() {
-    _stateController.add(currentState);
+    final now = DateTime.now();
+    final newState = currentState;
+
+    // Deduplicate: skip if state is identical to last emitted
+    final lastState = _lastEmittedState;
+    if (lastState != null &&
+        lastState.isOnline == newState.isOnline &&
+        lastState.quality == newState.quality &&
+        lastState.pendingItems == newState.pendingItems) {
+      return;
+    }
+
+    // Throttle: don't emit more frequently than _minEmitInterval
+    if (_lastStateEmit != null &&
+        now.difference(_lastStateEmit!) < _minEmitInterval) {
+      return;
+    }
+
+    _lastEmittedState = newState;
+    _lastStateEmit = now;
+    _stateController.add(newState);
+  }
+
+  /// Force emit state regardless of deduplication (used after critical changes)
+  void _forceEmitState() {
+    final newState = currentState;
+    _lastEmittedState = newState;
+    _lastStateEmit = DateTime.now();
+    _stateController.add(newState);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -286,7 +331,7 @@ class EnhancedSyncService {
     pending.add(change);
     await _savePendingChanges(pending);
     _pendingCount = pending.length;
-    _emitState();
+    _forceEmitState();
   }
 
   List<Map<String, dynamic>> _getPendingChanges() {
@@ -545,6 +590,7 @@ class EnhancedSyncService {
 
   void startAutoSync() {
     _syncTimer?.cancel();
+    _isAutoSyncRunning = true;
     _syncTimer = Timer.periodic(_autoSyncInterval, (_) {
       if (_isOnline && _pendingCount > 0) {
         syncWithConflictResolution();
@@ -554,6 +600,7 @@ class EnhancedSyncService {
 
   void stopAutoSync() {
     _syncTimer?.cancel();
+    _isAutoSyncRunning = false;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -616,6 +663,8 @@ class EnhancedSyncService {
     _connectivitySubscription?.cancel();
     _syncTimer?.cancel();
     _qualityTimer?.cancel();
+    _isAutoSyncRunning = false;
+    _lastEmittedState = null;
     _stateController.close();
     _conflictController.close();
     _syncResultController.close();

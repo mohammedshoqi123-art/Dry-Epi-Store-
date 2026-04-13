@@ -69,11 +69,22 @@ class OfflineManager {
 
   Future<void> init() async {
     try {
-      await Hive.initFlutter();
+      await Hive.initFlutter().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          if (kDebugMode) print('Hive.initFlutter timed out');
+          throw TimeoutException('Hive initialization timed out');
+        },
+      );
     } catch (e) {
       if (kDebugMode) print('Hive.initFlutter failed, trying default: $e');
     }
-    _box = await Hive.openBox<String>(_boxName);
+    _box = await Hive.openBox<String>(_boxName).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        throw TimeoutException('Hive box open timed out');
+      },
+    );
 
     // Listen to connectivity changes
     try {
@@ -92,7 +103,13 @@ class OfflineManager {
 
     // Initial check
     try {
-      final results = await _connectivity.checkConnectivity();
+      final results = await _connectivity.checkConnectivity().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          if (kDebugMode) print('Initial connectivity check timed out');
+          return <ConnectivityResult>[];
+        },
+      );
       final resultList = results;
       _isOnline = resultList.isNotEmpty &&
           resultList.any((r) => r != ConnectivityResult.none);

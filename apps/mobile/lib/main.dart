@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -162,10 +163,21 @@ Future<void> main() async {
     ),
   );
 
-  // Initialize Sentry with centralized config
-  await SentryConfig.init(
-    appRunner: () async => runApp(const ProviderScope(child: EpiSupervisorApp())),
-  );
+  // Initialize Sentry with centralized config — with timeout to prevent blocking
+  try {
+    await SentryConfig.init(
+      appRunner: () async => runApp(const ProviderScope(child: EpiSupervisorApp())),
+    ).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        debugPrint('[SentryConfig] Init timed out, running app without Sentry');
+        runApp(const ProviderScope(child: EpiSupervisorApp()));
+      },
+    );
+  } catch (e) {
+    debugPrint('[SentryConfig] Init failed: $e, running app without Sentry');
+    runApp(const ProviderScope(child: EpiSupervisorApp()));
+  }
 }
 
 class EpiSupervisorApp extends ConsumerWidget {

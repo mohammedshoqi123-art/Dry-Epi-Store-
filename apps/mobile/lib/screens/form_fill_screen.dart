@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
 import 'dart:io';
 import '../providers/app_providers.dart';
@@ -83,7 +84,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   /// Load saved draft data into the form
   Future<void> _loadDraft() async {
     try {
-      final offline = await ref.read(offlineManagerProvider.future);
+      final offline = await ref.read(offlineManagerProvider.future).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Offline storage not ready for draft loading');
+        },
+      );
       final draft = offline.getDraft(widget.formId);
       if (draft != null && draft['data'] != null) {
         final draftData = Map<String, dynamic>.from(draft['data']);
@@ -101,6 +107,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           context.showInfo('تم استعادة المسودة السابقة');
         }
       }
+    } on TimeoutException {
+      // Non-critical — silently ignore
     } catch (_) {
       // Draft loading is non-critical — silently ignore errors
     }
@@ -255,6 +263,24 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     }
 
     setState(() => _isLoading = true);
+
+    // Read offlineManager ONCE at the start and cache for error handling
+    OfflineManager? offline;
+    try {
+      offline = await ref.read(offlineManagerProvider.future).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Offline storage not ready');
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        context.showError('التخزين المحلي غير جاهز. حاول إعادة فتح التطبيق.');
+      }
+      return;
+    }
+
     try {
       final submissionData = {
         'form_id': widget.formId,
@@ -262,8 +288,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         if (_gpsLat != null) 'gps_lat': _gpsLat,
         if (_gpsLng != null) 'gps_lng': _gpsLng,
       };
-
-      final offline = await ref.read(offlineManagerProvider.future);
 
       if (offline.isOnline) {
         final db = ref.read(databaseServiceProvider);
@@ -276,7 +300,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         );
         if (mounted) {
           // Remove draft after successful submission
-          try { await offline.removeDraft(widget.formId); } catch (_) {}
+          try { await offline!.removeDraft(widget.formId); } catch (_) {}
           if (mounted) context.showSuccess(AppStrings.formSubmitted);
           if (mounted) context.pop();
         }
@@ -291,11 +315,10 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         }
       }
     } on TimeoutException {
-      // Save as draft on timeout, then queue for sync
+      // Save as draft on timeout, then queue for sync — use cached offline
       if (mounted) {
         try {
-          final offline = await ref.read(offlineManagerProvider.future);
-          await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+          await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
           await offline.addToSyncQueue({
             'form_id': widget.formId,
             'data': Map<String, dynamic>.from(_formData),
@@ -318,15 +341,13 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           context.showError('لا يوجد اتصال بالإنترنت. تم حفظ البيانات محلياً.');
           // Auto-save as draft on network error
           try {
-            final offline = await ref.read(offlineManagerProvider.future);
-            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+            await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
             if (mounted) context.showInfo('تم حفظ المسودة تلقائياً');
           } catch (_) {}
         } else if (errorMsg.contains('Unauthorized') || errorMsg.contains('401')) {
           // Save draft BEFORE showing session expired message — preserve user data!
           try {
-            final offline = await ref.read(offlineManagerProvider.future);
-            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+            await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
           } catch (_) {}
           if (mounted) {
             context.showError('انتهت الجلسة. تم حفظ بياناتك كمسودة. يرجى تسجيل الدخول وإعادة الإرسال.');
@@ -334,8 +355,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         } else {
           // On any error, try to save as draft
           try {
-            final offline = await ref.read(offlineManagerProvider.future);
-            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+            await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
           } catch (_) {}
           if (mounted) context.showError('فشل الإرسال: $errorMsg (تم حفظ البيانات كمسودة)');
         }
@@ -355,10 +375,17 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     }
     setState(() => _isSavingDraft = true);
     try {
-      final offline = await ref.read(offlineManagerProvider.future);
+      final offline = await ref.read(offlineManagerProvider.future).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Offline storage not ready');
+        },
+      );
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
       _hasUnsavedChanges = false;
       if (mounted) context.showSuccess(AppStrings.draftSaved);
+    } on TimeoutException {
+      if (mounted) context.showError('التخزين المحلي غير جاهز. حاول مرة أخرى.');
     } catch (e) {
       final errorMsg = e.toString();
       if (mounted) {
@@ -379,12 +406,19 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     if (_formData.isEmpty) return;
 
     try {
-      final offline = await ref.read(offlineManagerProvider.future);
+      final offline = await ref.read(offlineManagerProvider.future).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw TimeoutException('Offline storage not ready for auto-save');
+        },
+      );
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
       _hasUnsavedChanges = false;
       if (showFeedback && mounted) {
         context.showSuccess('تم الحفظ التلقائي');
       }
+    } on TimeoutException {
+      // Auto-save failures are silent
     } catch (_) {
       // Auto-save failures are silent
     }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html dir="rtl">
 <head>
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
@@ -11,18 +11,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="manifest" href="manifest.json">
   <title>منصة مشرف EPI</title>
-  <script src="flutter_bootstrap.js" async></script>
+  <style>
+    /* Loading screen shown while Flutter boots */
+    .loading-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      font-family: 'Tajawal', 'Cairo', sans-serif;
+      z-index: 9999;
+      transition: opacity 0.3s ease;
+    }
+    .loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 4px solid #e0e0e0;
+      border-top-color: #1976D2;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      margin-top: 16px;
+      color: #666;
+      font-size: 14px;
+    }
+    .loading-progress {
+      margin-top: 8px;
+      color: #999;
+      font-size: 12px;
+    }
+    .error-screen {
+      display: none;
+      padding: 32px;
+      text-align: center;
+      font-family: 'Tajawal', 'Cairo', sans-serif;
+      color: #333;
+    }
+    .error-screen h2 { color: #d32f2f; margin-bottom: 12px; }
+    .error-screen button {
+      margin-top: 16px;
+      padding: 10px 24px;
+      background: #1976D2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
+  <!-- Loading screen -->
+  <div class="loading-screen" id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جاري تحميل منصة مشرف EPI...</div>
+    <div class="loading-progress" id="loadProgress">تهيئة التطبيق</div>
+  </div>
+
+  <!-- Error screen (shown if Flutter fails to load) -->
+  <div class="error-screen" id="errorScreen">
+    <h2>⚠️ خطأ في تحميل التطبيق</h2>
+    <p id="errorMessage">حدث خطأ أثناء تحميل التطبيق. يرجى المحاولة مرة أخرى.</p>
+    <p id="errorDetail" style="font-size:12px;color:#999;margin-top:12px;"></p>
+    <button onclick="location.reload(true)">إعادة المحاولة</button>
+  </div>
+
   <script>
+    // Track loading progress
+    var progressEl = document.getElementById('loadProgress');
+    
+    // Global error handler
     window.addEventListener('error', function(e) {
       console.error('Flutter error:', e.message, e.filename, e.lineno);
-      document.body.innerHTML = '<div style="padding:20px;font-family:sans-serif;color:red;">Error: ' + e.message + '<br>' + (e.filename || '') + ':' + e.lineno + '</div>';
+      var errScreen = document.getElementById('errorScreen');
+      var errDetail = document.getElementById('errorDetail');
+      if (errScreen) {
+        errDetail.textContent = e.filename ? (e.filename + ':' + e.lineno) : '';
+        errScreen.style.display = 'block';
+      }
+      var loading = document.getElementById('loading');
+      if (loading) loading.classList.add('hidden');
     });
+
     window.addEventListener('unhandledrejection', function(e) {
       console.error('Flutter rejection:', e.reason);
-      document.body.innerHTML = '<div style="padding:20px;font-family:sans-serif;color:red;">Promise error: ' + e.reason + '</div>';
+      var errScreen = document.getElementById('errorScreen');
+      var errDetail = document.getElementById('errorDetail');
+      if (errScreen) {
+        errDetail.textContent = String(e.reason || '');
+        errScreen.style.display = 'block';
+      }
+      var loading = document.getElementById('loading');
+      if (loading) loading.classList.add('hidden');
     });
+
+    // Update progress during load
+    if (progressEl) {
+      setTimeout(function() { progressEl.textContent = 'تحميل الموارد...'; }, 1000);
+      setTimeout(function() { progressEl.textContent = 'تجهيز المحرك...'; }, 3000);
+    }
+
+    // Unregister any stale service workers that may cache old builds
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        registrations.forEach(function(reg) { reg.unregister(); });
+      }).catch(function() {});
+    }
   </script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

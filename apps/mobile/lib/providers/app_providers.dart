@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:epi_core/epi_core.dart';
 
@@ -22,7 +24,21 @@ final geminiServiceProvider = Provider<GeminiService>(
 // ─── Offline / Sync ───────────────────────────────────────────────────────────
 final offlineManagerProvider = FutureProvider<OfflineManager>((ref) async {
   final manager = OfflineManager(ref.read(encryptionServiceProvider));
-  await manager.init();
+  try {
+    // Add timeout to prevent infinite hang if Hive initialization fails
+    await manager.init().timeout(
+      const Duration(seconds: 15),
+      onTimeout: () {
+        debugPrint('[offlineManagerProvider] Hive init timed out after 15s');
+        throw TimeoutException('Offline storage initialization timed out');
+      },
+    );
+  } catch (e) {
+    debugPrint('[offlineManagerProvider] Init failed: $e');
+    // Re-throw so the provider properly reflects the error state
+    // instead of hanging forever
+    rethrow;
+  }
   ref.onDispose(manager.dispose);
   return manager;
 });
