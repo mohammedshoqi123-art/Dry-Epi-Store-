@@ -112,8 +112,12 @@ class ConflictResolver {
         return _smartMerge(conflict.localData, conflict.serverData);
 
       case ConflictStrategy.manualReview:
+      case ConflictStrategy.manual:
         // Cannot auto-resolve; return local as placeholder
         return conflict.localData;
+
+      case ConflictStrategy.merge:
+        return _smartMerge(conflict.localData, conflict.serverData);
     }
   }
 

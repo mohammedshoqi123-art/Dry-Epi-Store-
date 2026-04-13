@@ -577,6 +577,18 @@ class EnhancedSyncService {
       case ConflictStrategy.manual:
         // User will handle manually
         break;
+      case ConflictStrategy.smartMerge:
+        if (mergedData != null) {
+          await addPendingChange({
+            ...mergedData,
+            'entity_type': data.entityType,
+            'entity_id': data.entityId,
+          });
+        }
+        break;
+      case ConflictStrategy.manualReview:
+        // User will handle manually
+        break;
     }
 
     conflicts[conflictId] = conflict;
