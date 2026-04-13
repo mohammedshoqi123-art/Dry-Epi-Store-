@@ -14,5 +14,15 @@
   <script src="flutter_bootstrap.js" async></script>
 </head>
 <body>
+  <script>
+    window.addEventListener('error', function(e) {
+      console.error('Flutter error:', e.message, e.filename, e.lineno);
+      document.body.innerHTML = '<div style="padding:20px;font-family:sans-serif;color:red;">Error: ' + e.message + '<br>' + (e.filename || '') + ':' + e.lineno + '</div>';
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('Flutter rejection:', e.reason);
+      document.body.innerHTML = '<div style="padding:20px;font-family:sans-serif;color:red;">Promise error: ' + e.reason + '</div>';
+    });
+  </script>
 </body>
 </html>
