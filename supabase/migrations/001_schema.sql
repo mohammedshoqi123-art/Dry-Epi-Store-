@@ -607,3 +607,98 @@ COMMENT ON TABLE supply_shortages IS 'Supply shortage tracking with geo-location
 COMMENT ON TABLE audit_logs IS 'Immutable audit trail for all system actions';
 
 COMMIT;
+
+-- ═══════════════════════════════════════
+-- Health Facilities (from 005)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS health_facilities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  district_id UUID NOT NULL REFERENCES districts(id) ON DELETE RESTRICT,
+  name_ar TEXT NOT NULL,
+  name_en TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  facility_type TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ
+);
+
+-- ═══════════════════════════════════════
+-- References table (NEW)
+-- ═══════════════════════════════════════
+
+CREATE TABLE IF NOT EXISTS references_table (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title_ar TEXT NOT NULL,
+  description_ar TEXT,
+  file_url TEXT,
+  category TEXT DEFAULT 'general',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ
+);
+
+ALTER TABLE references_table ENABLE ROW LEVEL SECURITY;
+
+-- ═══════════════════════════════════════
+-- Dynamic Pages (from 010)
+-- ═══════════════════════════════════════
+-- Dynamic pages for admin-managed content
+CREATE TABLE IF NOT EXISTS pages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT NOT NULL UNIQUE,
+  title_ar TEXT NOT NULL,
+  content_ar JSONB NOT NULL DEFAULT '{}',
+  icon TEXT,
+  show_in_nav BOOLEAN DEFAULT false,
+  nav_order INTEGER DEFAULT 99,
+  roles TEXT[] DEFAULT ARRAY['admin'],
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS
+ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Pages viewable by authenticated" ON pages
+  FOR SELECT USING (auth.uid() IS NOT NULL AND is_active = true);
+
+-- Fix: use roles that actually exist in the user_role enum
+-- (no 'supervisor' — use 'admin' and 'central')
+CREATE POLICY "Pages manageable by admins" ON pages
+  FOR ALL USING (public.user_role() IN ('admin', 'central'));
+
+-- ═══════════════════════════════════════
+-- App Settings (from 011)
+-- ═══════════════════════════════════════
+-- App settings for admin-managed configuration
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  label_ar TEXT,
+  type TEXT DEFAULT 'string',  -- string, number, color, boolean
+  category TEXT DEFAULT 'general',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed default settings
+INSERT INTO app_settings (key, value, label_ar, type, category) VALUES
+  ('app_name_ar', '"منصة مشرف EPI"', 'اسم التطبيق', 'string', 'branding'),
+  ('primary_color', '"#1565C0"', 'اللون الرئيسي', 'color', 'branding'),
+  ('offline_days', '30', 'أيام الاحتفاظ المحلي', 'number', 'offline'),
+  ('ai_model', '"local"', 'نموذج الذكاء الاصطناعي', 'string', 'ai'),
+  ('auto_sync_interval', '5', 'فترة المزامنة التلقائية (دقائق)', 'number', 'sync')
+ON CONFLICT (key) DO NOTHING;
+
+-- RLS
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Settings viewable by authenticated" ON app_settings
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Settings manageable by admins" ON app_settings
+  FOR ALL USING (public.user_role() = 'admin');

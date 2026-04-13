@@ -8,20 +8,20 @@ void main() {
       expect(UserRole.central.hierarchyLevel, equals(4));
       expect(UserRole.governorate.hierarchyLevel, equals(3));
       expect(UserRole.district.hierarchyLevel, equals(2));
-      expect(UserRole.dataEntry.hierarchyLevel, equals(1));
+      expect(UserRole.teamLead.hierarchyLevel, equals(1));
     });
 
     test('admin can manage all roles', () {
       expect(UserRole.admin.canManage(UserRole.central), isTrue);
       expect(UserRole.admin.canManage(UserRole.governorate), isTrue);
       expect(UserRole.admin.canManage(UserRole.district), isTrue);
-      expect(UserRole.admin.canManage(UserRole.dataEntry), isTrue);
+      expect(UserRole.admin.canManage(UserRole.teamLead), isTrue);
     });
 
     test('data_entry cannot manage anyone', () {
-      expect(UserRole.dataEntry.canManage(UserRole.admin), isFalse);
-      expect(UserRole.dataEntry.canManage(UserRole.central), isFalse);
-      expect(UserRole.dataEntry.canManage(UserRole.district), isFalse);
+      expect(UserRole.teamLead.canManage(UserRole.admin), isFalse);
+      expect(UserRole.teamLead.canManage(UserRole.central), isFalse);
+      expect(UserRole.teamLead.canManage(UserRole.district), isFalse);
     });
 
     test('no role can manage itself', () {
@@ -35,7 +35,7 @@ void main() {
       expect(UserRole.central.nameAr, equals('مركزي'));
       expect(UserRole.governorate.nameAr, equals('محافظة'));
       expect(UserRole.district.nameAr, equals('منطقة'));
-      expect(UserRole.dataEntry.nameAr, equals('مدخل بيانات'));
+      expect(UserRole.teamLead.nameAr, equals('مشرف فريق'));
     });
 
     test('permission flags are correct', () {
@@ -47,11 +47,11 @@ void main() {
       expect(UserRole.admin.canUseAI, isTrue);
 
       // Data entry has minimal permissions
-      expect(UserRole.dataEntry.canViewAllGovernorates, isFalse);
-      expect(UserRole.dataEntry.canApprove, isFalse);
-      expect(UserRole.dataEntry.canManageUsers, isFalse);
-      expect(UserRole.dataEntry.canViewAuditLogs, isFalse);
-      expect(UserRole.dataEntry.canUseAI, isFalse);
+      expect(UserRole.teamLead.canViewAllGovernorates, isFalse);
+      expect(UserRole.teamLead.canApprove, isFalse);
+      expect(UserRole.teamLead.canManageUsers, isFalse);
+      expect(UserRole.teamLead.canViewAuditLogs, isFalse);
+      expect(UserRole.teamLead.canUseAI, isFalse);
 
       // Governorate can approve
       expect(UserRole.governorate.canApprove, isTrue);
@@ -102,7 +102,7 @@ void main() {
 
     test('fromJson handles data_entry role name', () {
       final restored = AuthState.fromJson({'role': 'data_entry'});
-      expect(restored.role, equals(UserRole.dataEntry));
+      expect(restored.role, equals(UserRole.teamLead));
     });
 
     test('fromJson handles null role', () {

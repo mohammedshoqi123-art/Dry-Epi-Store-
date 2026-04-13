@@ -108,7 +108,7 @@ class AuthRepository {
             'email': user.email,
             'full_name': user.userMetadata?['full_name'] ??
                 (user.email?.split('@').first ?? 'مستخدم'),
-            'role': 'data_entry',
+            'role': 'teamLead',
             'is_active': true,
           }, onConflict: 'id');
         } catch (_) {
@@ -160,20 +160,15 @@ class AuthRepository {
   /// Handles both snake_case (data_entry) and camelCase (dataEntry) values.
   static app_auth.UserRole? _parseRole(String? role) {
     if (role == null) return null;
-    // Direct snake_case mapping
-    const snakeMap = {
-      'data_entry': app_auth.UserRole.dataEntry,
+    const roleMap = {
       'admin': app_auth.UserRole.admin,
       'central': app_auth.UserRole.central,
       'governorate': app_auth.UserRole.governorate,
       'district': app_auth.UserRole.district,
+      'data_entry': app_auth.UserRole.teamLead,
+      'teamLead': app_auth.UserRole.teamLead,
     };
-    if (snakeMap.containsKey(role)) return snakeMap[role];
-    // Fallback: try enum name match
-    for (final r in app_auth.UserRole.values) {
-      if (r.name == role) return r;
-    }
-    return null;
+    return roleMap[role];
   }
 
   Future<AuthResponse> signIn(String email, String password) async {

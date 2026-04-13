@@ -117,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                         style: TextStyle(
                           fontFamily: 'Tajawal',
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.75),
+                          color: Colors.white.withValues(alpha: 0.75),
                         ),
                       ),
                       const SizedBox(height: 48),
@@ -128,9 +128,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.15),
+                            color: Colors.orange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
@@ -158,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.12),
+                              color: Colors.black.withValues(alpha: 0.12),
                               blurRadius: 30,
                               offset: const Offset(0, 10),
                             ),
@@ -243,7 +243,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                     borderRadius: BorderRadius.circular(14),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppTheme.primaryColor.withOpacity(0.35),
+                                        color: AppTheme.primaryColor.withValues(alpha: 0.35),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -293,7 +293,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                         style: TextStyle(
                           fontFamily: 'Tajawal',
                           fontSize: 11,
-                          color: Colors.white.withOpacity(0.4),
+                          color: Colors.white.withValues(alpha: 0.4),
                         ),
                       ),
                     ],

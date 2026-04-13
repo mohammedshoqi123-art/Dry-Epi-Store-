@@ -174,7 +174,7 @@ class _SubmissionTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.statusColor(status).withOpacity(0.1),
+              color: AppTheme.statusColor(status).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.description, color: AppTheme.statusColor(status)),

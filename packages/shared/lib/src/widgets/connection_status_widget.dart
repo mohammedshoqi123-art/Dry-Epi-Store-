@@ -80,7 +80,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
           boxShadow: [
             if (hasPending && isOnline)
               BoxShadow(
-                color: Colors.green.withOpacity(0.3),
+                color: Colors.green.withValues(alpha: 0.3),
                 blurRadius: 8,
                 spreadRadius: 1,
               ),
@@ -111,7 +111,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
                       _formatDuration(state.offlineDuration!),
                       style: TextStyle(
                         fontSize: 10,
-                        color: _textColor(isOnline, hasPending).withOpacity(0.7),
+                        color: _textColor(isOnline, hasPending).withValues(alpha: 0.7),
                       ),
                     ),
                 ],
@@ -124,7 +124,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.green.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.sync, size: 14, color: Colors.green),
@@ -172,7 +172,7 @@ class ConnectionStatusWidget extends ConsumerWidget {
           height: 4.0 + (i * 2),
           margin: const EdgeInsets.only(left: 1),
           decoration: BoxDecoration(
-            color: i < bars ? color : color.withOpacity(0.2),
+            color: i < bars ? color : color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(1),
           ),
         );
@@ -181,15 +181,15 @@ class ConnectionStatusWidget extends ConsumerWidget {
   }
 
   Color _backgroundColor(bool isOnline, bool hasPending, ThemeData theme) {
-    if (!isOnline) return Colors.orange.withOpacity(0.1);
-    if (hasPending) return Colors.green.withOpacity(0.1);
-    return Colors.green.withOpacity(0.05);
+    if (!isOnline) return Colors.orange.withValues(alpha: 0.1);
+    if (hasPending) return Colors.green.withValues(alpha: 0.1);
+    return Colors.green.withValues(alpha: 0.05);
   }
 
   Color _borderColor(bool isOnline, bool hasPending) {
-    if (!isOnline) return Colors.orange.withOpacity(0.5);
-    if (hasPending) return Colors.green.withOpacity(0.5);
-    return Colors.green.withOpacity(0.3);
+    if (!isOnline) return Colors.orange.withValues(alpha: 0.5);
+    if (hasPending) return Colors.green.withValues(alpha: 0.5);
+    return Colors.green.withValues(alpha: 0.3);
   }
 
   Color _textColor(bool isOnline, bool hasPending) {

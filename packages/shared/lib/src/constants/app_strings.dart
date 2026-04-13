@@ -111,6 +111,14 @@ class AppStrings {
   static const String aiClearHistory = 'مسح المحادثة';
   static const String aiInsights = 'رؤى AI';
 
+  // ─── References ──────────────────────────────────────────────
+  static const String references = 'المراجع والكتب';
+  static const String addReference = 'إضافة مرجع';
+  static const String editReference = 'تعديل المرجع';
+  static const String deleteReference = 'حذف المرجع';
+  static const String referenceCategory = 'التصنيف';
+  static const String noReferences = 'لا توجد مراجع متاحة';
+
   // ─── Users / Admin ────────────────────────────────────────────────────────
   static const String addUser = 'إضافة مستخدم';
   static const String editUser = 'تعديل المستخدم';
@@ -124,7 +132,7 @@ class AppStrings {
   static const String roleCentral = 'مركزي';
   static const String roleGovernorate = 'محافظة';
   static const String roleDistrict = 'منطقة';
-  static const String roleDataEntry = 'مدخل بيانات';
+  static const String roleTeamLead = 'مشرف فريق';
 
   // ─── Offline / Sync ───────────────────────────────────────────────────────
   static const String offline = 'غير متصل';

@@ -21,6 +21,8 @@ import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
 import '../screens/forms_status_screen.dart';
 import 'package:epi_features/epi_features.dart';
+import '../screens/references_screen.dart';
+import '../screens/admin/references_management_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
@@ -29,11 +31,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   const routeMinRole = {
     '/admin': 5,           // admin only
     '/admin/dashboard': 5, // admin only
-    '/admin/users': 4,     // central+
+    '/admin/users': 5,     // admin only for user management
     '/admin/audit': 4,     // central+
-    '/admin/forms': 4,     // central+ (admin only for modifications)
-    '/analytics': 3,       // governorate+
+    '/admin/forms': 4,     // central+ for form management
+    '/admin/references': 5,// admin only for reference management
+    '/analytics': 2,       // district+
     '/ai': 3,              // governorate+
+    '/references': 1,      // everyone can view references
   };
 
   return GoRouter(
@@ -144,6 +148,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/audit',
             builder: (context, state) => const AuditScreen(),
+          ),
+          GoRoute(
+            path: '/admin/references',
+            builder: (context, state) => const AdminReferencesScreen(),
+          ),
+          GoRoute(
+            path: '/references',
+            builder: (context, state) => const ReferencesScreen(),
           ),
         ],
       ),

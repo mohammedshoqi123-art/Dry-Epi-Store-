@@ -91,12 +91,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         color: Theme.of(context).colorScheme.surface,
         border: Border(
           left: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.3),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(-2, 0),
           ),
@@ -124,7 +124,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -175,7 +175,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           padding: const EdgeInsets.only(bottom: 4),
           child: Material(
             color: isSelected
-                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
@@ -243,7 +243,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.3),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
           ),
         ),
       ),
@@ -251,7 +251,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             child: Icon(
               Icons.person,
               size: 18,
@@ -401,7 +401,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: data.color.withOpacity(0.2),
+          color: data.color.withValues(alpha: 0.2),
         ),
       ),
       child: Padding(
@@ -414,7 +414,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: data.color.withOpacity(0.1),
+                    color: data.color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(data.icon, color: data.color, size: 22),

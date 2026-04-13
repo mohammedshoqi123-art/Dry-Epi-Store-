@@ -1,13 +1,12 @@
 /// Authentication state for the EPI Supervisor platform.
-/// Manual implementation (no Freezed) to avoid code-generation dependency.
 library;
 
 enum UserRole {
-  admin,
-  central,
-  governorate,
-  district,
-  dataEntry;
+  admin,      // مدير النظام — full access
+  central,    // مشرف مركزي — sees all governorate submissions, edit own only
+  governorate,// مشرف محافظة — sees own governorate submissions, edit own only
+  district,   // مشرف مديرية — sees own district submissions, edit own only
+  teamLead;   // مشرف فريق — sees own submissions only, can edit them
 
   int get hierarchyLevel {
     switch (this) {
@@ -19,7 +18,7 @@ enum UserRole {
         return 3;
       case UserRole.district:
         return 2;
-      case UserRole.dataEntry:
+      case UserRole.teamLead:
         return 1;
     }
   }
@@ -29,26 +28,32 @@ enum UserRole {
       case UserRole.admin:
         return 'مدير النظام';
       case UserRole.central:
-        return 'مركزي';
+        return 'مشرف مركزي';
       case UserRole.governorate:
-        return 'محافظة';
+        return 'مشرف محافظة';
       case UserRole.district:
-        return 'منطقة';
-      case UserRole.dataEntry:
-        return 'مدخل بيانات';
+        return 'مشرف مديرية';
+      case UserRole.teamLead:
+        return 'مشرف فريق';
     }
   }
 
-  bool canManage(UserRole other) => hierarchyLevel > other.hierarchyLevel;
+  /// Hide admin dashboard + user management for non-admins
+  bool get canAccessAdminDashboard => this == UserRole.admin;
+  bool get canManageUsers => hierarchyLevel >= 4; // admin + central
+  bool get canManageForms => hierarchyLevel >= 4;
+  bool get canViewAuditLogs => hierarchyLevel >= 4;
 
+  /// Viewing scope — what data they can see
   bool get canViewAllGovernorates => hierarchyLevel >= 4;
   bool get canViewAllDistricts => hierarchyLevel >= 3;
+
+  /// Edit permissions — can only edit their own submissions
   bool get canApprove => hierarchyLevel >= 3;
-  bool get canManageUsers => hierarchyLevel >= 4;
-  bool get canManageForms => hierarchyLevel >= 4;
-  bool get canExport => hierarchyLevel >= 3;
+  bool get canExport => hierarchyLevel >= 2;
   bool get canUseAI => hierarchyLevel >= 3;
-  bool get canViewAuditLogs => hierarchyLevel >= 4;
+
+  bool canManage(UserRole other) => hierarchyLevel > other.hierarchyLevel;
 }
 
 class AuthState {
@@ -126,21 +131,26 @@ class AuthState {
 
   static UserRole? _parseRole(String? role) {
     if (role == null) return null;
-    return UserRole.values.cast<UserRole?>().firstWhere(
-          (r) => r?.name == role || (role == 'data_entry' && r == UserRole.dataEntry),
-          orElse: () => null,
-        );
+    // Map old DB values to new enum
+    const roleMap = {
+      'admin': UserRole.admin,
+      'central': UserRole.central,
+      'governorate': UserRole.governorate,
+      'district': UserRole.district,
+      'data_entry': UserRole.teamLead,
+      'teamLead': UserRole.teamLead,
+    };
+    return roleMap[role];
   }
 
   @override
   String toString() => 'AuthState(auth=$isAuthenticated, role=$role, user=$fullName)';
 }
 
-// Extension for StreamProvider compatibility
 extension AuthStateStreamX on AuthState {
   bool get isAdmin => role == UserRole.admin;
   bool get isCentral => role == UserRole.central;
   bool get isGovernorate => role == UserRole.governorate;
   bool get isDistrict => role == UserRole.district;
-  bool get isDataEntry => role == UserRole.dataEntry;
+  bool get isTeamLead => role == UserRole.teamLead;
 }

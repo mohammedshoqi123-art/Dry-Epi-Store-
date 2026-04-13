@@ -44,7 +44,7 @@ class EpiDrawer extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 32,
-                    backgroundColor: Colors.white.withOpacity(0.2),
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
                     backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
                     child: avatarUrl == null
                         ? Text(
@@ -73,7 +73,7 @@ class EpiDrawer extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -101,26 +101,36 @@ class EpiDrawer extends StatelessWidget {
                   _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
                   _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
 
-                  if (userRoleLevel >= 3) ...[
+                  // References — visible to all roles
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Divider(height: 1),
+                  ),
+                  _SectionLabel(label: 'الموارد'),
+                  _buildItem(context, Icons.menu_book_rounded, 'المراجع والكتب', '/references'),
+
+                  if (userRoleLevel >= 2) ...[
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Divider(height: 1),
                     ),
                     _SectionLabel(label: 'التحليلات'),
                     _buildItem(context, Icons.bar_chart_rounded, 'التقارير', '/analytics'),
-                    _buildItem(context, Icons.smart_toy_rounded, 'المساعد الذكي', '/ai'),
+                    if (userRoleLevel >= 3)
+                      _buildItem(context, Icons.smart_toy_rounded, 'المساعد الذكي', '/ai'),
                   ],
 
-                  if (userRoleLevel >= 4) ...[
+                  // Admin section — only for admin (level 5)
+                  if (userRoleLevel >= 5) ...[
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Divider(height: 1),
                     ),
                     _SectionLabel(label: 'الإدارة'),
-                    if (userRoleLevel >= 5)
-                      _buildItem(context, Icons.admin_panel_settings_rounded, 'لوحة المدير', '/admin'),
+                    _buildItem(context, Icons.admin_panel_settings_rounded, 'لوحة المدير', '/admin'),
                     _buildItem(context, Icons.people_rounded, 'المستخدمين', '/admin/users'),
                     _buildItem(context, Icons.edit_document, 'إدارة النماذج', '/admin/forms'),
+                    _buildItem(context, Icons.menu_book_rounded, 'إدارة المراجع', '/admin/references'),
                     _buildItem(context, Icons.history_rounded, 'سجل العمليات', '/admin/audit'),
                   ],
                 ],
@@ -135,7 +145,7 @@ class EpiDrawer extends StatelessWidget {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.errorColor.withOpacity(0.1),
+                    color: AppTheme.errorColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.logout_rounded, color: AppTheme.errorColor, size: 20),
@@ -166,7 +176,7 @@ class EpiDrawer extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryColor.withOpacity(0.12) : Colors.transparent,
+            color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.12) : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
@@ -185,7 +195,7 @@ class EpiDrawer extends StatelessWidget {
           ),
         ),
         selected: isSelected,
-        selectedTileColor: AppTheme.primarySurface.withOpacity(0.5),
+        selectedTileColor: AppTheme.primarySurface.withValues(alpha: 0.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         dense: true,
         visualDensity: const VisualDensity(horizontal: 0, vertical: -1),

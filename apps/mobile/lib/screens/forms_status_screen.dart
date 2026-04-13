@@ -221,7 +221,7 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -246,7 +246,7 @@ class _StatCard extends StatelessWidget {
             style: TextStyle(
               fontFamily: 'Tajawal',
               fontSize: 10,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
@@ -656,12 +656,12 @@ class _DraftTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: AppTheme.warningColor.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.warningColor.withValues(alpha: 0.2)),
       ),
       child: InkWell(
         onTap: onContinue,
@@ -681,7 +681,7 @@ class _DraftTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.warningColor.withOpacity(0.3),
+                      color: AppTheme.warningColor.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -710,7 +710,7 @@ class _DraftTile extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppTheme.warningColor.withOpacity(0.1),
+                            color: AppTheme.warningColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
@@ -808,15 +808,15 @@ class _PendingSyncTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
         ],
         border: Border.all(
           color: hasErrors
-              ? AppTheme.errorColor.withOpacity(0.3)
-              : AppTheme.infoColor.withOpacity(0.2),
+              ? AppTheme.errorColor.withValues(alpha: 0.3)
+              : AppTheme.infoColor.withValues(alpha: 0.2),
         ),
       ),
       child: Padding(
@@ -836,7 +836,7 @@ class _PendingSyncTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withOpacity(0.3),
+                    color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -867,7 +867,7 @@ class _PendingSyncTile extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withOpacity(0.1),
+                          color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -914,7 +914,7 @@ class _PendingSyncTile extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withOpacity(0.4),
+                    color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withValues(alpha: 0.4),
                     blurRadius: 6,
                     spreadRadius: 1,
                   ),
@@ -965,12 +965,12 @@ class _SubmittedTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: AppTheme.statusColor(status).withOpacity(0.2)),
+        border: Border.all(color: AppTheme.statusColor(status).withValues(alpha: 0.2)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -984,7 +984,7 @@ class _SubmittedTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppTheme.statusColor(status).withOpacity(0.1),
+                  color: AppTheme.statusColor(status).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
@@ -1014,7 +1014,7 @@ class _SubmittedTile extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
+                              color: Colors.orange.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Row(

@@ -125,7 +125,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   color: AppTheme.statusColor(status),
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
                   ],
                 ),
                 child: const Icon(Icons.description, color: Colors.white, size: 20),
@@ -192,7 +192,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       color: severityMode ? AppTheme.warningColor : AppTheme.primaryColor,
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4),
                       ],
                     ),
                     child: Text(

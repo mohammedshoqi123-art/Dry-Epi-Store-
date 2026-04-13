@@ -23,6 +23,16 @@ serve(async (req) => {
 
   try {
     // ─── Authentication Check ──────────────────────────────────
+    // ─── Internal Secret Check (defense in depth) ───────────
+    const internalSecret = req.headers.get('x-internal-secret')
+    const expectedSecret = Deno.env.get('CREATE_ADMIN_SECRET')
+    if (expectedSecret && internalSecret !== expectedSecret) {
+      return new Response(JSON.stringify({ error: 'Invalid internal secret' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {

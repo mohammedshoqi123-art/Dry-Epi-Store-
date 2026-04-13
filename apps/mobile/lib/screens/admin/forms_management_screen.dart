@@ -555,7 +555,7 @@ class _FormAdminCard extends StatelessWidget {
                 label: const Text('تعديل', style: TextStyle(fontFamily: 'Tajawal')),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.primaryColor,
-                  side: BorderSide(color: AppTheme.primaryColor.withOpacity(0.3)),
+                  side: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -585,7 +585,7 @@ class _FormAdminCard extends StatelessWidget {
       margin: const EdgeInsets.only(left: 8),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withOpacity(0.08),
+        color: AppTheme.primaryColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(

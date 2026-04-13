@@ -1,0 +1,33 @@
+#!/bin/bash
+# Pre-commit hook: flutter analyze on staged Dart files
+
+# Check if any Dart files are staged
+STAGED_DART=$(git diff --cached --name-only --diff-filter=ACM | grep '\.dart$' | head -1)
+
+if [ -z "$STAGED_DART" ]; then
+  exit 0
+fi
+
+echo "🔍 Running flutter analyze..."
+
+# Try to run flutter analyze on the mobile app
+if command -v flutter &> /dev/null; then
+  cd "$(git rev-parse --show-toplevel)/apps/mobile" || exit 1
+  
+  # Run analyze (no-fatal-infos to match CI)
+  OUTPUT=$(flutter analyze --no-fatal-infos 2>&1)
+  EXIT_CODE=$?
+  
+  if [ $EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "❌ Flutter analyze failed! Fix issues before committing:"
+    echo "$OUTPUT"
+    echo ""
+    echo "To skip this check: git commit --no-verify"
+    exit 1
+  fi
+  
+  echo "✅ Flutter analyze passed"
+else
+  echo "⚠️ Flutter not found — skipping analyze"
+fi

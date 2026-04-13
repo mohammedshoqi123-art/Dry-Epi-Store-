@@ -436,9 +436,9 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           margin: const EdgeInsets.only(bottom: 12, top: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.1),
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -572,7 +572,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             return FilterChip(
               label: Text(o, style: const TextStyle(fontFamily: 'Tajawal')),
               selected: isSelected,
-              selectedColor: AppTheme.primaryColor.withOpacity(0.2),
+              selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
               checkmarkColor: AppTheme.primaryColor,
               onSelected: (sel) {
                 setState(() {
@@ -605,7 +605,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: currentValue == true ? AppTheme.successColor.withOpacity(0.15) : null,
+                      color: currentValue == true ? AppTheme.successColor.withValues(alpha: 0.15) : null,
                       borderRadius: const BorderRadius.horizontal(right: Radius.circular(11)),
                     ),
                     child: Row(
@@ -638,7 +638,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: currentValue == false ? AppTheme.errorColor.withOpacity(0.15) : null,
+                      color: currentValue == false ? AppTheme.errorColor.withValues(alpha: 0.15) : null,
                       borderRadius: const BorderRadius.horizontal(left: Radius.circular(11)),
                     ),
                     child: Row(
@@ -734,7 +734,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           decoration: BoxDecoration(
             color: AppTheme.primarySurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+            border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -1059,7 +1059,7 @@ class _PhotoPickerField extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(12),
                 color: isRequired && photos.isEmpty
-                    ? AppTheme.errorColor.withOpacity(0.05)
+                    ? AppTheme.errorColor.withValues(alpha: 0.05)
                     : null,
               ),
               child: Column(
@@ -1124,7 +1124,7 @@ class _SignatureField extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(12),
           color: isRequired && !hasSignature
-              ? AppTheme.errorColor.withOpacity(0.05)
+              ? AppTheme.errorColor.withValues(alpha: 0.05)
               : null,
         ),
         child: hasSignature

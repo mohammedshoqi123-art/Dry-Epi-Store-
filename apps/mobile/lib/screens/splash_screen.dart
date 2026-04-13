@@ -98,7 +98,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -123,7 +123,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 style: TextStyle(
                   fontFamily: 'Tajawal',
                   fontSize: 14,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 48),
@@ -137,7 +137,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 style: TextStyle(
                   fontFamily: 'Tajawal',
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                 ),
               ),
             ],

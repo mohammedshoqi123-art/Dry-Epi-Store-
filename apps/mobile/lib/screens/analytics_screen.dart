@@ -108,7 +108,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.15)),
+                  border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.15)),
                 ),
                 child: Text(insight, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13)),
               ),
@@ -157,7 +157,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 12)],
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 12)],
       ),
       child: Row(
         children: [
@@ -203,7 +203,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.08), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -350,7 +350,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -383,7 +383,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.5)),
+        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -441,7 +441,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen> {
               ),
               borderRadius: BorderRadius.circular(16),
               color: candidateData.isNotEmpty
-                  ? Theme.of(context).primaryColor.withOpacity(0.05)
+                  ? Theme.of(context).primaryColor.withValues(alpha: 0.05)
                   : null,
             ),
             child: Center(
@@ -498,7 +498,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(field.type.icon,

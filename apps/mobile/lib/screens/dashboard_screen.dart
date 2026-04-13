@@ -109,7 +109,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryColor.withOpacity(0.3),
+              color: AppTheme.primaryColor.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(0, 6),
             ),
@@ -135,7 +135,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                     _getDateString(),
                     style: TextStyle(
                       fontFamily: 'Tajawal',
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 13,
                     ),
                   ),
@@ -145,7 +145,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(Icons.dashboard_rounded, color: Colors.white, size: 28),
@@ -226,14 +226,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: card.color.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: card.color.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: card.color.withOpacity(0.1),
+              color: card.color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(card.icon, color: card.color, size: 26),
@@ -299,7 +299,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)],
       ),
       child: Row(
         children: [
@@ -377,7 +377,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)],
       ),
       child: LineChart(
         LineChartData(
@@ -418,7 +418,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
               dotData: const FlDotData(show: false),
               belowBarData: BarAreaData(
                 show: true,
-                color: AppTheme.primaryColor.withOpacity(0.1),
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
               ),
             ),
           ],
@@ -466,14 +466,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: a.color.withOpacity(0.08), blurRadius: 10)],
+                boxShadow: [BoxShadow(color: a.color.withValues(alpha: 0.08), blurRadius: 10)],
               ),
               child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: a.color.withOpacity(0.1),
+                      color: a.color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(a.icon, color: a.color, size: 24),

@@ -199,4 +199,26 @@ class DatabaseService {
       offset: offset,
     );
   }
+
+
+  // ===== REFERENCES =====
+
+  Future<List<Map<String, dynamic>>> getReferences({bool includeInactive = false}) async {
+    final filters = <String, dynamic>{};
+    if (!includeInactive) filters['is_active'] = true;
+    return _api.select(
+      'references',
+      filters: filters,
+      orderBy: 'created_at',
+      ascending: false,
+    );
+  }
+
+  Future<void> createReference(Map<String, dynamic> data) async {
+    await _api.insert('references', data);
+  }
+
+  Future<void> updateReference(String id, Map<String, dynamic> data) async {
+    await _api.update('references', id, data);
+  }
 }
