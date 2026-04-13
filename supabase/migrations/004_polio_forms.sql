@@ -22,7 +22,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة جاهزية حملة شلل الأطفال',
   'Polio Campaign Readiness Form',
   'استمارة تقييم جاهزية المحافظة لتنفيذ حملة شلل الأطفال',
@@ -111,7 +111,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة الاشراف لحملة شلل الأطفال',
   'Polio Campaign Supervision Form',
   'استمارة شاملة للإشراف الميداني على فرق حملة شلل الأطفال',
@@ -268,7 +268,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة المسح العشوائي لحملة شلل الأطفال',
   'Polio Campaign Random Survey Form',
   'استمارة لإجراء مسح عشوائي لتقييم تغطية التطعيم أثناء حملة شلل الأطفال',

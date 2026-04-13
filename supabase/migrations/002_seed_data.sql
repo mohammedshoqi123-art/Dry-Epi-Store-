@@ -10,32 +10,32 @@ BEGIN;
 -- Iraqi Governorates (19)
 -- ============================================================
 INSERT INTO governorates (id, name_ar, name_en, code, center_lat, center_lng) VALUES
-  (uuid_generate_v4(), 'بغداد', 'Baghdad', 'BGD', 33.3152, 44.3661),
-  (uuid_generate_v4(), 'البصرة', 'Basra', 'BSR', 30.5085, 47.7804),
-  (uuid_generate_v4(), 'أربيل', 'Erbil', 'ERB', 36.1911, 44.0092),
-  (uuid_generate_v4(), 'الموصل', 'Mosul', 'MSL', 36.3350, 43.1189),
-  (uuid_generate_v4(), 'النجف', 'Najaf', 'NJF', 32.0282, 44.3391),
-  (uuid_generate_v4(), 'كركوك', 'Kirkuk', 'KRK', 35.4681, 44.3922),
-  (uuid_generate_v4(), 'ذي قار', 'Dhi Qar', 'DQR', 31.0375, 46.2583),
-  (uuid_generate_v4(), 'الأنبار', 'Anbar', 'ANB', 33.4211, 43.3033),
-  (uuid_generate_v4(), 'ديالى', 'Diyala', 'DYL', 33.7500, 45.0000),
-  (uuid_generate_v4(), 'صلاح الدين', 'Saladin', 'SLD', 34.6000, 43.6800),
-  (uuid_generate_v4(), 'بابل', 'Babylon', 'BBN', 32.4833, 44.4333),
-  (uuid_generate_v4(), 'كربلاء', 'Karbala', 'KRB', 32.6167, 44.0333),
-  (uuid_generate_v4(), 'واسط', 'Wasit', 'WST', 32.4500, 45.8333),
-  (uuid_generate_v4(), 'المثنى', 'Muthanna', 'MTH', 30.5000, 45.5000),
-  (uuid_generate_v4(), 'القادسية', 'Qadisiyyah', 'QDS', 31.9833, 45.0500),
-  (uuid_generate_v4(), 'ميسان', 'Maysan', 'MYS', 31.8333, 47.1500),
-  (uuid_generate_v4(), 'دهوك', 'Duhok', 'DHK', 36.8667, 43.0000),
-  (uuid_generate_v4(), 'السليمانية', 'Sulaymaniyah', 'SLY', 35.5500, 45.4333),
-  (uuid_generate_v4(), 'حلبجة', 'Halabja', 'HLB', 35.1833, 45.9833)
+  (gen_random_uuid(), 'بغداد', 'Baghdad', 'BGD', 33.3152, 44.3661),
+  (gen_random_uuid(), 'البصرة', 'Basra', 'BSR', 30.5085, 47.7804),
+  (gen_random_uuid(), 'أربيل', 'Erbil', 'ERB', 36.1911, 44.0092),
+  (gen_random_uuid(), 'الموصل', 'Mosul', 'MSL', 36.3350, 43.1189),
+  (gen_random_uuid(), 'النجف', 'Najaf', 'NJF', 32.0282, 44.3391),
+  (gen_random_uuid(), 'كركوك', 'Kirkuk', 'KRK', 35.4681, 44.3922),
+  (gen_random_uuid(), 'ذي قار', 'Dhi Qar', 'DQR', 31.0375, 46.2583),
+  (gen_random_uuid(), 'الأنبار', 'Anbar', 'ANB', 33.4211, 43.3033),
+  (gen_random_uuid(), 'ديالى', 'Diyala', 'DYL', 33.7500, 45.0000),
+  (gen_random_uuid(), 'صلاح الدين', 'Saladin', 'SLD', 34.6000, 43.6800),
+  (gen_random_uuid(), 'بابل', 'Babylon', 'BBN', 32.4833, 44.4333),
+  (gen_random_uuid(), 'كربلاء', 'Karbala', 'KRB', 32.6167, 44.0333),
+  (gen_random_uuid(), 'واسط', 'Wasit', 'WST', 32.4500, 45.8333),
+  (gen_random_uuid(), 'المثنى', 'Muthanna', 'MTH', 30.5000, 45.5000),
+  (gen_random_uuid(), 'القادسية', 'Qadisiyyah', 'QDS', 31.9833, 45.0500),
+  (gen_random_uuid(), 'ميسان', 'Maysan', 'MYS', 31.8333, 47.1500),
+  (gen_random_uuid(), 'دهوك', 'Duhok', 'DHK', 36.8667, 43.0000),
+  (gen_random_uuid(), 'السليمانية', 'Sulaymaniyah', 'SLY', 35.5500, 45.4333),
+  (gen_random_uuid(), 'حلبجة', 'Halabja', 'HLB', 35.1833, 45.9833)
 ON CONFLICT (code) DO NOTHING;
 
 -- ============================================================
 -- Districts — Baghdad
 -- ============================================================
 INSERT INTO districts (id, governorate_id, name_ar, name_en, code, center_lat, center_lng)
-SELECT uuid_generate_v4(), g.id, d.name_ar, d.name_en, d.code, d.lat, d.lng
+SELECT gen_random_uuid(), g.id, d.name_ar, d.name_en, d.code, d.lat, d.lng
 FROM governorates g
 CROSS JOIN (VALUES
   ('الكرخ', 'Karkh', 'KRK-BGD', 33.3000, 44.3300),
@@ -51,7 +51,7 @@ ON CONFLICT (code) DO NOTHING;
 -- Districts — Basra
 -- ============================================================
 INSERT INTO districts (id, governorate_id, name_ar, name_en, code, center_lat, center_lng)
-SELECT uuid_generate_v4(), g.id, d.name_ar, d.name_en, d.code, d.lat, d.lng
+SELECT gen_random_uuid(), g.id, d.name_ar, d.name_en, d.code, d.lat, d.lng
 FROM governorates g
 CROSS JOIN (VALUES
   ('البصرة المركز', 'Basra Center', 'CTR-BSR', 30.5085, 47.7804),

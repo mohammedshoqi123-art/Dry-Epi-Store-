@@ -10,7 +10,7 @@ BEGIN;
 
 -- Health facilities table
 CREATE TABLE IF NOT EXISTS health_facilities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   district_id UUID NOT NULL REFERENCES districts(id) ON DELETE RESTRICT,
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,

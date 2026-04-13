@@ -1,6 +1,6 @@
 -- Dynamic pages for admin-managed content
 CREATE TABLE IF NOT EXISTS pages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug TEXT NOT NULL UNIQUE,
   title_ar TEXT NOT NULL,
   content_ar JSONB NOT NULL DEFAULT '{}',

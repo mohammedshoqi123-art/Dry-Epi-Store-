@@ -20,7 +20,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة الاشراف للنشاط الايصالي التكاملي',
   'Integrated SIA Supervision Form',
   'استمارة شاملة للإشراف الميداني على فرق النشاط الايصالي التكاملي',
@@ -241,7 +241,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة الجاهزية للنشاط الايصالي التكاملي',
   'Integrated SIA Readiness Form',
   'استمارة تقييم جاهزية المحافظة لتنفيذ النشاط الايصالي التكاملي',

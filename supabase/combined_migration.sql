@@ -59,7 +59,7 @@ END $$;
 
 -- ----- governorates -----
 CREATE TABLE IF NOT EXISTS governorates (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,
   code TEXT NOT NULL UNIQUE,
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS governorates (
 
 -- ----- districts -----
 CREATE TABLE IF NOT EXISTS districts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   governorate_id UUID NOT NULL REFERENCES governorates(id) ON DELETE RESTRICT,
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- ----- forms -----
 CREATE TABLE IF NOT EXISTS forms (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title_ar TEXT NOT NULL,
   title_en TEXT NOT NULL,
   description_ar TEXT,
@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS forms (
 
 -- ----- form_submissions -----
 CREATE TABLE IF NOT EXISTS form_submissions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   form_id UUID NOT NULL REFERENCES forms(id) ON DELETE RESTRICT,
   submitted_by UUID NOT NULL REFERENCES profiles(id),
   governorate_id UUID REFERENCES governorates(id),
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS form_submissions (
 
 -- ----- supply_shortages -----
 CREATE TABLE IF NOT EXISTS supply_shortages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   submission_id UUID REFERENCES form_submissions(id),
   reported_by UUID NOT NULL REFERENCES profiles(id),
   governorate_id UUID REFERENCES governorates(id),
@@ -192,7 +192,7 @@ CREATE TABLE IF NOT EXISTS supply_shortages (
 
 -- ----- audit_logs -----
 CREATE TABLE IF NOT EXISTS audit_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES profiles(id),
   action audit_action NOT NULL,
   table_name TEXT NOT NULL,
@@ -629,7 +629,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة الاشراف للنشاط الايصالي التكاملي',
   'Integrated SIA Supervision Form',
   'استمارة شاملة للإشراف الميداني على فرق النشاط الايصالي التكاملي',
@@ -850,7 +850,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة الجاهزية للنشاط الايصالي التكاملي',
   'Integrated SIA Readiness Form',
   'استمارة تقييم جاهزية المحافظة لتنفيذ النشاط الايصالي التكاملي',
@@ -936,7 +936,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة جاهزية حملة شلل الأطفال',
   'Polio Campaign Readiness Form',
   'استمارة تقييم جاهزية المحافظة لتنفيذ حملة شلل الأطفال',
@@ -1025,7 +1025,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة الاشراف لحملة شلل الأطفال',
   'Polio Campaign Supervision Form',
   'استمارة شاملة للإشراف الميداني على فرق حملة شلل الأطفال',
@@ -1182,7 +1182,7 @@ INSERT INTO forms (
   id, title_ar, title_en, description_ar, description_en,
   schema, is_active, requires_gps, requires_photo, max_photos
 ) VALUES (
-  uuid_generate_v4(),
+  gen_random_uuid(),
   'استمارة المسح العشوائي لحملة شلل الأطفال',
   'Polio Campaign Random Survey Form',
   'استمارة لإجراء مسح عشوائي لتقييم تغطية التطعيم أثناء حملة شلل الأطفال',
@@ -1302,7 +1302,7 @@ BEGIN;
 
 -- Health facilities table
 CREATE TABLE IF NOT EXISTS health_facilities (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   district_id UUID NOT NULL REFERENCES districts(id) ON DELETE RESTRICT,
   name_ar TEXT NOT NULL,
   name_en TEXT NOT NULL,
