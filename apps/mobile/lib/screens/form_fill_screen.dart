@@ -265,7 +265,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     setState(() => _isLoading = true);
 
     // Read offlineManager ONCE at the start and cache for error handling
-    OfflineManager? offline;
+    late final OfflineManager offline;
     try {
       offline = await ref.read(offlineManagerProvider.future).timeout(
         const Duration(seconds: 10),
@@ -300,7 +300,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         );
         if (mounted) {
           // Remove draft after successful submission
-          try { await offline!.removeDraft(widget.formId); } catch (_) {}
+          try { await offline.removeDraft(widget.formId); } catch (_) {}
           if (mounted) context.showSuccess(AppStrings.formSubmitted);
           if (mounted) context.pop();
         }
@@ -318,7 +318,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       // Save as draft on timeout, then queue for sync — use cached offline
       if (mounted) {
         try {
-          await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+          await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
           await offline.addToSyncQueue({
             'form_id': widget.formId,
             'data': Map<String, dynamic>.from(_formData),
@@ -341,13 +341,13 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           context.showError('لا يوجد اتصال بالإنترنت. تم حفظ البيانات محلياً.');
           // Auto-save as draft on network error
           try {
-            await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
             if (mounted) context.showInfo('تم حفظ المسودة تلقائياً');
           } catch (_) {}
         } else if (errorMsg.contains('Unauthorized') || errorMsg.contains('401')) {
           // Save draft BEFORE showing session expired message — preserve user data!
           try {
-            await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
           } catch (_) {}
           if (mounted) {
             context.showError('انتهت الجلسة. تم حفظ بياناتك كمسودة. يرجى تسجيل الدخول وإعادة الإرسال.');
@@ -355,7 +355,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         } else {
           // On any error, try to save as draft
           try {
-            await offline!.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+            await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
           } catch (_) {}
           if (mounted) context.showError('فشل الإرسال: $errorMsg (تم حفظ البيانات كمسودة)');
         }
