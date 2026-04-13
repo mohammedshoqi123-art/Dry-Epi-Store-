@@ -34,6 +34,7 @@ DROP POLICY IF EXISTS "submissions_select_district" ON form_submissions;
 DROP POLICY IF EXISTS "submissions_select_governorate" ON form_submissions;
 DROP POLICY IF EXISTS "submissions_select_central_admin" ON form_submissions;
 DROP POLICY IF EXISTS "submissions_update_reviewer" ON form_submissions;
+DROP POLICY IF EXISTS "submissions_select_hierarchical" ON form_submissions;
 
 -- Optimized SELECT policy using CTE pattern
 CREATE POLICY "submissions_select_hierarchical" ON form_submissions
