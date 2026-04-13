@@ -1,18 +1,17 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:epi_core/epi_core.dart';
-import 'sync_queue_v2.dart' as v2;
-import 'intelligent_offline_manager.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROVIDERS for the new v2 sync system
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// The production sync queue (v2) with priority ordering and dead-letter box.
-final productionSyncQueueProvider = FutureProvider<v2.ProductionSyncQueue>((ref) async {
+final productionSyncQueueProvider = FutureProvider<ProductionSyncQueue>((ref) async {
   final encryption = ref.read(encryptionServiceProvider);
-  final queue = v2.ProductionSyncQueue(encryption);
+  final queue = ProductionSyncQueue(encryption);
   await queue.init();
   ref.onDispose(queue.dispose);
   return queue;
@@ -48,7 +47,7 @@ final intelligentOfflineManagerProvider =
       final results = (response['results'] as List?) ?? [];
       final serverErrors = (response['errors'] as List?) ?? [];
 
-      final itemResults = <v2.SyncItemResult>[];
+      final itemResults = <SyncItemResult>[];
       for (int i = 0; i < items.length; i++) {
         final item = items[i];
 
@@ -62,16 +61,16 @@ final intelligentOfflineManagerProvider =
           final status = match['status'] as String? ?? 'error';
           switch (status) {
             case 'synced':
-              itemResults.add(v2.SyncItemResult.ok(item.id, match));
+              itemResults.add(SyncItemResult.ok(item.id, match));
             case 'duplicate':
-              itemResults.add(v2.SyncItemResult.duplicate(item.id, match));
+              itemResults.add(SyncItemResult.duplicate(item.id, match));
             case 'conflict':
-              itemResults.add(v2.SyncItemResult.conflict(
+              itemResults.add(SyncItemResult.conflict(
                 item.id,
                 Map<String, dynamic>.from(match['server_data'] ?? {}),
               ));
             default:
-              itemResults.add(v2.SyncItemResult.error(item.id, match['error'] ?? 'Unknown'));
+              itemResults.add(SyncItemResult.error(item.id, match['error'] ?? 'Unknown'));
           }
         } else {
           // Check if there's an error for this item
@@ -79,7 +78,7 @@ final intelligentOfflineManagerProvider =
             (e) => e['offline_id'] == item.id,
             orElse: () => <String, dynamic>{},
           );
-          itemResults.add(v2.SyncItemResult.error(
+          itemResults.add(SyncItemResult.error(
             item.id,
             errMatch['error'] ?? 'No response for item',
           ));
@@ -88,7 +87,7 @@ final intelligentOfflineManagerProvider =
       return itemResults;
     } catch (e) {
       // Batch-level failure: return error for all items
-      return items.map((item) => v2.SyncItemResult.error(item.id, e.toString())).toList();
+      return items.map((item) => SyncItemResult.error(item.id, e.toString())).toList();
     }
   };
 

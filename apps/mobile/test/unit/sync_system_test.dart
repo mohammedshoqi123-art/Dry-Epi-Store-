@@ -4,7 +4,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:epi_core/src/offline/sync_queue_v2.dart';
 import 'package:epi_core/src/offline/intelligent_offline_manager.dart';
 import 'package:epi_core/src/security/encryption_service.dart';
-import 'package:epi_core/src/errors/app_exceptions.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MOCKS & HELPERS

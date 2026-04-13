@@ -264,7 +264,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     setState(() => _isLoading = true);
 
     // ═══ FIX: Read offlineManager BEFORE try block — prevents LateInitializationError ═══
-    final OfflineManager? offline;
+    final OfflineManager offline;
     try {
       offline = await ref.read(offlineManagerProvider.future).timeout(
         const Duration(seconds: 10),
@@ -276,15 +276,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         context.showError('التخزين المحلي غير جاهز. حاول إعادة فتح التطبيق.');
-      }
-      return;
-    }
-
-    // Guard: offline might still be null if provider returned null
-    if (offline == null) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        context.showError('التخزين المحلي غير متاح.');
       }
       return;
     }
