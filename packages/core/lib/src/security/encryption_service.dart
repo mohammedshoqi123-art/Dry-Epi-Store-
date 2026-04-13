@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:pointycastle/export.dart' as pc;
@@ -12,7 +13,7 @@ import 'package:flutter/foundation.dart';
 class EncryptionService {
   static const String _envKey = String.fromEnvironment(
     'ENCRYPTION_KEY',
-    defaultValue: 'EPI_SUPERVISOR_AES_KEY_CHANGE_IN_PRODUCTION_2024',
+    defaultValue: '',
   );
 
   static const int _keyLength = 32; // 256 bits
@@ -23,6 +24,14 @@ class EncryptionService {
   late final Uint8List _salt;
 
   EncryptionService() {
+    if (_envKey.isEmpty) {
+      throw StateError(
+        'ENCRYPTION_KEY is not set. '
+        'Pass --dart-define=ENCRYPTION_KEY=<your-key> when building, '
+        'or set it in your .env file. '
+        'The key must be at least 32 characters for AES-256.',
+      );
+    }
     final keyBytes = utf8.encode(_envKey);
     // Generate a cryptographically secure random salt per instance
     _salt = _generateSecureRandom(_saltLength);
@@ -32,11 +41,11 @@ class EncryptionService {
   /// Generate cryptographically secure random bytes using PointyCastle's Fortuna PRNG.
   static Uint8List _generateSecureRandom(int length) {
     final secureRandom = pc.FortunaRandom();
+    // Use dart:math Random.secure() for proper cryptographic seeding
+    final secureSource = Random.secure();
     final seed = Uint8List(32);
-    // Use DateTime and platform entropy for seeding
-    final now = DateTime.now().microsecondsSinceEpoch;
     for (var i = 0; i < 32; i++) {
-      seed[i] = ((now >> (i % 8)) ^ (i * 37)) & 0xFF;
+      seed[i] = secureSource.nextInt(256);
     }
     secureRandom.seed(pc.KeyParameter(seed));
     return secureRandom.nextBytes(length);
