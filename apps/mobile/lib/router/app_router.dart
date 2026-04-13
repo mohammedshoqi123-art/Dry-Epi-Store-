@@ -163,19 +163,39 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: child,
+      body: Column(
+        children: [
+          // Offline/Online status banner
+          _buildConnectivityBanner(ref),
+          Expanded(child: child),
+        ],
+      ),
       bottomNavigationBar: EpiBottomNav(
         currentIndex: _getSelectedIndex(context),
         onTap: (index) => _onItemTapped(context, index),
       ),
       drawer: const AppDrawer(),
+    );
+  }
+
+  Widget _buildConnectivityBanner(WidgetRef ref) {
+    // Watch the connectivity stream from ConnectivityUtils
+    final isOnline = ConnectivityUtils.isOnline;
+    final pendingAsync = ref.watch(syncPendingCountProvider);
+    final pendingCount = pendingAsync.valueOrNull ?? 0;
+
+    if (isOnline && pendingCount == 0) return const SizedBox.shrink();
+
+    return ConnectivityBanner(
+      isOnline: isOnline,
+      pendingCount: pendingCount,
     );
   }
 

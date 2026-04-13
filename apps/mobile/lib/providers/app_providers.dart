@@ -56,6 +56,14 @@ final offlineManagerProvider = FutureProvider<OfflineManager>((ref) async {
   return manager;
 });
 
+/// Offline-first data cache — stores Supabase query results locally.
+/// This is the KEY component that allows the app to work without internet.
+final offlineDataCacheProvider = FutureProvider<OfflineDataCache>((ref) async {
+  final offline = await ref.watch(offlineManagerProvider.future);
+  final encryption = ref.read(encryptionServiceProvider);
+  return OfflineDataCache(offline, encryption);
+});
+
 final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   final offline = await ref.watch(offlineManagerProvider.future);
   final service = SyncService(ref.read(apiClientProvider), offline);
@@ -118,54 +126,113 @@ class SubmissionsFilter {
 
   @override
   int get hashCode => Object.hash(status, formId, governorateId, districtId, limit, offset);
+
+  /// Generate a cache key from filter parameters
+  String get cacheKey {
+    final parts = <String>['submissions'];
+    if (formId != null) parts.add('form_$formId');
+    if (status != null) parts.add('status_$status');
+    if (governorateId != null) parts.add('gov_$governorateId');
+    if (districtId != null) parts.add('dist_$districtId');
+    parts.add('limit_$limit');
+    parts.add('off_$offset');
+    return parts.join('_');
+  }
 }
 
-// ─── Data Providers ───────────────────────────────────────────────────────────
-final governoratesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
-  return ref.read(databaseServiceProvider).getGovernorates();
+// ─── Data Providers (Offline-First) ───────────────────────────────────────────
+//
+// Strategy:
+//   1. Return cached data immediately (if available)
+//   2. Fetch from Supabase in background
+//   3. Update cache and UI when fresh data arrives
+//   4. If offline: return cached data (even stale)
+//   5. If offline + no cache: show empty with retry option
+
+final governoratesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final cache = await ref.watch(offlineDataCacheProvider.future);
+  return cache.getList(
+    'governorates',
+    () => ref.read(databaseServiceProvider).getGovernorates(),
+    maxAge: const Duration(hours: 24), // Governorates rarely change
+  );
 });
 
 final districtsProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>(
-  (ref, governorateId) {
-    return ref
-        .read(databaseServiceProvider)
-        .getDistricts(governorateId: governorateId);
+  (ref, governorateId) async {
+    final cache = await ref.watch(offlineDataCacheProvider.future);
+    final cacheKey = governorateId != null ? 'districts_$governorateId' : 'districts_all';
+    return cache.getList(
+      cacheKey,
+      () => ref.read(databaseServiceProvider).getDistricts(governorateId: governorateId),
+      maxAge: const Duration(hours: 24),
+    );
   },
 );
 
-final formsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
-  return ref.read(databaseServiceProvider).getForms();
+final formsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final cache = await ref.watch(offlineDataCacheProvider.future);
+  return cache.getList(
+    'forms',
+    () => ref.read(databaseServiceProvider).getForms(),
+    maxAge: const Duration(hours: 1), // Forms can be updated by admins
+  );
 });
 
 final submissionsProvider =
     FutureProvider.family<List<Map<String, dynamic>>, SubmissionsFilter>(
-  (ref, filter) {
-    return ref.read(databaseServiceProvider).getSubmissions(
-          formId: filter.formId,
-          status: filter.status,
-          governorateId: filter.governorateId,
-          districtId: filter.districtId,
-          limit: filter.limit,
-          offset: filter.offset,
-        );
+  (ref, filter) async {
+    final cache = await ref.watch(offlineDataCacheProvider.future);
+    return cache.getList(
+      filter.cacheKey,
+      () => ref.read(databaseServiceProvider).getSubmissions(
+            formId: filter.formId,
+            status: filter.status,
+            governorateId: filter.governorateId,
+            districtId: filter.districtId,
+            limit: filter.limit,
+            offset: filter.offset,
+          ),
+      maxAge: const Duration(minutes: 15), // Submissions change frequently
+    );
   },
 );
 
 final dashboardAnalyticsProvider =
     FutureProvider<Map<String, dynamic>>((ref) async {
-  return ref.read(analyticsServiceProvider).getAnalytics();
+  final cache = await ref.watch(offlineDataCacheProvider.future);
+  return cache.getMap(
+    'dashboard_analytics',
+    () => ref.read(analyticsServiceProvider).getAnalytics(),
+    maxAge: const Duration(minutes: 30),
+  );
 });
 
-final shortagesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) {
-  return ref.read(databaseServiceProvider).getShortages();
+final shortagesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final cache = await ref.watch(offlineDataCacheProvider.future);
+  return cache.getList(
+    'shortages',
+    () => ref.read(databaseServiceProvider).getShortages(),
+    maxAge: const Duration(minutes: 30),
+  );
 });
 
 final submissionTrendProvider =
-    FutureProvider.family<List<Map<String, dynamic>>, int>((ref, days) {
-  return ref.read(analyticsServiceProvider).getSubmissionTrend(days: days);
+    FutureProvider.family<List<Map<String, dynamic>>, int>((ref, days) async {
+  final cache = await ref.watch(offlineDataCacheProvider.future);
+  return cache.getList(
+    'submission_trend_$days',
+    () => ref.read(analyticsServiceProvider).getSubmissionTrend(days: days),
+    maxAge: const Duration(hours: 1),
+  );
 });
 
 final governorateRankingProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) {
-  return ref.read(analyticsServiceProvider).getGovernorateRanking();
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final cache = await ref.watch(offlineDataCacheProvider.future);
+  return cache.getList(
+    'governorate_ranking',
+    () => ref.read(analyticsServiceProvider).getGovernorateRanking(),
+    maxAge: const Duration(hours: 1),
+  );
 });

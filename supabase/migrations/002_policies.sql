@@ -93,7 +93,7 @@ DROP POLICY IF EXISTS "submissions_update_own_or_admin" ON form_submissions;
 
 -- Insert: anyone authenticated can submit
 CREATE POLICY "submissions_insert_own" ON form_submissions
-  FOR INSERT WITH CHECK (user_id = auth.uid());
+  FOR INSERT WITH CHECK (submitted_by = auth.uid());
 
 -- Select: hierarchical — admin sees all, central sees all, governorate sees own gov, etc.
 CREATE POLICY "submissions_select_hierarchical" ON form_submissions FOR SELECT USING (
@@ -102,14 +102,14 @@ CREATE POLICY "submissions_select_hierarchical" ON form_submissions FOR SELECT U
     WHEN 'central' THEN true
     WHEN 'governorate' THEN governorate_id = public.user_governorate_id()
     WHEN 'district' THEN district_id = public.user_district_id()
-    WHEN 'data_entry' THEN user_id = auth.uid()
+    WHEN 'data_entry' THEN submitted_by = auth.uid()
     ELSE false
   END
 );
 
 -- Update: only own submissions, or admin/central can update any
 CREATE POLICY "submissions_update_own_or_admin" ON form_submissions FOR UPDATE USING (
-  user_id = auth.uid() OR public.user_role() IN ('admin', 'central')
+  submitted_by = auth.uid() OR public.user_role() IN ('admin', 'central')
 );
 
 -- ─── SUPPLY SHORTAGES ─────────────────────────────────
@@ -123,12 +123,12 @@ CREATE POLICY "shortages_select_hierarchical" ON supply_shortages FOR SELECT USI
     WHEN 'central' THEN true
     WHEN 'governorate' THEN governorate_id = public.user_governorate_id()
     WHEN 'district' THEN district_id = public.user_district_id()
-    ELSE user_id = auth.uid()
+    ELSE reported_by = auth.uid()
   END
 );
-CREATE POLICY "shortages_insert_auth" ON supply_shortages FOR INSERT WITH CHECK (user_id = auth.uid());
+CREATE POLICY "shortages_insert_auth" ON supply_shortages FOR INSERT WITH CHECK (reported_by = auth.uid());
 CREATE POLICY "shortages_update_hierarchical" ON supply_shortages FOR UPDATE USING (
-  user_id = auth.uid() OR public.user_role() IN ('admin', 'central')
+  reported_by = auth.uid() OR public.user_role() IN ('admin', 'central')
 );
 
 -- ─── HEALTH FACILITIES ────────────────────────────────
@@ -153,13 +153,13 @@ CREATE POLICY "settings_select_auth" ON app_settings FOR SELECT USING (auth.uid(
 CREATE POLICY "settings_manage_admin" ON app_settings FOR ALL USING (public.user_role() = 'admin');
 
 -- ─── REFERENCES (NEW) ─────────────────────────────────
-DROP POLICY IF EXISTS "references_select_active" ON references_table;
-DROP POLICY IF EXISTS "references_manage_admin" ON references_table;
+DROP POLICY IF EXISTS "references_select_active" ON "references";
+DROP POLICY IF EXISTS "references_manage_admin" ON "references";
 
-CREATE POLICY "references_select_active" ON references_table
+CREATE POLICY "references_select_active" ON "references"
   FOR SELECT USING (is_active = true AND deleted_at IS NULL);
 
-CREATE POLICY "references_manage_admin" ON references_table
+CREATE POLICY "references_manage_admin" ON "references"
   FOR ALL USING (public.user_role() = 'admin');
 
 -- ============================================================
@@ -210,8 +210,8 @@ CREATE INDEX IF NOT EXISTS idx_shortages_severity ON supply_shortages(severity) 
 CREATE INDEX IF NOT EXISTS idx_shortages_gov ON supply_shortages(governorate_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_audit_user_date ON audit_logs(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(table_name, record_id);
-CREATE INDEX IF NOT EXISTS idx_references_category ON references_table(category) WHERE deleted_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_references_active ON references_table(is_active) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_references_category ON "references"(category) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_references_active ON "references"(is_active) WHERE deleted_at IS NULL;
 
 -- Full-text search on forms
 CREATE INDEX IF NOT EXISTS idx_forms_title_search ON forms USING gin(to_tsvector('arabic', coalesce(title_ar,'') || ' ' || coalesce(title_en,'')));
@@ -233,7 +233,7 @@ GRANT SELECT ON audit_logs TO authenticated;
 GRANT SELECT ON health_facilities TO authenticated;
 GRANT SELECT ON pages TO authenticated;
 GRANT SELECT ON app_settings TO authenticated;
-GRANT SELECT ON references_table TO authenticated;
+GRANT SELECT ON "references" TO authenticated;
 GRANT INSERT ON profiles TO anon;
 
 COMMIT;

@@ -8,6 +8,7 @@ export 'src/auth/auth_state.dart';
 export 'src/api/api_client.dart';
 export 'src/database/database_service.dart';
 export 'src/offline/offline_manager.dart';
+export 'src/offline/offline_data_cache.dart';
 export 'src/offline/sync_queue.dart';
 export 'src/offline/enhanced_sync_service.dart';
 export 'src/offline/local_repository.dart';
