@@ -266,7 +266,7 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
     text.writeln('');
     text.writeln('━━━━ EPI Supervisor ━━━━');
 
-    await SharePlus.instance.share(ShareParams(text: text.toString()));
+    SharePlus.instance.share(ShareParams(text: text.toString()));
   }
 
   void _copyData() {

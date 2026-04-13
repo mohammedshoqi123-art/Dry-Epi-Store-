@@ -406,7 +406,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       buffer.writeln('═══════════════════════════════════');
       buffer.writeln('تاريخ التصدير: ${DateTime.now().toString().split('.')[0]}');
 
-      await SharePlus.instance.share(ShareParams(text: buffer.toString(), subject: 'تقرير تحليلات EPI Supervisor'));
+      SharePlus.instance.share(ShareParams(text: buffer.toString(), subject: 'تقرير تحليلات EPI Supervisor'));
     });
   }
 
