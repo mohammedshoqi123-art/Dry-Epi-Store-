@@ -267,7 +267,13 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       if (offline.isOnline) {
         final db = ref.read(databaseServiceProvider);
-        await db.submitForm(submissionData);
+        // Add timeout to prevent hanging (30 seconds)
+        await db.submitForm(submissionData).timeout(
+          const Duration(seconds: 30),
+          onTimeout: () {
+            throw TimeoutException('Request timed out. Saving as draft.');
+          },
+        );
         if (mounted) {
           // Remove draft after successful submission
           try { await offline.removeDraft(widget.formId); } catch (_) {}
@@ -282,6 +288,27 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         if (mounted) {
           context.showSuccess(AppStrings.formSubmittedOffline);
           context.pop();
+        }
+      }
+    } on TimeoutException {
+      // Save as draft on timeout, then queue for sync
+      if (mounted) {
+        try {
+          final offline = await ref.read(offlineManagerProvider.future);
+          await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+          await offline.addToSyncQueue({
+            'form_id': widget.formId,
+            'data': Map<String, dynamic>.from(_formData),
+            if (_gpsLat != null) 'gps_lat': _gpsLat,
+            if (_gpsLng != null) 'gps_lng': _gpsLng,
+            'created_at': DateTime.now().toIso8601String(),
+          });
+          if (mounted) {
+            context.showWarning('انتهت مهلة الإرسال. تم حفظ البيانات وسيتم إرسالها تلقائياً عند عودة الاتصال.');
+            if (mounted) context.pop();
+          }
+        } catch (_) {
+          if (mounted) context.showError('فشل الإرسال بسبب انتهاء المهلة.');
         }
       }
     } catch (e) {

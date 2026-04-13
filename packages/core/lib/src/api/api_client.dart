@@ -169,11 +169,17 @@ class ApiClient {
       // Ensure token is fresh before calling the function
       await _ensureFreshSession();
 
+      // Add timeout to prevent hanging (30 seconds)
       final response = await _safeClient.functions.invoke(
         functionName,
         body: body,
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw TimeoutException('Function $functionName timed out after 30s'),
       );
       return Map<String, dynamic>.from(response.data);
+    } on TimeoutException {
+      throw NetworkException('Request timed out. Please check your internet connection and try again.');
     } on FunctionException catch (e) {
       // If 401, try refreshing the token ONCE and retry
       if (e.status == 401) {
@@ -182,8 +188,13 @@ class ApiClient {
           final response = await _safeClient.functions.invoke(
             functionName,
             body: body,
+          ).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('Function $functionName timed out after 30s'),
           );
           return Map<String, dynamic>.from(response.data);
+        } on TimeoutException {
+          throw NetworkException('Request timed out after retry. Please try again.');
         } on FunctionException catch (retryError) {
           throw _mapFunctionException(retryError);
         } catch (retryError) {

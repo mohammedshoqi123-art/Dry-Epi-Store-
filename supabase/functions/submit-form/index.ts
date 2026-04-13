@@ -2,8 +2,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGINS') ?? 'https://mohammedshoqi123-art.github.io',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
 }
 
@@ -23,13 +24,24 @@ async function checkRateLimit(
   limit = 10,
   windowSeconds = 60
 ): Promise<boolean> {
-  const { data } = await supabase.rpc('check_and_increment_rate_limit', {
-    p_user_id: userId,
-    p_endpoint: 'submit-form',
-    p_window_seconds: windowSeconds,
-    p_max_requests: limit,
-  })
-  return data?.[0]?.allowed ?? true
+  try {
+    const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
+      p_user_id: userId,
+      p_endpoint: 'submit-form',
+      p_window_seconds: windowSeconds,
+      p_max_requests: limit,
+    })
+    if (error) {
+      // RPC doesn't exist or failed — allow request (fail-open)
+      console.warn('Rate limit RPC error (allowing request):', error.message)
+      return true
+    }
+    return data?.[0]?.allowed ?? true
+  } catch (e) {
+    // Fail-open: don't block submissions if rate limiting is broken
+    console.warn('Rate limit check failed (allowing request):', e)
+    return true
+  }
 }
 
 // ─── Hierarchical permission validation ──────────────────────

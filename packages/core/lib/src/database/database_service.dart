@@ -219,6 +219,6 @@ class DatabaseService {
   }
 
   Future<void> updateReference(String id, Map<String, dynamic> data) async {
-    await _api.update('references', id, data);
+    await _api.update('references', data, filters: {'id': id});
   }
 }

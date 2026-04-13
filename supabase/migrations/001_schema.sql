@@ -628,7 +628,7 @@ CREATE TABLE IF NOT EXISTS health_facilities (
 -- References table (NEW)
 -- ═══════════════════════════════════════
 
-CREATE TABLE IF NOT EXISTS references_table (
+CREATE TABLE IF NOT EXISTS references (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title_ar TEXT NOT NULL,
   description_ar TEXT,
@@ -641,7 +641,7 @@ CREATE TABLE IF NOT EXISTS references_table (
   deleted_at TIMESTAMPTZ
 );
 
-ALTER TABLE references_table ENABLE ROW LEVEL SECURITY;
+ALTER TABLE references ENABLE ROW LEVEL SECURITY;
 
 -- ═══════════════════════════════════════
 -- Dynamic Pages (from 010)
@@ -671,6 +671,68 @@ CREATE POLICY "Pages viewable by authenticated" ON pages
 -- (no 'supervisor' — use 'admin' and 'central')
 CREATE POLICY "Pages manageable by admins" ON pages
   FOR ALL USING (public.user_role() IN ('admin', 'central'));
+
+-- ═══════════════════════════════════════
+-- Rate Limiting Table
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS rate_limits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL,
+  window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+  request_count INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(user_id, endpoint, window_start)
+);
+
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Rate limits are system-only" ON rate_limits
+  FOR ALL USING (false);
+
+-- ═══════════════════════════════════════
+-- Rate Limit RPC Function
+-- ═══════════════════════════════════════
+CREATE OR REPLACE FUNCTION public.check_and_increment_rate_limit(
+  p_user_id UUID,
+  p_endpoint TEXT,
+  p_window_seconds INTEGER DEFAULT 60,
+  p_max_requests INTEGER DEFAULT 10
+)
+RETURNS TABLE(allowed BOOLEAN, current_count INTEGER, reset_at TIMESTAMPTZ)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_window_start TIMESTAMPTZ;
+  v_current_count INTEGER;
+BEGIN
+  -- Calculate window start (truncate to window boundary)
+  v_window_start := date_trunc('second', now()) - 
+    (EXTRACT(EPOCH FROM (date_trunc('second', now()) - 'epoch'::TIMESTAMPTZ))::INTEGER % p_window_seconds) * INTERVAL '1 second';
+
+  -- Upsert: increment count or create new entry
+  INSERT INTO rate_limits (user_id, endpoint, window_start, request_count)
+  VALUES (p_user_id, p_endpoint, v_window_start, 1)
+  ON CONFLICT (user_id, endpoint, window_start)
+  DO UPDATE SET request_count = rate_limits.request_count + 1
+  RETURNING request_count INTO v_current_count;
+
+  -- Return result
+  RETURN QUERY SELECT
+    v_current_count <= p_max_requests AS allowed,
+    v_current_count AS current_count,
+    v_window_start + (p_window_seconds || ' seconds')::INTERVAL AS reset_at;
+END;
+$$;
+
+-- Cleanup old rate limit records (run periodically)
+CREATE OR REPLACE FUNCTION public.cleanup_old_rate_limits()
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  DELETE FROM rate_limits WHERE window_start < now() - INTERVAL '1 hour';
+$$;
 
 -- ═══════════════════════════════════════
 -- App Settings (from 011)
