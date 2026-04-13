@@ -149,6 +149,7 @@ $$;
 -- RLS for rate_limits
 ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "rate_limits_own" ON rate_limits;
 CREATE POLICY "rate_limits_own" ON rate_limits
 FOR ALL USING (user_id = auth.uid());
 
@@ -230,9 +231,11 @@ ON CONFLICT (key) DO NOTHING;
 -- RLS for app_config (read-only for all authenticated users)
 ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "app_config_select_auth" ON app_config;
 CREATE POLICY "app_config_select_auth" ON app_config
 FOR SELECT USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "app_config_modify_admin" ON app_config;
 CREATE POLICY "app_config_modify_admin" ON app_config
 FOR ALL USING (public.user_role() = 'admin');
 
