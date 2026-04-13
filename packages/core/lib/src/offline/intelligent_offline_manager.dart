@@ -6,26 +6,12 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../config/app_config.dart';
 import '../errors/app_exceptions.dart';
 import 'sync_queue_v2.dart';
+import 'enhanced_sync_service.dart' show ConflictStrategy;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFLICT RESOLUTION ENGINE
 // ═══════════════════════════════════════════════════════════════════════════════
-
-/// Strategies for resolving data conflicts between local and server.
-enum ConflictStrategy {
-  /// Server data always wins. Safe for admin-only fields.
-  serverWins,
-
-  /// Local (field) data always wins. Use for on-site data collection.
-  localWins,
-
-  /// Hybrid: local wins for field_data, server wins for admin fields.
-  /// The default for EPI health data.
-  smartMerge,
-
-  /// Store both versions, let user decide.
-  manualReview,
-}
+// ConflictStrategy is imported from enhanced_sync_service.dart to avoid duplicates.
 
 /// Field categories for smart merge conflict resolution.
 class FieldCategories {

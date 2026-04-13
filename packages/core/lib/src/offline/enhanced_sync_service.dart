@@ -74,7 +74,7 @@ class NetworkState {
 }
 
 /// Conflict resolution strategy
-enum ConflictStrategy { localWins, serverWins, merge, manual }
+enum ConflictStrategy { localWins, serverWins, merge, manual, smartMerge, manualReview }
 
 /// Single conflict record
 class DataConflict {
