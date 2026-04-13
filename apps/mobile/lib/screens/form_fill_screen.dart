@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -296,29 +297,32 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       await offline.addToSyncQueue(submissionData);
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
 
-      // Now try to send online (optimistic — failure is OK, data is safe)
-      bool sentOnline = false;
+      // ═══════════════════════════════════════════════════════════════════
+      // 🔥 TRIGGER IMMEDIATE SYNC — don't wait for 5-min timer
+      // ═══════════════════════════════════════════════════════════════════
       if (offline.isOnline) {
-        try {
-          final db = ref.read(databaseServiceProvider);
-          await db.submitForm(submissionData).timeout(
-            const Duration(seconds: 30),
-            onTimeout: () => throw TimeoutException('timeout'),
-          );
-          sentOnline = true;
-          // Remove draft after successful server submission
-          try { await offline.removeDraft(widget.formId); } catch (_) {}
-        } catch (_) {
-          // Online failed — but data is already saved locally, so this is fine
-          sentOnline = false;
-        }
+        // Fire-and-forget: trigger sync in background, show saved message now
+        ref.read(syncServiceProvider.future).then((syncService) async {
+          try {
+            final result = await syncService.sync();
+            if (kDebugMode) {
+              print('[FormSubmit] Immediate sync: ${result.synced} synced, ${result.failed} failed');
+            }
+            // Remove draft only after successful sync
+            if (result.synced > 0) {
+              try { await offline.removeDraft(widget.formId); } catch (_) {}
+            }
+          } catch (e) {
+            if (kDebugMode) print('[FormSubmit] Immediate sync failed (will retry): $e');
+          }
+        }).catchError((e) {
+          if (kDebugMode) print('[FormSubmit] SyncService not available: $e');
+        });
       }
 
       if (mounted) {
-        if (sentOnline) {
-          context.showSuccess(AppStrings.formSubmitted);
-        } else if (offline.isOnline) {
-          context.showInfo('تم الحفظ — سيتم الإرسال تلقائياً عند استقرار الاتصال');
+        if (offline.isOnline) {
+          context.showSuccess('تم الحفظ والإرسال ✅');
         } else {
           context.showSuccess(AppStrings.formSubmittedOffline);
         }

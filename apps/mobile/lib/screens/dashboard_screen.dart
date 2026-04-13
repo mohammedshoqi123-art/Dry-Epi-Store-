@@ -25,6 +25,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
       duration: const Duration(milliseconds: 600),
     );
     _animController.forward();
+
+    // ═══ FIX: Ensure auto-sync starts on dashboard load ═══
+    // The SyncService provider is lazy — it only initializes when first read.
+    // Reading it here guarantees auto-sync is active after login.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(syncServiceProvider.future).then((service) {
+        // Trigger immediate sync if there are pending items
+        if (service.currentState.pendingCount > 0) {
+          service.sync().catchError((_) {});
+        }
+      }).catchError((_) {});
+    });
   }
 
   @override
@@ -68,7 +80,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                 loading: () => const SizedBox(),
                 error: (_, __) => const SizedBox(),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+
+              // Pending sync banner
+              _buildPendingSyncBanner(),
+              const SizedBox(height: 12),
 
               // Stats Grid
               analytics.when(
@@ -162,6 +178,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                     'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
     const days = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
     return '${days[now.weekday - 1]}، ${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+
+  Widget _buildPendingSyncBanner() {
+    final pendingAsync = ref.watch(syncPendingCountProvider);
+    return pendingAsync.when(
+      data: (count) {
+        if (count == 0) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.cloud_upload_outlined, color: Colors.orange.shade700, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '$count استمارة بانتظار المزامنة',
+                  style: TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  ref.read(syncServiceProvider.future).then((s) => s.sync().catchError((_) {}));
+                },
+                child: Text('مزامنة الآن', style: TextStyle(color: Colors.orange.shade800)),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
   }
 
   Widget _buildDashboard(BuildContext context, WidgetRef ref, Map<String, dynamic> data) {

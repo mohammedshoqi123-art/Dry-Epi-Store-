@@ -58,13 +58,8 @@ class OfflineManager {
   final _connectivityController = StreamController<bool>.broadcast();
   final _uuid = const Uuid();
 
-  // ═══ FIX: Mutex to prevent read-modify-write race conditions ═══
-  // Without this, concurrent saveDraft() or addToSyncQueue() calls
-  // can overwrite each other's data (drafts disappearing bug).
-  final Completer<void> _initLock = Completer<void>();
+  // ═══ FIX: Serialize write operations to prevent race conditions ═══
   bool _initialized = false;
-  final _writeLock = Completer<void>();
-  bool _writing = false;
 
   bool _isOnline = true;
   bool get isOnline => _isOnline;
@@ -140,22 +135,24 @@ class OfflineManager {
   }
 
   // ═══ FIX: Serialize write operations to prevent race conditions ═══
+  // Uses a queue of completers for proper async locking (no busy-wait).
+  final _lockQueue = <Completer<void>>[];
+
   Future<T> _withWriteLock<T>(Future<T> Function() action) async {
-    while (_writing) {
-      await _writeLock.future;
+    // Wait for all previous lock holders to finish
+    final prevLock = _lockQueue.isNotEmpty ? _lockQueue.last : null;
+    final myLock = Completer<void>();
+    _lockQueue.add(myLock);
+
+    if (prevLock != null) {
+      await prevLock.future;
     }
-    _writing = true;
-    final lock = Completer<void>();
-    final oldLock = _writeLock;
-    // Replace the completer for future waiters
+
     try {
-      final result = await action();
-      return result;
+      return await action();
     } finally {
-      _writing = false;
-      lock.complete();
-      // If someone was waiting on the old lock, complete it
-      if (!oldLock.isCompleted) oldLock.complete();
+      myLock.complete();
+      _lockQueue.remove(myLock);
     }
   }
 

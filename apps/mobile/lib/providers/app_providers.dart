@@ -64,6 +64,15 @@ final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   return service;
 });
 
+/// Pending items count for UI badges and banners.
+final syncPendingCountProvider = StreamProvider<int>((ref) async* {
+  final offline = await ref.watch(offlineManagerProvider.future);
+  // Emit current count immediately
+  yield offline.pendingCount;
+  // Then poll every 30 seconds for updates
+  yield* Stream.periodic(const Duration(seconds: 30), (_) => offline.pendingCount);
+});
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final repo = AuthRepository();
