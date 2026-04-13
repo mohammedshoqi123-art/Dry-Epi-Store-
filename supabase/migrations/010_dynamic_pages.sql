@@ -17,13 +17,9 @@ CREATE TABLE IF NOT EXISTS pages (
 ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Pages viewable by authenticated" ON pages
-  FOR SELECT USING (auth.role() = 'authenticated');
+  FOR SELECT USING (auth.uid() IS NOT NULL AND is_active = true);
 
+-- Fix: use roles that actually exist in the user_role enum
+-- (no 'supervisor' — use 'admin' and 'central')
 CREATE POLICY "Pages manageable by admins" ON pages
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'supervisor')
-    )
-  );
+  FOR ALL USING (public.user_role() IN ('admin', 'central'));

@@ -21,13 +21,7 @@ ON CONFLICT (key) DO NOTHING;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Settings viewable by authenticated" ON app_settings
-  FOR SELECT USING (auth.role() = 'authenticated');
+  FOR SELECT USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Settings manageable by admins" ON app_settings
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
+  FOR ALL USING (public.user_role() = 'admin');

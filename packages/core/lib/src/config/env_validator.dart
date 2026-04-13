@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'supabase_config.dart';
 
 /// Validates required environment variables at startup.
 /// Supports offline-first mode where Supabase is optional.
@@ -8,8 +9,7 @@ class EnvValidator {
 
   /// Whether the app is running in full offline mode
   static bool get isOfflineMode =>
-      _offlineMode ||
-      String.fromEnvironment('SUPABASE_URL', defaultValue: '').isEmpty;
+      _offlineMode || SupabaseConfig.url.isEmpty;
 
   /// Validate all required environment variables.
   /// In offline mode, Supabase checks are skipped entirely.
@@ -23,10 +23,8 @@ class EnvValidator {
 
     final errors = <String>[];
 
-    final supabaseUrl =
-        String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-    final supabaseKey =
-        String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+    final supabaseUrl = SupabaseConfig.url;
+    final supabaseKey = SupabaseConfig.anonKey;
 
     if (supabaseUrl.isEmpty || _isPlaceholder(supabaseUrl)) {
       errors.add('SUPABASE_URL is not configured');
@@ -74,10 +72,8 @@ class EnvValidator {
   static List<String> validateQuiet() {
     if (isOfflineMode) return [];
     final errors = <String>[];
-    const supabaseUrl =
-        String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-    const supabaseKey =
-        String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+    final supabaseUrl = SupabaseConfig.url;
+    final supabaseKey = SupabaseConfig.anonKey;
 
     if (supabaseUrl.isEmpty || _isPlaceholder(supabaseUrl)) {
       errors.add('SUPABASE_URL is not configured');

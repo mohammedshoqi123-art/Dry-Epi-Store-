@@ -19,6 +19,15 @@ Future<void> main() async {
     debugPrint('Stack: ${details.stack}');
   };
 
+  // ─── Load .env file BEFORE any validation ────────────────────
+  final dotenv = await EnvLoader.load();
+  if (dotenv.isNotEmpty) {
+    SupabaseConfig.setFromEnv(
+      url: dotenv['SUPABASE_URL'] ?? '',
+      anonKey: dotenv['SUPABASE_ANON_KEY'] ?? '',
+    );
+  }
+
   // Validate all environment variables first
   try {
     EnvValidator.validate();

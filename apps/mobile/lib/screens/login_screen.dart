@@ -138,7 +138,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Supabase غير مُعدّ. أضف SUPABASE_URL و SUPABASE_ANON_KEY',
+                                  'Supabase غير مُعدّ.\n• تأكد من ملف .env أو مرر --dart-define=SUPABASE_URL=... و SUPABASE_ANON_KEY=...',
                                   style: TextStyle(
                                     fontFamily: 'Tajawal',
                                     fontSize: 11,

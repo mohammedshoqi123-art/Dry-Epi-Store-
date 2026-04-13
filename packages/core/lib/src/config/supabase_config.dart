@@ -1,14 +1,29 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseConfig {
-  static const String url = String.fromEnvironment(
+  // Compile-time values (--dart-define) take priority, then fall back to
+  // values populated by EnvLoader before the app starts.
+  static String _envUrl = '';
+  static String _envAnonKey = '';
+
+  static const String _compileUrl = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: '',
   );
-  static const String anonKey = String.fromEnvironment(
+  static const String _compileAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
     defaultValue: '',
   );
+
+  /// Call early in main() to inject values loaded from .env file.
+  static void setFromEnv({required String url, required String anonKey}) {
+    _envUrl = url;
+    _envAnonKey = anonKey;
+  }
+
+  static String get url => _compileUrl.isNotEmpty ? _compileUrl : _envUrl;
+  static String get anonKey =>
+      _compileAnonKey.isNotEmpty ? _compileAnonKey : _envAnonKey;
 
   /// Whether Supabase has been initialized and is available
   static bool get isConfigured =>

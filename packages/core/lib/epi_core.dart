@@ -2,6 +2,7 @@ export 'src/config/app_config.dart';
 export 'src/config/supabase_config.dart';
 export 'src/config/sentry_config.dart';
 export 'src/config/env_validator.dart';
+export 'src/config/env_loader.dart';
 export 'src/auth/auth_repository.dart';
 export 'src/auth/auth_state.dart';
 export 'src/api/api_client.dart';
