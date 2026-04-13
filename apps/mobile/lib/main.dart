@@ -19,6 +19,43 @@ Future<void> main() async {
     debugPrint('Stack: ${details.stack}');
   };
 
+  // Set error widget builder BEFORE runApp — catches build errors gracefully
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        color: const Color(0xFFF5F5F5),
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'حدث خطأ في عرض الصفحة',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF333333),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                details.exceptionAsString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: Color(0xFF666666)),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   // ─── Load .env file BEFORE any validation ────────────────────
   final dotenv = await EnvLoader.load();
   if (dotenv.isNotEmpty) {
@@ -163,43 +200,6 @@ class EpiSupervisorApp extends ConsumerWidget {
             child: child!,
           ),
         );
-
-        // Error boundary — catch rendering errors and show a friendly fallback
-        ErrorWidget.builder = (FlutterErrorDetails details) {
-          return Material(
-            child: Container(
-              color: Colors.white,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'حدث خطأ في عرض الصفحة',
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        details.exceptionAsString(),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        };
 
         return content;
       },

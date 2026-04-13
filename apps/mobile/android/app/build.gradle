@@ -29,7 +29,7 @@ def sentryDsn = System.getenv('SENTRY_DSN') ?: localProperties.getProperty('SENT
 
 android {
     namespace "com.epi.supervisor"
-    compileSdkVersion 34
+    compileSdkVersion 35
     ndkVersion "25.1.8937393"
 
     compileOptions {
@@ -48,7 +48,7 @@ android {
     defaultConfig {
         applicationId "com.epi.supervisor"
         minSdkVersion 26
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
 
