@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -41,6 +43,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
         title: AppStrings.dashboard,
         showBackButton: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            onPressed: _exportDashboardPDF,
+            tooltip: 'تقرير PDF',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.invalidate(dashboardAnalyticsProvider),
@@ -484,6 +491,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
         );
       }).toList(),
     );
+  }
+
+  Future<void> _exportDashboardPDF() async {
+    final analytics = ref.read(dashboardAnalyticsProvider);
+    await analytics.whenData((data) async {
+      final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
+      final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
+      final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
+
+      try {
+        if (mounted) context.showInfo('جارٍ إنشاء التقرير...');
+
+        final file = await ReportGenerator.generatePDFReport(
+          title: 'تقرير لوحة التحكم — منصة مشرف EPI',
+          period: 'الشهر الحالي',
+          submissions: [],
+          stats: {
+            'total': submissions['total'] ?? 0,
+            'today': submissions['today'] ?? 0,
+            'completionRate': submissions['completionRate'] ?? 0,
+            'rejected': byStatus['rejected'] ?? 0,
+            'pending': byStatus['draft'] ?? 0,
+            'byStatus': byStatus,
+          },
+          recommendations: LocalAnalyticsEngine.generateInsights(data),
+        );
+
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'تقرير لوحة التحكم EPI',
+        );
+      } catch (e) {
+        if (mounted) context.showError('فشل إنشاء التقرير: $e');
+      }
+    });
   }
 }
 

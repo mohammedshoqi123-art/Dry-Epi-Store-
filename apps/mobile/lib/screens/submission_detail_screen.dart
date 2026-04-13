@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 class SubmissionDetailScreen extends ConsumerStatefulWidget {
@@ -49,6 +50,7 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'approve', child: Text('اعتماد')),
                 const PopupMenuItem(value: 'reject', child: Text('رفض')),
+                const PopupMenuItem(value: 'pdf', child: Text('تقرير PDF')),
                 const PopupMenuItem(value: 'share', child: Text('مشاركة')),
                 const PopupMenuItem(value: 'copy', child: Text('نسخ البيانات')),
               ],
@@ -214,6 +216,9 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
       case 'reject':
         _updateStatus('rejected');
         break;
+      case 'pdf':
+        _generatePDF();
+        break;
       case 'share':
         _shareSubmission();
         break;
@@ -270,5 +275,26 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
 
     Clipboard.setData(ClipboardData(text: text));
     if (mounted) context.showSuccess('تم نسخ البيانات');
+  }
+
+  Future<void> _generatePDF() async {
+    if (_submission == null) return;
+    try {
+      if (mounted) context.showInfo('جارٍ إنشاء التقرير...');
+
+      final form = _submission!['forms'] as Map<String, dynamic>? ?? {};
+      final file = await FormReportGenerator.generate(
+        form: form,
+        submissions: [_submission!],
+        period: 'إرسال واحدة — ${(_submission!['created_at'] ?? '').toString().substring(0, 10)}',
+      );
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'تقرير استمارة EPI',
+      );
+    } catch (e) {
+      if (mounted) context.showError('فشل إنشاء التقرير: $e');
+    }
   }
 }

@@ -39,6 +39,11 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            onPressed: _exportPDF,
+            tooltip: 'تقرير PDF',
+          ),
+          IconButton(
             icon: const Icon(Icons.download),
             onPressed: _exportCSV,
             tooltip: 'تصدير CSV',
@@ -402,6 +407,47 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       buffer.writeln('تاريخ التصدير: ${DateTime.now().toString().split('.')[0]}');
 
       Share.share(buffer.toString(), subject: 'تقرير تحليلات EPI Supervisor');
+    });
+  }
+
+  Future<void> _exportPDF() async {
+    final analytics = ref.read(dashboardAnalyticsProvider);
+    await analytics.whenData((data) async {
+      final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
+      final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
+      final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
+
+      final periodLabel = _selectedPeriod == '7d'
+          ? 'آخر 7 أيام'
+          : _selectedPeriod == '30d'
+              ? 'آخر 30 يوم'
+              : 'آخر 90 يوم';
+
+      try {
+        if (mounted) context.showInfo('جارٍ إنشاء التقرير...');
+
+        final file = await ReportGenerator.generatePDFReport(
+          title: 'تقرير تحليلات منصة مشرف EPI',
+          period: periodLabel,
+          submissions: [], // Summary-only report for now
+          stats: {
+            'total': submissions['total'] ?? 0,
+            'today': submissions['today'] ?? 0,
+            'completionRate': submissions['completionRate'] ?? 0,
+            'rejected': byStatus['rejected'] ?? 0,
+            'pending': byStatus['draft'] ?? 0,
+            'byStatus': byStatus,
+          },
+          recommendations: LocalAnalyticsEngine.generateInsights(data),
+        );
+
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          subject: 'تقرير تحليلات EPI - $periodLabel',
+        );
+      } catch (e) {
+        if (mounted) context.showError('فشل إنشاء التقرير: $e');
+      }
     });
   }
 }
