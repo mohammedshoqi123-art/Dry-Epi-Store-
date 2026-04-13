@@ -19,15 +19,15 @@ class SyncService {
 
   SyncService(this._api, this._offline);
 
-  /// Start periodic auto-sync (every 5 minutes)
-  /// Uses timer only — avoids duplicate connectivity listeners
-  /// (ConnectivityUtils already handles connectivity monitoring).
+  /// Start periodic auto-sync (every 2 minutes — more responsive than 5)
   void startAutoSync() {
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
-      const Duration(minutes: 5),
+      const Duration(minutes: 2),
       (_) => sync(),
     );
+    // Also try an initial sync after 10 seconds
+    Timer(const Duration(seconds: 10), () => sync());
   }
 
   void stopAutoSync() {
@@ -35,11 +35,21 @@ class SyncService {
   }
 
   /// Perform a sync cycle. Returns summary of results.
-  /// ═══ FIX: try/finally ensures _isSyncing ALWAYS resets — prevents permanent deadlock ═══
+  /// FIX: Don't trust isOnline blindly — try the actual sync and handle failures.
+  /// The connectivity plugin can misreport status (VPN, proxy, etc).
   Future<SyncCycleResult> sync() async {
     if (_isSyncing) return SyncCycleResult.empty();
-    if (!_offline.isOnline) return SyncCycleResult.empty();
     if (!_offline.isInitialized) return SyncCycleResult.empty();
+
+    final pending = _offline.pendingCount;
+    if (pending == 0) return SyncCycleResult.empty();
+
+    // Only skip if we KNOW we're offline AND there have been recent failures
+    // Otherwise, try the sync — the actual network call will determine if we're connected
+    if (!_offline.isOnline) {
+      // Still try, but log it
+      if (kDebugMode) print('[SyncService] Connectivity reports offline, attempting sync anyway...');
+    }
 
     _isSyncing = true;
     _updateState(isSyncing: true);
@@ -86,17 +96,37 @@ class SyncService {
             result.errors.add(SyncError(offlineId: sr.offlineId, error: sr.errorMessage ?? 'Unknown'));
         }
       }
+
+      // If we synced successfully, update connectivity status
+      if (result.synced > 0 || result.duplicates > 0) {
+        _offline.updateConnectivity(true);
+      }
     } catch (e) {
-      if (kDebugMode) print('Sync cycle error: $e');
+      if (kDebugMode) print('[SyncService] Sync cycle error: $e');
       result.errors.add(SyncError(error: e.toString()));
+
+      // If the error is network-related, update connectivity status
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('network') ||
+          errorStr.contains('socket') ||
+          errorStr.contains('connection') ||
+          errorStr.contains('failed host') ||
+          errorStr.contains('timeout')) {
+        _offline.updateConnectivity(false);
+      }
     } finally {
-      // ═══ FIX: ALWAYS reset _isSyncing, even on error/crash ═══
       _isSyncing = false;
       _updateState(
         isSyncing: false,
         lastSync: DateTime.now(),
         pendingCount: _offline.pendingCount,
       );
+    }
+
+    if (kDebugMode) {
+      print('[SyncService] Sync complete: synced=${result.synced}, '
+          'duplicates=${result.duplicates}, conflicts=${result.conflicts}, '
+          'failed=${result.failed}');
     }
 
     return result;

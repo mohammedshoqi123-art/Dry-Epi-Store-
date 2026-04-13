@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 /// Comprehensive forms status dashboard showing:
@@ -44,6 +45,7 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
             onPressed: () {
               ref.invalidate(submissionsProvider(const SubmissionsFilter()));
               ref.invalidate(formsProvider);
+              setState(() {}); // Force stats rebuild
             },
             tooltip: 'تحديث',
           ),
@@ -161,34 +163,37 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
     );
   }
 
+  /// FIX: Use cached data only — no Supabase calls that can hang.
+  /// Stats come from local offline storage, NOT from server.
   Future<Map<String, int>> _loadStats() async {
-    int drafts = 0, pending = 0, submitted = 0;
+    int drafts = 0, pending = 0, total = 0;
     try {
-      final offline = await ref.read(offlineManagerProvider.future);
+      final offline = await ref.read(offlineManagerProvider.future).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('Offline init timeout'),
+      );
       pending = offline.pendingCount;
 
-      // Count drafts by checking each known form
-      final forms = await ref.read(formsProvider.future);
-      for (final form in forms) {
-        final draft = offline.getDraft(form['id']);
-        if (draft != null) drafts++;
-      }
-    } catch (_) {}
+      // Count drafts from cached forms (no network call)
+      final draftIds = offline.getDraftFormIds();
+      drafts = draftIds.length;
 
-    try {
-      final subs = await ref.read(databaseServiceProvider).getSubmissions(limit: 100);
-      submitted = subs.where((s) =>
-        s['status'] == 'submitted' ||
-        s['status'] == 'reviewed' ||
-        s['status'] == 'approved'
-      ).length;
-    } catch (_) {}
+      // Count cached submissions if available
+      final cache = await ref.read(offlineDataCacheProvider.future).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => throw Exception('Cache init timeout'),
+      );
+      final cachedSubs = cache.getCachedDataList('submissions');
+      total = drafts + pending + (cachedSubs?.length ?? 0);
+    } catch (e) {
+      debugPrint('[FormsStatusScreen] Stats load error: $e');
+    }
 
     return {
       'drafts': drafts,
       'pending': pending,
-      'submitted': submitted,
-      'total': drafts + pending + submitted,
+      'submitted': total > 0 ? total - drafts - pending : 0,
+      'total': total,
     };
   }
 }
@@ -284,7 +289,6 @@ class _DraftsTab extends ConsumerWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
-            // Trigger rebuild
             (context as Element).markNeedsBuild();
           },
           child: ListView.builder(
@@ -307,24 +311,45 @@ class _DraftsTab extends ConsumerWidget {
     );
   }
 
+  /// FIX: Load drafts from local storage only — no Supabase calls.
   Future<List<Map<String, dynamic>>> _loadDrafts(WidgetRef ref) async {
     try {
-      final offline = await ref.read(offlineManagerProvider.future);
-      final forms = await ref.read(formsProvider.future);
+      final offline = await ref.read(offlineManagerProvider.future).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('timeout'),
+      );
 
-      // Get all draft data - we need to iterate through known forms
+      // Get draft IDs from local storage
+      final draftIds = offline.getDraftFormIds();
       final drafts = <Map<String, dynamic>>[];
-      for (final form in forms) {
-        final draft = offline.getDraft(form['id']);
-        if (draft != null) {
-          drafts.add({
-            'form_id': form['id'],
-            'form_title': form['title_ar'] ?? 'نموذج',
-            'saved_at': draft['saved_at'],
-            'field_count': (draft['data'] as Map?)?.length ?? 0,
-            'data': draft['data'],
-          });
+
+      // Try to get form titles from cache (no network call)
+      final cache = await ref.read(offlineDataCacheProvider.future).timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => throw Exception('timeout'),
+      );
+      final cachedForms = cache.getCachedDataList('forms') ?? [];
+
+      for (final formId in draftIds) {
+        final draft = offline.getDraft(formId);
+        if (draft == null) continue;
+
+        // Find title from cached forms
+        String formTitle = 'نموذج';
+        for (final f in cachedForms) {
+          if (f['id'] == formId) {
+            formTitle = f['title_ar'] ?? 'نموذج';
+            break;
+          }
         }
+
+        drafts.add({
+          'form_id': formId,
+          'form_title': formTitle,
+          'saved_at': draft['saved_at'],
+          'field_count': (draft['data'] as Map?)?.length ?? 0,
+          'data': draft['data'],
+        });
       }
 
       // Sort by saved_at descending
@@ -335,7 +360,8 @@ class _DraftsTab extends ConsumerWidget {
       });
 
       return drafts;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[DraftsTab] Load error: $e');
       return [];
     }
   }
@@ -374,33 +400,65 @@ class _PendingSyncTab extends ConsumerStatefulWidget {
 class _PendingSyncTabState extends ConsumerState<_PendingSyncTab> {
   List<Map<String, dynamic>> _pendingItems = [];
   bool _isSyncing = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadPending();
+    // FIX: Use postFrameCallback to avoid reading providers before they're ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPending();
+    });
   }
 
   Future<void> _loadPending() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
     try {
-      final offline = await ref.read(offlineManagerProvider.future);
-      final items = await offline.getPendingItems();
-      if (mounted) setState(() => _pendingItems = items);
-    } catch (_) {}
+      final offline = await ref.read(offlineManagerProvider.future).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('timeout'),
+      );
+      final items = await offline.getPendingItems().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => <Map<String, dynamic>>[],
+      );
+      if (mounted) setState(() {
+        _pendingItems = items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('[PendingSyncTab] Load error: $e');
+      if (mounted) setState(() {
+        _pendingItems = [];
+        _isLoading = false;
+      });
+    }
   }
 
+  /// FIX: Better sync with proper error handling and timeout
   Future<void> _syncNow() async {
     if (_isSyncing) return;
     setState(() => _isSyncing = true);
 
     try {
-      final syncService = await ref.read(syncServiceProvider.future);
-      final result = await syncService.sync();
+      final syncService = await ref.read(syncServiceProvider.future).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw Exception('انتهت مهلة تحميل خدمة المزامنة'),
+      );
+
+      final result = await syncService.sync().timeout(
+        const Duration(minutes: 2),
+        onTimeout: () => throw Exception('انتهت مهلة المزامنة - تحقق من الاتصال'),
+      );
+
       if (mounted) {
-        context.showSuccess('تمت المزامنة: ${result.synced} ناجح، ${result.failed} فاشل');
+        final msg = 'تمت المزامنة: ${result.synced} ناجح، ${result.failed} فاشل';
+        context.showSuccess(msg);
         await _loadPending();
       }
     } catch (e) {
+      debugPrint('[PendingSyncTab] Sync error: $e');
       if (mounted) context.showError('فشلت المزامنة: $e');
     } finally {
       if (mounted) setState(() => _isSyncing = false);
@@ -409,6 +467,10 @@ class _PendingSyncTabState extends ConsumerState<_PendingSyncTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const EpiLoading.shimmer();
+    }
+
     if (_pendingItems.isEmpty) {
       return RefreshIndicator(
         onRefresh: _loadPending,
@@ -670,7 +732,6 @@ class _DraftTile extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Draft icon
               Container(
                 width: 48,
                 height: 48,
@@ -690,7 +751,6 @@ class _DraftTile extends StatelessWidget {
                 child: const Icon(Icons.edit_note, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 14),
-              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,7 +808,6 @@ class _DraftTile extends StatelessWidget {
                   ],
                 ),
               ),
-              // Actions
               Column(
                 children: [
                   IconButton(
@@ -823,7 +882,6 @@ class _PendingSyncTile extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // Sync icon with animation
             Container(
               width: 48,
               height: 48,
@@ -905,7 +963,6 @@ class _PendingSyncTile extends StatelessWidget {
                 ],
               ),
             ),
-            // Status indicator
             Container(
               width: 10,
               height: 10,
@@ -979,7 +1036,6 @@ class _SubmittedTile extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Status icon
               Container(
                 width: 48,
                 height: 48,

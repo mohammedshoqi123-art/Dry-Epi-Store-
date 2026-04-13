@@ -245,6 +245,29 @@ class OfflineDataCache {
     return _offline.getCachedData(key) != null;
   }
 
+  /// Get cached data as a raw value (for stats, counts, etc.)
+  dynamic getCachedData(String key) {
+    return _offline.getCachedData(key);
+  }
+
+  /// Get cached data as a list (handles the list wrapper format)
+  List<Map<String, dynamic>>? getCachedDataList(String key) {
+    final cached = _offline.getCachedData(key);
+    if (cached == null) return null;
+
+    // Handle list wrapper
+    if (cached['_type'] == 'list' && cached['_list'] is List) {
+      return List<Map<String, dynamic>>.from(cached['_list']);
+    }
+
+    // If it's directly a list
+    if (cached is List) {
+      return List<Map<String, dynamic>>.from(cached);
+    }
+
+    return null;
+  }
+
   /// Get cache status for debugging
   Map<String, dynamic> getDebugInfo() {
     return {

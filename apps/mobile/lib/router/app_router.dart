@@ -241,12 +241,25 @@ class AppDrawer extends ConsumerWidget {
 }
 
 /// Makes GoRouter rebuild when a stream emits a new value.
+/// FIX: Debounce rapid emissions to prevent redirect loops and visual restarts.
 class GoRouterRefreshStream extends ChangeNotifier {
   StreamSubscription? _subscription;
+  DateTime? _lastNotify;
+  // Minimum 500ms between router rebuilds to prevent flickering/restarts
+  static const _debounceMs = 500;
 
   GoRouterRefreshStream(Stream<dynamic> stream) {
+    // Emit once immediately for initial state
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+    _subscription = stream.asBroadcastStream().listen((_) {
+      final now = DateTime.now();
+      if (_lastNotify != null &&
+          now.difference(_lastNotify!).inMilliseconds < _debounceMs) {
+        return; // Skip if too frequent
+      }
+      _lastNotify = now;
+      notifyListeners();
+    });
   }
 
   @override
