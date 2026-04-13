@@ -497,7 +497,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     final analytics = ref.read(dashboardAnalyticsProvider);
     await analytics.whenData((data) async {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
-      final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
       final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
 
       try {

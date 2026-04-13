@@ -18,6 +18,7 @@ class FormFillScreen extends ConsumerStatefulWidget {
 class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   final _formKey = GlobalKey<FormState>();
   final Map<String, dynamic> _formData = {};
+  final Map<String, TextEditingController> _textControllers = {};
   bool _isLoading = false;
   bool _isSavingDraft = false;
   bool _isGettingLocation = false;
@@ -31,6 +32,14 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   double? _gpsLng;
   final List<XFile> _pickedPhotos = [];
   String? _signatureData; // base64 or path of signature image
+
+  /// Get or create a TextEditingController for a field key
+  TextEditingController _getController(String key, {String? initialValue}) {
+    if (!_textControllers.containsKey(key)) {
+      _textControllers[key] = TextEditingController(text: initialValue ?? '');
+    }
+    return _textControllers[key]!;
+  }
 
   @override
   void initState() {
@@ -55,6 +64,15 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       setState(() => _isLoading = false);
       if (mounted) context.showError('فشل تحميل النموذج');
     }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _textControllers.values) {
+      controller.dispose();
+    }
+    _textControllers.clear();
+    super.dispose();
   }
 
   /// Get all fields (flattened) for GPS and validation
@@ -380,6 +398,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     switch (type) {
       case 'text':
         return EpiTextField(
+          controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           onChanged: (v) => _formData[key] = v,
           validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
@@ -387,6 +406,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       case 'phone':
         return EpiTextField(
+          controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint ?? '07XXXXXXXXX',
           keyboardType: TextInputType.phone,
           onChanged: (v) => _formData[key] = v,
@@ -401,6 +421,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       case 'textarea':
         return EpiTextField(
+          controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           maxLines: 4,
           onChanged: (v) => _formData[key] = v,
@@ -409,6 +430,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       case 'number':
         return EpiTextField(
+          controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           keyboardType: TextInputType.number,
           onChanged: (v) => _formData[key] = num.tryParse(v),
@@ -684,6 +706,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       default:
         return EpiTextField(
+          controller: _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           onChanged: (v) => _formData[key] = v,
         );
