@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:epi_core/src/offline/sync_queue_v2.dart';
 import 'package:epi_core/src/offline/intelligent_offline_manager.dart';
+import 'package:epi_core/src/offline/enhanced_sync_service.dart' show ConflictStrategy;
 import 'package:epi_core/src/security/encryption_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
