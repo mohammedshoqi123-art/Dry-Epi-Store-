@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Utility for monitoring internet connectivity status.
+/// Single source of truth — all other listeners should read from here.
 class ConnectivityUtils {
   static final Connectivity _connectivity = Connectivity();
   static final StreamController<bool> _controller =
@@ -9,25 +10,47 @@ class ConnectivityUtils {
 
   static bool _isOnline = true;
   static StreamSubscription? _subscription;
+  static DateTime? _lastEmit;
+
+  /// Minimum interval between state emissions to prevent event storms
+  static const Duration _minEmitInterval = Duration(milliseconds: 800);
 
   /// Call once at app startup to start monitoring.
   static Future<void> initialize() async {
-    final result = await _connectivity.checkConnectivity();
-    _isOnline = _isConnected(result);
+    try {
+      final result = await _connectivity.checkConnectivity().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => <ConnectivityResult>[],
+      );
+      _isOnline = _isConnected(result);
+    } catch (_) {
+      _isOnline = true;
+    }
 
     _subscription = _connectivity.onConnectivityChanged.listen((results) {
-      // connectivity_plus 6.x returns List<ConnectivityResult>
       final resultList = results;
       final online = _isConnected(resultList);
+
+      // Only emit if status actually changed
       if (online != _isOnline) {
         _isOnline = online;
-        _controller.add(_isOnline);
+        _throttledEmit(_isOnline);
       }
     });
   }
 
+  static void _throttledEmit(bool value) {
+    final now = DateTime.now();
+    if (_lastEmit != null && now.difference(_lastEmit!) < _minEmitInterval) {
+      return;
+    }
+    _lastEmit = now;
+    _controller.add(value);
+  }
+
   static bool _isConnected(List<ConnectivityResult> results) {
-    return results.any((r) => r != ConnectivityResult.none);
+    return results.isNotEmpty &&
+        results.any((r) => r != ConnectivityResult.none);
   }
 
   /// Current connectivity status

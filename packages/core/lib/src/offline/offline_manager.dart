@@ -62,6 +62,15 @@ class OfflineManager {
   bool get isOnline => _isOnline;
   Stream<bool> get connectivityStream => _connectivityController.stream;
 
+  /// Update connectivity status from external source (ConnectivityUtils).
+  /// This replaces the internal connectivity listener to avoid duplicates.
+  void updateConnectivity(bool online) {
+    if (_isOnline != online) {
+      _isOnline = online;
+      _connectivityController.add(_isOnline);
+    }
+  }
+
   /// Whether the offline storage is initialized and ready
   bool get isInitialized => _box != null && _box!.isOpen;
 
@@ -86,22 +95,9 @@ class OfflineManager {
       },
     );
 
-    // Listen to connectivity changes
-    try {
-      _connectivity.onConnectivityChanged.listen((results) {
-        final wasOnline = _isOnline;
-        final resultList = results;
-        _isOnline = resultList.isNotEmpty &&
-            resultList.any((r) => r != ConnectivityResult.none);
-        if (wasOnline != _isOnline) {
-          _connectivityController.add(_isOnline);
-        }
-      });
-    } catch (e) {
-      if (kDebugMode) print('Connectivity listener failed: $e');
-    }
-
-    // Initial check
+    // Initial connectivity check ONLY — no listener.
+    // ConnectivityUtils handles connectivity monitoring globally.
+    // This avoids duplicate listeners that cause event storms.
     try {
       final results = await _connectivity.checkConnectivity().timeout(
         const Duration(seconds: 5),

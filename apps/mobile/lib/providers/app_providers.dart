@@ -35,11 +35,24 @@ final offlineManagerProvider = FutureProvider<OfflineManager>((ref) async {
     );
   } catch (e) {
     debugPrint('[offlineManagerProvider] Init failed: $e');
-    // Re-throw so the provider properly reflects the error state
-    // instead of hanging forever
     rethrow;
   }
-  ref.onDispose(manager.dispose);
+
+  // Bridge: push ConnectivityUtils updates to OfflineManager
+  // This avoids duplicate connectivity listeners across the app
+  StreamSubscription? connSub;
+  try {
+    connSub = ConnectivityUtils.onConnectivityChanged.listen((online) {
+      manager.updateConnectivity(online);
+    });
+  } catch (e) {
+    debugPrint('[offlineManagerProvider] Connectivity bridge failed: $e');
+  }
+
+  ref.onDispose(() {
+    connSub?.cancel();
+    manager.dispose();
+  });
   return manager;
 });
 
