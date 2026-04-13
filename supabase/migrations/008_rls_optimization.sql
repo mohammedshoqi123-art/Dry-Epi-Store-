@@ -93,9 +93,8 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   UNIQUE(user_id, endpoint)
 );
 
-CREATE INDEX IF NOT EXISTS idx_rate_limits_reset
-  ON rate_limits(reset_at)
-  WHERE reset_at < NOW();
+CREATE INDEX IF NOT EXISTS idx_rate_limits_user_endpoint
+  ON rate_limits(user_id, endpoint);
 
 -- Clean up expired rate limit entries periodically
 CREATE OR REPLACE FUNCTION cleanup_expired_rate_limits()
