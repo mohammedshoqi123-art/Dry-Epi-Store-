@@ -266,10 +266,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
                       _loadUsers();
-                      context.showSuccess('تم إضافة المستخدم بنجاح');
+                      if (context.mounted) context.showSuccess('تم إضافة المستخدم بنجاح');
                     }
                   } catch (e) {
-                    if (ctx.mounted) context.showError('فشل: ${e.toString()}');
+                    if (context.mounted) context.showError('فشل: ${e.toString()}');
                   }
                 },
                 width: double.infinity,
@@ -479,7 +479,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                       context.showSuccess('تم تحديث المستخدم');
                     }
                   } catch (e) {
-                    if (ctx.mounted) context.showError('فشل: ${e.toString()}');
+                    if (context.mounted) context.showError('فشل: ${e.toString()}');
                   }
                 },
                 width: double.infinity,

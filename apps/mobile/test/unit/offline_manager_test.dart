@@ -44,7 +44,7 @@ void main() {
       final submission = {'form_id': 'test', 'data': {'field': 'value'}};
 
       // Simulate what addToSyncQueue does
-      final offlineId = 'test-uuid-123';
+      const offlineId = 'test-uuid-123';
       submission['offline_id'] = offlineId;
       submission['idempotency_key'] = offlineId;
 
@@ -64,17 +64,17 @@ void main() {
 
   group('SyncResult - Error Classification', () {
     test('server errors (5xx) are retryable', () {
-      final error = ApiException('Server error', code: '500');
+      const error = ApiException('Server error', code: '500');
       expect(error.code?.startsWith('5'), isTrue);
     });
 
     test('rate limit is not retryable for immediate re-attempt', () {
-      final error = ApiException('Rate limited', code: 'rate_limit');
+      const error = ApiException('Rate limited', code: 'rate_limit');
       expect(error.code, equals('rate_limit'));
     });
 
     test('network errors are retryable', () {
-      final error = NetworkException('No connection');
+      const error = NetworkException('No connection');
       expect(error.code, equals('NETWORK'));
     });
   });

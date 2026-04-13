@@ -37,6 +37,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
   // Auto-save timer
   Timer? _autoSaveTimer;
+  // ignore: unused_field - reserved for future UI feedback
   DateTime? _lastAutoSave;
 
   /// Get or create a TextEditingController for a field key
@@ -224,7 +225,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           if (_pickedPhotos.isEmpty) missingFields.add(label);
           break;
         case 'signature':
-          if (_signatureData == null || (_signatureData as String?)?.isEmpty == true) missingFields.add(label);
+          if (_signatureData == null || _signatureData?.isEmpty == true) missingFields.add(label);
           break;
         case 'governorate':
           if (_formData[key] == null) missingFields.add(label);
@@ -272,8 +273,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         if (mounted) {
           // Remove draft after successful submission
           try { await offline.removeDraft(widget.formId); } catch (_) {}
-          context.showSuccess(AppStrings.formSubmitted);
-          context.pop();
+          if (mounted) context.showSuccess(AppStrings.formSubmitted);
+          if (mounted) context.pop();
         }
       } else {
         await offline.addToSyncQueue({

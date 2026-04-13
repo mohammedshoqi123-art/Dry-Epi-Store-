@@ -412,7 +412,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
   Future<void> _exportPDF() async {
     final analytics = ref.read(dashboardAnalyticsProvider);
-    await analytics.whenData((data) async {
+    analytics.whenData((data) async {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
       final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
 

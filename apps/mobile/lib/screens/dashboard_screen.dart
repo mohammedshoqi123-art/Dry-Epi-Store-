@@ -347,7 +347,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${labels[e.key] ?? e.key}',
+                        labels[e.key] ?? e.key,
                         style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12),
                       ),
                       const Spacer(),
@@ -495,7 +495,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
 
   Future<void> _exportDashboardPDF() async {
     final analytics = ref.read(dashboardAnalyticsProvider);
-    await analytics.whenData((data) async {
+    analytics.whenData((data) async {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
       final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};
 
