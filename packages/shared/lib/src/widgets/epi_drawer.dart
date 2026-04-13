@@ -116,6 +116,8 @@ class EpiDrawer extends StatelessWidget {
                       child: Divider(height: 1),
                     ),
                     _SectionLabel(label: 'الإدارة'),
+                    if (userRoleLevel >= 5)
+                      _buildItem(context, Icons.admin_panel_settings_rounded, 'لوحة المدير', '/admin'),
                     _buildItem(context, Icons.people_rounded, 'المستخدمين', '/admin/users'),
                     _buildItem(context, Icons.edit_document, 'إدارة النماذج', '/admin/forms'),
                     _buildItem(context, Icons.history_rounded, 'سجل العمليات', '/admin/audit'),

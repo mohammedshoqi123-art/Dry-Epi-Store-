@@ -32,7 +32,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     AdminMenuItem(
       icon: Icons.dashboard_rounded,
       title: 'لوحة التحكم',
-      route: '/admin/dashboard',
+      route: '/dashboard',
     ),
     AdminMenuItem(
       icon: Icons.description_rounded,
@@ -46,18 +46,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
     ),
     AdminMenuItem(
       icon: Icons.analytics_rounded,
-      title: 'التقارير والتحليلات',
-      route: '/admin/reports',
+      title: 'التحليلات',
+      route: '/analytics',
     ),
     AdminMenuItem(
-      icon: Icons.sync_rounded,
-      title: 'حالة المزامنة',
-      route: '/admin/sync',
+      icon: Icons.history_rounded,
+      title: 'سجل التدقيق',
+      route: '/admin/audit',
     ),
     AdminMenuItem(
-      icon: Icons.settings_rounded,
-      title: 'إعدادات النظام',
-      route: '/admin/settings',
+      icon: Icons.map_rounded,
+      title: 'الخريطة',
+      route: '/map',
     ),
   ];
 

@@ -19,17 +19,20 @@ import '../screens/admin/audit_screen.dart';
 import '../screens/admin/forms_management_screen.dart';
 import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
+import 'package:epi_features/epi_features.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
 
   // Minimum role level required per route
   const routeMinRole = {
-    '/admin/users': 4,   // central+
-    '/admin/audit': 4,   // central+
-    '/admin/forms': 4,   // central+ (admin only for modifications)
-    '/analytics': 3,     // governorate+
-    '/ai': 3,            // governorate+
+    '/admin': 5,           // admin only
+    '/admin/dashboard': 5, // admin only
+    '/admin/users': 4,     // central+
+    '/admin/audit': 4,     // central+
+    '/admin/forms': 4,     // central+ (admin only for modifications)
+    '/analytics': 3,       // governorate+
+    '/ai': 3,              // governorate+
   };
 
   return GoRouter(
@@ -120,6 +123,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/ai',
             builder: (context, state) => const AiChatScreen(),
+          ),
+          GoRoute(
+            path: '/admin',
+            builder: (context, state) => const AdminDashboard(),
           ),
           GoRoute(
             path: '/admin/users',
