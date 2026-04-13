@@ -248,8 +248,10 @@ class DatabaseService {
       'end_date': end.toIso8601String().split('T').first,
     });
 
-    if (response is List) {
-      return List<Map<String, dynamic>>.from(response);
+    // callFunction wraps List responses in {"data": [...]}
+    final rawData = response['data'] ?? response;
+    if (rawData is List) {
+      return List<Map<String, dynamic>>.from(rawData);
     }
     return [];
   }

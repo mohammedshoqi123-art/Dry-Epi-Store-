@@ -177,7 +177,11 @@ class ApiClient {
         const Duration(seconds: 30),
         onTimeout: () => throw TimeoutException('Function $functionName timed out after 30s'),
       );
-      return Map<String, dynamic>.from(response.data);
+      final responseData = response.data;
+      if (responseData is List) {
+        return {'data': responseData};
+      }
+      return Map<String, dynamic>.from(responseData);
     } on TimeoutException {
       throw NetworkException('Request timed out. Please check your internet connection and try again.');
     } on FunctionException catch (e) {
@@ -192,7 +196,11 @@ class ApiClient {
             const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException('Function $functionName timed out after 30s'),
           );
-          return Map<String, dynamic>.from(response.data);
+          final retryData = response.data;
+          if (retryData is List) {
+            return {'data': retryData};
+          }
+          return Map<String, dynamic>.from(retryData);
         } on TimeoutException {
           throw NetworkException('Request timed out after retry. Please try again.');
         } on FunctionException catch (retryError) {
