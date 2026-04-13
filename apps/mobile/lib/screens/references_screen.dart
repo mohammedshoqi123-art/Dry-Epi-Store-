@@ -61,7 +61,7 @@ class _ReferencesScreenState extends ConsumerState<ReferencesScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: EpiSearchBar(
-              hintText: 'ابحث في المراجع...',
+              hint: 'ابحث في المراجع...',
               onChanged: (v) => setState(() => _searchQuery = v),
             ),
           ),
@@ -72,7 +72,7 @@ class _ReferencesScreenState extends ConsumerState<ReferencesScreen> {
                 : _filtered.isEmpty
                     ? const EpiEmptyState(
                         icon: Icons.menu_book_outlined,
-                        message: 'لا توجد مراجع متاحة حالياً',
+                        title: 'لا توجد مراجع متاحة حالياً',
                       )
                     : RefreshIndicator(
                         onRefresh: _loadReferences,

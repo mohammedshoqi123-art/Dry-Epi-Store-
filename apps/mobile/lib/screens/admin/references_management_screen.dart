@@ -54,7 +54,7 @@ class _AdminReferencesScreenState extends ConsumerState<AdminReferencesScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                EpiTextField(controller: titleCtrl, label: 'العنوان', required: true),
+                EpiTextField(controller: titleCtrl, label: 'العنوان *', validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null),
                 const SizedBox(height: 12),
                 EpiTextField(controller: descCtrl, label: 'الوصف', maxLines: 3),
                 const SizedBox(height: 12),
@@ -139,7 +139,7 @@ class _AdminReferencesScreenState extends ConsumerState<AdminReferencesScreen> {
           : _references.isEmpty
               ? const EpiEmptyState(
                   icon: Icons.menu_book_outlined,
-                  message: 'لا توجد مراجع — اضغط + للإضافة',
+                  title: 'لا توجد مراجع — اضغط + للإضافة',
                 )
               : RefreshIndicator(
                   onRefresh: _loadReferences,
@@ -147,24 +147,24 @@ class _AdminReferencesScreenState extends ConsumerState<AdminReferencesScreen> {
                     padding: const EdgeInsets.all(16),
                     itemCount: _references.length,
                     itemBuilder: (context, index) {
-                      final ref = _references[index];
+                      final item = _references[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           leading: Icon(
-                            ref['is_active'] == true
+                            item['is_active'] == true
                                 ? Icons.check_circle
                                 : Icons.cancel,
-                            color: ref['is_active'] == true
+                            color: item['is_active'] == true
                                 ? Colors.green
                                 : Colors.grey,
                           ),
                           title: Text(
-                            ref['title_ar'] ?? '',
+                            item['title_ar'] ?? '',
                             style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
-                            '${ref['category'] ?? 'عام'} — ${ref['description_ar'] ?? ''}',
+                            '${item['category'] ?? 'عام'} — ${item['description_ar'] ?? ''}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontFamily: 'Tajawal'),
@@ -174,19 +174,19 @@ class _AdminReferencesScreenState extends ConsumerState<AdminReferencesScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () => _showAddEditDialog(ref),
+                                onPressed: () => _showAddEditDialog(item),
                               ),
                               IconButton(
                                 icon: Icon(
-                                  ref['is_active'] == true
+                                  item['is_active'] == true
                                       ? Icons.visibility_off
                                       : Icons.visibility,
                                   size: 20,
                                 ),
                                 onPressed: () async {
                                   final db = ref.read(databaseServiceProvider);
-                                  await db.updateReference(ref['id'], {
-                                    'is_active': !(ref['is_active'] == true),
+                                  await db.updateReference(item['id'], {
+                                    'is_active': !(item['is_active'] == true),
                                   });
                                   _loadReferences();
                                 },
