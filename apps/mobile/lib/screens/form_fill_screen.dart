@@ -221,12 +221,11 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         if (_gpsLng != null) 'gps_lng': _gpsLng,
       };
 
-      final offlineManager = ref.read(offlineManagerProvider);
-      final offline = await offlineManager.future;
+      final offline = await ref.read(offlineManagerProvider.future);
 
       if (offline.isOnline) {
         final db = ref.read(databaseServiceProvider);
-        final result = await db.submitForm(submissionData);
+        await db.submitForm(submissionData);
         if (mounted) {
           // Remove draft after successful submission
           try { await offline.removeDraft(widget.formId); } catch (_) {}
@@ -275,8 +274,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     }
     setState(() => _isSavingDraft = true);
     try {
-      final offlineManager = ref.read(offlineManagerProvider);
-      final offline = await offlineManager.future;
+      final offline = await ref.read(offlineManagerProvider.future);
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
       if (mounted) context.showSuccess(AppStrings.draftSaved);
     } catch (e) {
