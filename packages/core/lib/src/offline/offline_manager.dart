@@ -58,12 +58,19 @@ class OfflineManager {
   final _connectivityController = StreamController<bool>.broadcast();
   final _uuid = const Uuid();
 
+  // ═══ FIX: Mutex to prevent read-modify-write race conditions ═══
+  // Without this, concurrent saveDraft() or addToSyncQueue() calls
+  // can overwrite each other's data (drafts disappearing bug).
+  final Completer<void> _initLock = Completer<void>();
+  bool _initialized = false;
+  final _writeLock = Completer<void>();
+  bool _writing = false;
+
   bool _isOnline = true;
   bool get isOnline => _isOnline;
   Stream<bool> get connectivityStream => _connectivityController.stream;
 
   /// Update connectivity status from external source (ConnectivityUtils).
-  /// This replaces the internal connectivity listener to avoid duplicates.
   void updateConnectivity(bool online) {
     if (_isOnline != online) {
       _isOnline = online;
@@ -77,27 +84,44 @@ class OfflineManager {
   OfflineManager(this._encryption);
 
   Future<void> init() async {
-    try {
-      await Hive.initFlutter().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          if (kDebugMode) print('Hive.initFlutter timed out');
-          throw TimeoutException('Hive initialization timed out');
-        },
-      );
-    } catch (e) {
-      if (kDebugMode) print('Hive.initFlutter failed, trying default: $e');
+    if (_initialized) {
+      if (kDebugMode) print('[OfflineManager] Already initialized, skipping');
+      return;
     }
-    _box = await Hive.openBox<String>(_boxName).timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {
-        throw TimeoutException('Hive box open timed out');
-      },
-    );
 
-    // Initial connectivity check ONLY — no listener.
-    // ConnectivityUtils handles connectivity monitoring globally.
-    // This avoids duplicate listeners that cause event storms.
+    // ═══ FIX: Guard Hive.initFlutter() against double-init ═══
+    try {
+      // Check if Hive is already initialized by trying to open the box directly.
+      // If Hive isn't initialized yet, this will throw and we'll init it.
+      try {
+        _box = await Hive.openBox<String>(_boxName).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw TimeoutException('Hive box open timed out');
+          },
+        );
+      } catch (_) {
+        // Box open failed — need to init Hive first
+        await Hive.initFlutter().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            if (kDebugMode) print('Hive.initFlutter timed out');
+            throw TimeoutException('Hive initialization timed out');
+          },
+        );
+        _box = await Hive.openBox<String>(_boxName).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw TimeoutException('Hive box open timed out after init');
+          },
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) print('[OfflineManager] Init failed: $e');
+      rethrow;
+    }
+
+    // Initial connectivity check only
     try {
       final results = await _connectivity.checkConnectivity().timeout(
         const Duration(seconds: 5),
@@ -106,11 +130,32 @@ class OfflineManager {
           return <ConnectivityResult>[];
         },
       );
-      final resultList = results;
-      _isOnline = resultList.isNotEmpty &&
-          resultList.any((r) => r != ConnectivityResult.none);
+      _isOnline = results.isNotEmpty &&
+          results.any((r) => r != ConnectivityResult.none);
     } catch (e) {
       _isOnline = true; // Assume online if check fails
+    }
+
+    _initialized = true;
+  }
+
+  // ═══ FIX: Serialize write operations to prevent race conditions ═══
+  Future<T> _withWriteLock<T>(Future<T> Function() action) async {
+    while (_writing) {
+      await _writeLock.future;
+    }
+    _writing = true;
+    final lock = Completer<void>();
+    final oldLock = _writeLock;
+    // Replace the completer for future waiters
+    try {
+      final result = await action();
+      return result;
+    } finally {
+      _writing = false;
+      lock.complete();
+      // If someone was waiting on the old lock, complete it
+      if (!oldLock.isCompleted) oldLock.complete();
     }
   }
 
@@ -118,24 +163,26 @@ class OfflineManager {
 
   /// Add a submission to the offline sync queue with a unique idempotency key.
   Future<String> addToSyncQueue(Map<String, dynamic> submission) async {
-    final offlineId = _uuid.v4();
-    submission['offline_id'] = offlineId;
-    submission['idempotency_key'] = offlineId; // Idempotency key = offline_id
-    submission['created_at'] = DateTime.now().toIso8601String();
-    submission['retry_count'] = 0;
+    return _withWriteLock(() async {
+      final offlineId = _uuid.v4();
+      submission['offline_id'] = offlineId;
+      submission['idempotency_key'] = offlineId;
+      submission['created_at'] = DateTime.now().toIso8601String();
+      submission['retry_count'] = 0;
 
-    // Validate payload size
-    final payloadSize = jsonEncode(submission).length;
-    if (payloadSize > _maxPayloadSize) {
-      throw ValidationException('Submission payload too large (${payloadSize ~/ 1024}KB, max ${_maxPayloadSize ~/ 1024}KB)',
-          fieldErrors: {'size': 'exceeds 1MB limit'});
-    }
+      // Validate payload size
+      final payloadSize = jsonEncode(submission).length;
+      if (payloadSize > _maxPayloadSize) {
+        throw ValidationException('Submission payload too large (${payloadSize ~/ 1024}KB, max ${_maxPayloadSize ~/ 1024}KB)',
+            fieldErrors: {'size': 'exceeds 1MB limit'});
+      }
 
-    final queue = _getQueue();
-    queue.add(submission);
-    await _saveQueue(queue);
+      final queue = _getQueue();
+      queue.add(submission);
+      await _saveQueue(queue);
 
-    return offlineId;
+      return offlineId;
+    });
   }
 
   /// Safe box access — throws if not initialized
@@ -154,7 +201,8 @@ class OfflineManager {
       final decoded = jsonDecode(_encryption.decrypt(data));
       return List<Map<String, dynamic>>.from(decoded);
     } catch (e) {
-      _safeBox.delete(_syncQueueKey);
+      // ═══ FIX: Don't delete queue on decryption failure — might be key issue ═══
+      if (kDebugMode) print('[OfflineManager] Queue decrypt error: $e');
       return [];
     }
   }
@@ -181,11 +229,14 @@ class OfflineManager {
   int get pendingCount => _getQueue().length;
 
   /// Sync all pending items with retry logic and conflict handling.
-  /// Returns a list of sync results for each item.
+  /// ═══ FIX: Process in-memory, save ONCE at end — prevents data loss on crash ═══
   Future<List<OfflineSyncResult>> syncPendingItems(Future<Map<String, dynamic>> Function(Map<String, dynamic>) submitFn) async {
     final pending = _getQueue();
+    if (pending.isEmpty) return [];
+
     final results = <OfflineSyncResult>[];
     final remaining = <Map<String, dynamic>>[];
+    final successfullySynced = <String>[]; // Track IDs to remove
 
     for (final item in pending) {
       try {
@@ -199,21 +250,24 @@ class OfflineManager {
 
         final response = await submitFn(payload);
 
-        // Handle server response
         if (response['status'] == 'duplicate') {
-          await removeFromQueue(item['offline_id']);
+          successfullySynced.add(item['offline_id']);
           results.add(OfflineSyncResult.duplicate(item['offline_id'], response));
         } else if (response['conflict'] == true) {
           await _saveConflict(item, response);
-          await removeFromQueue(item['offline_id']);
+          successfullySynced.add(item['offline_id']);
           results.add(OfflineSyncResult.conflict(item['offline_id'], response));
         } else if (response['success'] == true) {
-          await removeFromQueue(item['offline_id']);
+          successfullySynced.add(item['offline_id']);
           results.add(OfflineSyncResult.success(item['offline_id'], response));
         } else {
-          // Unexpected response — treat as error
-          results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
+          final retryCount = (item['retry_count'] ?? 0) as int;
+          if (retryCount < _maxRetries) {
+            item['retry_count'] = retryCount + 1;
+            item['last_retry_at'] = DateTime.now().toIso8601String();
+          }
           remaining.add(item);
+          results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
         }
       } on ApiException catch (e) {
         final retryCount = (item['retry_count'] ?? 0) as int;
@@ -221,12 +275,11 @@ class OfflineManager {
           item['retry_count'] = retryCount + 1;
           item['last_retry_at'] = DateTime.now().toIso8601String();
           remaining.add(item);
-          results.add(OfflineSyncResult.error(item['offline_id'], 'RETRY_${retryCount + 1}/${_maxRetries}: ${e.message}'));
+          results.add(OfflineSyncResult.error(item['offline_id'], 'RETRY_${retryCount + 1}/$_maxRetries: ${e.message}'));
         } else {
           await _logSyncError(item, e);
           results.add(OfflineSyncResult.error(item['offline_id'], e.message));
-          // Don't re-add items that have exceeded retries — they stay in the queue for manual review
-          remaining.add(item);
+          remaining.add(item); // Keep for manual review
         }
       } catch (e) {
         await _logSyncError(item, e);
@@ -235,20 +288,16 @@ class OfflineManager {
       }
     }
 
-    // Update queue with remaining items (failed/retryable)
-    if (remaining.isNotEmpty) {
-      await _saveQueue(remaining);
-    }
+    // ═══ FIX: Save ONCE — remaining items only. No intermediate writes. ═══
+    await _saveQueue(remaining);
 
     _logSyncSummary(results);
     return results;
   }
 
-  /// Check if an error is worth retrying
   bool _isRetryableError(ApiException e) {
     final code = e.code;
-    if (code == null) return true; // Unknown errors are retryable
-    // Server errors (5xx), network issues, timeouts
+    if (code == null) return true;
     return code.startsWith('5') ||
         code == 'NETWORK' ||
         code == 'timeout' ||
@@ -304,9 +353,7 @@ class OfflineManager {
   }
 
   Future<void> _logSyncError(Map<String, dynamic> item, dynamic error) async {
-    if (kDebugMode) {
-      print('Sync error for ${item['offline_id']}: $error');
-    }
+    if (kDebugMode) print('Sync error for ${item['offline_id']}: $error');
   }
 
   void _logSyncSummary(List<OfflineSyncResult> results) {
@@ -321,14 +368,17 @@ class OfflineManager {
 
   // ===== DRAFTS =====
 
+  /// ═══ FIX: Serialize draft saves to prevent race condition ═══
   Future<void> saveDraft(String formId, Map<String, dynamic> data) async {
-    final drafts = _getDrafts();
-    drafts[formId] = {
-      'data': data,
-      'saved_at': DateTime.now().toIso8601String(),
-    };
-    final encrypted = _encryption.encrypt(jsonEncode(drafts));
-    await _safeBox.put(_draftsKey, encrypted);
+    return _withWriteLock(() async {
+      final drafts = _getDrafts();
+      drafts[formId] = {
+        'data': data,
+        'saved_at': DateTime.now().toIso8601String(),
+      };
+      final encrypted = _encryption.encrypt(jsonEncode(drafts));
+      await _safeBox.put(_draftsKey, encrypted);
+    });
   }
 
   Map<String, dynamic> _getDrafts() {
@@ -337,7 +387,8 @@ class OfflineManager {
     try {
       return Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(data)));
     } catch (e) {
-      _safeBox.delete(_draftsKey);
+      // ═══ FIX: Don't delete drafts on decrypt error — log instead ═══
+      if (kDebugMode) print('[OfflineManager] Drafts decrypt error: $e');
       return {};
     }
   }
@@ -347,35 +398,42 @@ class OfflineManager {
     return drafts[formId];
   }
 
+  /// Get all draft form IDs (for showing draft indicators on forms list)
+  Set<String> getDraftFormIds() {
+    return _getDrafts().keys.toSet();
+  }
+
   Future<void> removeDraft(String formId) async {
-    final drafts = _getDrafts();
-    drafts.remove(formId);
-    final encrypted = _encryption.encrypt(jsonEncode(drafts));
-    await _safeBox.put(_draftsKey, encrypted);
+    return _withWriteLock(() async {
+      final drafts = _getDrafts();
+      drafts.remove(formId);
+      final encrypted = _encryption.encrypt(jsonEncode(drafts));
+      await _safeBox.put(_draftsKey, encrypted);
+    });
   }
 
   // ===== CACHE =====
 
   Future<void> cacheData(String key, Map<String, dynamic> data) async {
-    final cache = _getCache();
-    cache[key] = {
-      'data': data,
-      'cached_at': DateTime.now().toIso8601String(),
-    };
-    final encrypted = _encryption.encrypt(jsonEncode(cache));
-    await _safeBox.put(_cacheKey, encrypted);
+    return _withWriteLock(() async {
+      final cache = _getCache();
+      cache[key] = {
+        'data': data,
+        'cached_at': DateTime.now().toIso8601String(),
+      };
+      final encrypted = _encryption.encrypt(jsonEncode(cache));
+      await _safeBox.put(_cacheKey, encrypted);
+    });
   }
 
   Map<String, dynamic> _getCache() {
     final data = _safeBox.get(_cacheKey);
     if (data == null || data.isEmpty) return {};
     try {
-      // Try decrypting first (new encrypted format)
       final decrypted = _encryption.decrypt(data);
       return Map<String, dynamic>.from(jsonDecode(decrypted));
     } catch (_) {
       try {
-        // Fallback: try plain JSON (backward compatibility with old unencrypted cache)
         return Map<String, dynamic>.from(jsonDecode(data));
       } catch (_) {
         return {};

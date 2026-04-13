@@ -6,7 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
-import 'dart:io';
 import '../providers/app_providers.dart';
 
 class FormFillScreen extends ConsumerStatefulWidget {
@@ -264,8 +263,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
     setState(() => _isLoading = true);
 
-    // Read offlineManager ONCE at the start and cache for error handling
-    late final OfflineManager offline;
+    // ═══ FIX: Read offlineManager BEFORE try block — prevents LateInitializationError ═══
+    final OfflineManager? offline;
     try {
       offline = await ref.read(offlineManagerProvider.future).timeout(
         const Duration(seconds: 10),
@@ -277,6 +276,15 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         context.showError('التخزين المحلي غير جاهز. حاول إعادة فتح التطبيق.');
+      }
+      return;
+    }
+
+    // Guard: offline might still be null if provider returned null
+    if (offline == null) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        context.showError('التخزين المحلي غير متاح.');
       }
       return;
     }
@@ -1069,14 +1077,11 @@ class _PhotoPickerField extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 8),
                   child: Stack(
                     children: [
-                      ClipRRect(
+                      XFileImage(
+                        file: photos[index],
+                        width: 100,
+                        height: 100,
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.file(
-                          File(photos[index].path),
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ),
                       ),
                       Positioned(
                         top: 4,

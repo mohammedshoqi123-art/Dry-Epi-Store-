@@ -35,9 +35,11 @@ class SyncService {
   }
 
   /// Perform a sync cycle. Returns summary of results.
+  /// ═══ FIX: try/finally ensures _isSyncing ALWAYS resets — prevents permanent deadlock ═══
   Future<SyncCycleResult> sync() async {
     if (_isSyncing) return SyncCycleResult.empty();
     if (!_offline.isOnline) return SyncCycleResult.empty();
+    if (!_offline.isInitialized) return SyncCycleResult.empty();
 
     _isSyncing = true;
     _updateState(isSyncing: true);
@@ -45,7 +47,6 @@ class SyncService {
     final result = SyncCycleResult();
 
     try {
-      // Use the improved OfflineManager's syncPendingItems with retry/conflict handling
       final syncResults = await _offline.syncPendingItems((item) async {
         final response = await _api.callFunction(
           SupabaseConfig.fnSyncOffline,
@@ -63,7 +64,13 @@ class SyncService {
           return {'success': false, 'error': e['error']};
         }
         return {'success': false, 'error': 'Unknown sync response'};
-      });
+      }).timeout(
+        const Duration(minutes: 2),
+        onTimeout: () {
+          if (kDebugMode) print('[SyncService] Sync timed out after 2 minutes');
+          return <OfflineSyncResult>[];
+        },
+      );
 
       for (final sr in syncResults) {
         switch (sr.status) {
@@ -82,14 +89,15 @@ class SyncService {
     } catch (e) {
       if (kDebugMode) print('Sync cycle error: $e');
       result.errors.add(SyncError(error: e.toString()));
+    } finally {
+      // ═══ FIX: ALWAYS reset _isSyncing, even on error/crash ═══
+      _isSyncing = false;
+      _updateState(
+        isSyncing: false,
+        lastSync: DateTime.now(),
+        pendingCount: _offline.pendingCount,
+      );
     }
-
-    _isSyncing = false;
-    _updateState(
-      isSyncing: false,
-      lastSync: DateTime.now(),
-      pendingCount: _offline.pendingCount,
-    );
 
     return result;
   }
