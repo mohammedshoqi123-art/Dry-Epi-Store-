@@ -81,11 +81,18 @@ curl -X POST "https://YOUR_PROJECT.supabase.co/functions/v1/create-admin" \
 
 ### الخطوة 5: تشغيل التطبيق
 
+**الأسهل — ملف .env:**
 ```bash
 cd apps/mobile
-flutter pub get
+cp .env.example .env
+# عدّل .env وأدخل SUPABASE_URL و SUPABASE_ANON_KEY
 
-# تشغيل على الويب
+flutter pub get
+flutter run -d chrome        # ← يقرأ .env تلقائياً
+```
+
+**بدون .env — dart-define:**
+```bash
 flutter run -d chrome \
   --dart-define=SUPABASE_URL="https://..." \
   --dart-define=SUPABASE_ANON_KEY="..."

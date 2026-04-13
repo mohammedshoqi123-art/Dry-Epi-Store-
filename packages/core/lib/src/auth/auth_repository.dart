@@ -67,30 +67,37 @@ class AuthRepository {
   }
 
   /// Loads profile from DB. If missing, creates one automatically.
+  /// Uses upsert with onConflict to avoid race conditions with the DB trigger.
   Future<void> _loadProfile(String userId) async {
     if (!_isConfigured || _client == null) return;
     try {
       final user = _client!.auth.currentUser;
       if (user == null) return;
 
+      // First attempt — fetch existing profile
       var response = await _client!
           .from('profiles')
           .select()
           .eq('id', userId)
           .maybeSingle();
 
-      // Auto-create profile if missing (trigger was removed)
       if (response == null) {
-        await _client!.from('profiles').upsert({
-          'id': userId,
-          'email': user.email,
-          'full_name': user.userMetadata?['full_name'] ??
-              (user.email?.split('@').first ?? 'مستخدم'),
-          'role': 'data_entry',
-          'is_active': true,
-        });
+        // Profile missing — the DB trigger (handle_new_user) may still be
+        // creating it. Use upsert so a concurrent trigger insert is harmless.
+        try {
+          await _client!.from('profiles').upsert({
+            'id': userId,
+            'email': user.email,
+            'full_name': user.userMetadata?['full_name'] ??
+                (user.email?.split('@').first ?? 'مستخدم'),
+            'role': 'data_entry',
+            'is_active': true,
+          }, onConflict: 'id');
+        } catch (_) {
+          // Ignore — trigger may have inserted first
+        }
 
-        // Re-fetch after creation
+        // Re-fetch after potential creation
         response = await _client!
             .from('profiles')
             .select()
@@ -110,7 +117,7 @@ class AuthRepository {
           avatarUrl: response['avatar_url'],
         );
       } else {
-        // Profile still null after creation — authenticate anyway
+        // Profile still null — authenticate anyway so user isn't stuck
         _currentState = app_auth.AuthState(
           isAuthenticated: true,
           userId: userId,
@@ -131,14 +138,24 @@ class AuthRepository {
     }
   }
 
-  app_auth.UserRole? _parseRole(String? role) {
+  /// Safely parse a role string from the DB into [UserRole].
+  /// Handles both snake_case (data_entry) and camelCase (dataEntry) values.
+  static app_auth.UserRole? _parseRole(String? role) {
     if (role == null) return null;
-    // Handle snake_case DB values (data_entry) matching camelCase enum (dataEntry)
-    if (role == 'data_entry') return app_auth.UserRole.dataEntry;
-    return app_auth.UserRole.values.cast<app_auth.UserRole?>().firstWhere(
-      (r) => r?.name == role,
-      orElse: () => null,
-    );
+    // Direct snake_case mapping
+    const snakeMap = {
+      'data_entry': app_auth.UserRole.dataEntry,
+      'admin': app_auth.UserRole.admin,
+      'central': app_auth.UserRole.central,
+      'governorate': app_auth.UserRole.governorate,
+      'district': app_auth.UserRole.district,
+    };
+    if (snakeMap.containsKey(role)) return snakeMap[role];
+    // Fallback: try enum name match
+    for (final r in app_auth.UserRole.values) {
+      if (r.name == role) return r;
+    }
+    return null;
   }
 
   Future<AuthResponse> signIn(String email, String password) async {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
+import '../config/sentry_config.dart';
 import '../errors/app_exceptions.dart';
 
 /// Centralized API client with hierarchical error handling.
@@ -275,9 +276,9 @@ class ApiClient {
     return ApiException('Function error: ${e.details}', code: 'function_$status');
   }
 
-  /// Report unexpected errors (Sentry integration point)
+  /// Report unexpected errors via Sentry (if configured) and debug print.
   void _reportUnexpectedError(dynamic error, StackTrace stack, {String? context}) {
-    // Sentry.captureException(error, stackTrace: stack, hint: context)
+    SentryConfig.captureError(error, stack, context: context);
     assert(() {
       // ignore: avoid_print
       print('ApiClient error [$context]: $error');

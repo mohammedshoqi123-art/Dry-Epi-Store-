@@ -2,8 +2,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGINS') ?? 'https://mohammedshoqi123-art.github.io',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Vary': 'Origin',
 }
 
 // ─── Role hierarchy for permission validation ────────────────
@@ -15,21 +16,20 @@ const ROLE_HIERARCHY: Record<string, number> = {
   'data_entry': 1,
 }
 
-// ─── In-memory rate limiter ──────────────────────────────────
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-
-function checkRateLimit(userId: string, limit = 10, windowMs = 60000): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(userId)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + windowMs })
-    return true
-  }
-
-  if (entry.count >= limit) return false
-  entry.count++
-  return true
+// ─── Rate limiting via DB (survives across stateless invocations) ──
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  limit = 10,
+  windowSeconds = 60
+): Promise<boolean> {
+  const { data } = await supabase.rpc('check_and_increment_rate_limit', {
+    p_user_id: userId,
+    p_endpoint: 'submit-form',
+    p_window_seconds: windowSeconds,
+    p_max_requests: limit,
+  })
+  return data?.[0]?.allowed ?? true
 }
 
 // ─── Hierarchical permission validation ──────────────────────
@@ -113,7 +113,7 @@ serve(async (req) => {
     }
 
     // ─── Rate Limiting ──────────────────────────────────────
-    if (!checkRateLimit(user.id)) {
+    if (!(await checkRateLimit(supabase, user.id))) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 submissions per minute.' }), {
         status: 429,
         headers: {
