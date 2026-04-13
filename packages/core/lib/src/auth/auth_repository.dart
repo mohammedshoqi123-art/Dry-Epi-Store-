@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../config/supabase_config.dart';
 import 'auth_state.dart' as app_auth;
@@ -85,49 +86,39 @@ class AuthRepository {
   }
 
   /// Loads profile from DB. If missing, creates one automatically.
-  /// Uses upsert with onConflict to avoid race conditions with the DB trigger.
+  /// FIX: Emit authenticated state FIRST, then load profile in background.
+  /// This prevents the user from being stuck on login while profile loads.
   Future<void> _loadProfile(String userId) async {
     if (!_isConfigured || _client == null) return;
-    try {
-      final user = _client!.auth.currentUser;
-      if (user == null) return;
 
-      // First attempt — fetch existing profile
-      var response = await _client!
+    final user = _client!.auth.currentUser;
+    if (user == null) return;
+
+    // ═══ CRITICAL: Emit authenticated state IMMEDIATELY ═══
+    // Don't wait for profile — the user is authenticated regardless.
+    // Profile details can load in background and update the state later.
+    _currentState = app_auth.AuthState(
+      isAuthenticated: true,
+      userId: userId,
+      email: user.email,
+      fullName: user.userMetadata?['full_name'] ?? user.email?.split('@').first,
+    );
+    _authStateController.add(_currentState);
+
+    // Now load profile in background (non-blocking)
+    try {
+      final response = await _client!
           .from('profiles')
           .select()
           .eq('id', userId)
-          .maybeSingle();
-
-      if (response == null) {
-        // Profile missing — the DB trigger (handle_new_user) may still be
-        // creating it. Use upsert so a concurrent trigger insert is harmless.
-        try {
-          await _client!.from('profiles').upsert({
-            'id': userId,
-            'email': user.email,
-            'full_name': user.userMetadata?['full_name'] ??
-                (user.email?.split('@').first ?? 'مستخدم'),
-            'role': 'teamLead',
-            'is_active': true,
-          }, onConflict: 'id');
-        } catch (_) {
-          // Ignore — trigger may have inserted first
-        }
-
-        // Re-fetch after potential creation
-        response = await _client!
-            .from('profiles')
-            .select()
-            .eq('id', userId)
-            .maybeSingle();
-      }
+          .maybeSingle()
+          .timeout(const Duration(seconds: 10));
 
       if (response != null) {
         _currentState = app_auth.AuthState(
           isAuthenticated: true,
           userId: userId,
-          email: response['email'],
+          email: response['email'] ?? user.email,
           role: _parseRole(response['role']),
           governorateId: response['governorate_id'],
           districtId: response['district_id'],
@@ -135,25 +126,48 @@ class AuthRepository {
           avatarUrl: response['avatar_url'],
         );
       } else {
-        // Profile still null — authenticate anyway so user isn't stuck
-        _currentState = app_auth.AuthState(
-          isAuthenticated: true,
-          userId: userId,
-          email: user.email,
-          fullName: user.email?.split('@').first,
-        );
+        // Profile missing — try to create it
+        try {
+          await _client!.from('profiles').upsert({
+            'id': userId,
+            'email': user.email,
+            'full_name': user.userMetadata?['full_name'] ??
+                (user.email?.split('@').first ?? 'مستخدم'),
+            'role': 'data_entry',
+            'is_active': true,
+          }, onConflict: 'id').timeout(const Duration(seconds: 10));
+
+          // Re-fetch after creation
+          final newResponse = await _client!
+              .from('profiles')
+              .select()
+              .eq('id', userId)
+              .maybeSingle()
+              .timeout(const Duration(seconds: 10));
+
+          if (newResponse != null) {
+            _currentState = app_auth.AuthState(
+              isAuthenticated: true,
+              userId: userId,
+              email: newResponse['email'] ?? user.email,
+              role: _parseRole(newResponse['role']),
+              governorateId: newResponse['governorate_id'],
+              districtId: newResponse['district_id'],
+              fullName: newResponse['full_name'],
+              avatarUrl: newResponse['avatar_url'],
+            );
+          }
+        } catch (_) {
+          // Profile creation failed — keep the basic auth state
+        }
       }
-      _authStateController.add(_currentState);
     } catch (e) {
-      // On error, still mark as authenticated so user isn't logged out
-      _currentState = app_auth.AuthState(
-        isAuthenticated: true,
-        userId: userId,
-        email: _client?.auth.currentUser?.email,
-        error: e.toString(),
-      );
-      _authStateController.add(_currentState);
+      // Profile load failed — but user is still authenticated with basic info
+      debugPrint('[AuthRepository] Profile load failed (non-critical): $e');
+      // Keep the initial authenticated state with basic info
     }
+
+    _authStateController.add(_currentState);
   }
 
   /// Safely parse a role string from the DB into [UserRole].

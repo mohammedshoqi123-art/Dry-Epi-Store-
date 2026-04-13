@@ -57,7 +57,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
         _emailController.text.trim(),
         _passwordController.text,
       );
-      if (mounted) context.go('/dashboard');
+      // FIX: Don't manually navigate — let GoRouter handle the redirect
+      // when authStateProvider emits the new authenticated state.
+      // Manual context.go('/dashboard') caused redirect loops.
+      // The router's redirect logic will move user to /dashboard automatically.
     } catch (e) {
       if (mounted) {
         context.showError('فشل تسجيل الدخول: ${e.toString()}');

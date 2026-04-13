@@ -250,6 +250,24 @@ class OfflineDataCache {
     return _offline.getCachedData(key);
   }
 
+  /// Cache a single form's data for offline access
+  Future<void> cacheFormData(String formId, Map<String, dynamic> formData) async {
+    final cachedForms = getCachedDataList('forms') ?? [];
+    // Update or add the form in the cached list
+    bool found = false;
+    for (int i = 0; i < cachedForms.length; i++) {
+      if (cachedForms[i]['id'] == formId) {
+        cachedForms[i] = formData;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      cachedForms.add(formData);
+    }
+    await _saveToCache('forms', cachedForms);
+  }
+
   /// Get cached data as a list (handles the list wrapper format)
   List<Map<String, dynamic>>? getCachedDataList(String key) {
     final cached = _offline.getCachedData(key);

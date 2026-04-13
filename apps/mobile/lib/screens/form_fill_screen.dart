@@ -59,11 +59,38 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     });
   }
 
+  /// FIX: Load form from cache first, then try Supabase. Never show empty.
   Future<void> _loadForm() async {
     setState(() => _isLoading = true);
+    Map<String, dynamic>? form;
+
     try {
-      final db = ref.read(databaseServiceProvider);
-      final form = await db.getForm(widget.formId);
+      // 1. Try to get form from cached forms list first (works offline)
+      final cache = await ref.read(offlineDataCacheProvider.future).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => throw Exception('timeout'),
+      );
+      final cachedForms = cache.getCachedDataList('forms');
+      if (cachedForms != null) {
+        for (final f in cachedForms) {
+          if (f['id'] == widget.formId) {
+            form = f;
+            break;
+          }
+        }
+      }
+
+      // 2. If not in cache, try Supabase (online only)
+      if (form == null) {
+        final db = ref.read(databaseServiceProvider);
+        form = await db.getForm(widget.formId).timeout(
+          const Duration(seconds: 15),
+          onTimeout: () => throw TimeoutException('Network timeout'),
+        );
+        // Cache the form for future offline use
+        await cache.cacheFormData(widget.formId, form);
+      }
+
       final schema = form['schema'] as Map<String, dynamic>? ?? {};
 
       setState(() {
@@ -75,9 +102,13 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       // Load existing draft if available
       await _loadDraft();
-    } catch (e) {
+    } on TimeoutException {
       setState(() => _isLoading = false);
-      if (mounted) context.showError('فشل تحميل النموذج');
+      if (mounted) context.showError('انتهت مهلة تحميل النموذج — تحقق من الاتصال');
+    } catch (e) {
+      debugPrint('[FormFillScreen] Load form error: $e');
+      setState(() => _isLoading = false);
+      if (mounted) context.showError('فشل تحميل النموذج: ${e.toString()}');
     }
   }
 
