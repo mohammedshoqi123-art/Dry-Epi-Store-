@@ -56,6 +56,12 @@ verify_jwt = true
 [functions.admin-actions]
 verify_jwt = true
 
+[functions.get-dashboard-stats]
+verify_jwt = true
+
+[functions.get-governorate-report]
+verify_jwt = true
+
 # Analytics
 [analytics]
 enabled = false

@@ -44,10 +44,15 @@ supervisor app/
 │   ├── shared/          # UI components, Theme, Extensions, Strings
 │   └── features/        # Feature modules (Forms, Maps, Analytics, Chat)
 ├── supabase/
-│   ├── functions/       # 5 Edge Functions (Deno/TypeScript)
+│   ├── functions/       # 8 Edge Functions (Deno/TypeScript)
+│   │   ├── admin-actions/
+│   │   ├── ai-chat/
 │   │   ├── create-admin/
-│   │   ├── submit-form/
 │   │   ├── get-analytics/
+│   │   ├── get-dashboard-stats/
+│   │   ├── get-governorate-report/
+│   │   ├── submit-form/
+│   │   ├── sync-offline/
 │   │   ├── ai-chat/
 │   │   └── sync-offline/
 │   └── migrations/
