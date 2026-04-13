@@ -37,8 +37,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
   // Auto-save timer
   Timer? _autoSaveTimer;
-  // ignore: unused_field - reserved for future UI feedback
-  DateTime? _lastAutoSave;
 
   /// Get or create a TextEditingController for a field key
   TextEditingController _getController(String key, {String? initialValue}) {
@@ -333,7 +331,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       final offline = await ref.read(offlineManagerProvider.future);
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
       _hasUnsavedChanges = false;
-      _lastAutoSave = DateTime.now();
       if (mounted) context.showSuccess(AppStrings.draftSaved);
     } catch (e) {
       final errorMsg = e.toString();
@@ -358,7 +355,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       final offline = await ref.read(offlineManagerProvider.future);
       await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
       _hasUnsavedChanges = false;
-      _lastAutoSave = DateTime.now();
       if (showFeedback && mounted) {
         context.showSuccess('تم الحفظ التلقائي');
       }

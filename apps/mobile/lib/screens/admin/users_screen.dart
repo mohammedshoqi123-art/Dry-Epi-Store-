@@ -263,13 +263,12 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                       'governorate_id': selectedGovernorateId,
                       'district_id': selectedDistrictId,
                     });
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                      _loadUsers();
-                      if (context.mounted) context.showSuccess('تم إضافة المستخدم بنجاح');
-                    }
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    _loadUsers();
+                    if (ctx.mounted) ctx.showSuccess('تم إضافة المستخدم بنجاح');
                   } catch (e) {
-                    if (context.mounted) context.showError('فشل: ${e.toString()}');
+                    if (ctx.mounted) ctx.showError('فشل: ${e.toString()}');
                   }
                 },
                 width: double.infinity,
