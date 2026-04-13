@@ -28,11 +28,11 @@ enum UserRole {
       case UserRole.admin:
         return 'مدير النظام';
       case UserRole.central:
-        return 'مشرف مركزي';
+        return 'مركزي';
       case UserRole.governorate:
-        return 'مشرف محافظة';
+        return 'محافظة';
       case UserRole.district:
-        return 'مشرف مديرية';
+        return 'منطقة';
       case UserRole.teamLead:
         return 'مشرف فريق';
     }
