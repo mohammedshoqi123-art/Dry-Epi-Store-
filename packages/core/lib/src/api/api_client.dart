@@ -218,6 +218,7 @@ class ApiClient {
   }
 
   /// Ensure the current session has a fresh token (refresh if expiring within 5 min).
+  /// ✅ FIX: Added timeout to prevent hanging on slow networks
   Future<void> _ensureFreshSession() async {
     try {
       final session = _safeClient.auth.currentSession;
@@ -228,7 +229,13 @@ class ApiClient {
 
       // Refresh if token expires within 5 minutes
       if (expiresAt.difference(now).inMinutes < 5) {
-        await _safeClient.auth.refreshSession();
+        await _safeClient.auth.refreshSession().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            debugPrint('[ApiClient] Session refresh timed out, proceeding with current token');
+            return;
+          },
+        );
       }
     } catch (_) {
       // If refresh fails here, the main call will handle the 401
@@ -236,13 +243,19 @@ class ApiClient {
   }
 
   /// Force a session refresh (used as retry after 401).
+  /// ✅ FIX: Added timeout to prevent hanging on slow networks
   Future<void> _forceRefreshSession() async {
     final session = _safeClient.auth.currentSession;
     if (session == null) throw const UnauthorizedException();
 
     try {
-      final result = await _safeClient.auth.refreshSession();
+      final result = await _safeClient.auth.refreshSession().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('Session refresh timed out'),
+      );
       if (result.session == null) throw const UnauthorizedException();
+    } on TimeoutException {
+      throw const UnauthorizedException();
     } catch (_) {
       throw const UnauthorizedException();
     }
