@@ -207,7 +207,7 @@ class DatabaseService {
     final filters = <String, dynamic>{};
     if (!includeInactive) filters['is_active'] = true;
     return _api.select(
-      'references',
+      'doc_references',
       filters: filters,
       orderBy: 'created_at',
       ascending: false,
@@ -215,11 +215,11 @@ class DatabaseService {
   }
 
   Future<void> createReference(Map<String, dynamic> data) async {
-    await _api.insert('references', data);
+    await _api.insert('doc_references', data);
   }
 
   Future<void> updateReference(String id, Map<String, dynamic> data) async {
-    await _api.update('references', data, filters: {'id': id});
+    await _api.update('doc_references', data, filters: {'id': id});
   }
 
   // ===== DASHBOARD =====
@@ -279,13 +279,17 @@ class DatabaseService {
 
   /// Get unread notification count
   Future<int> getUnreadNotificationCount() async {
-    final results = await _api.select(
-      'notifications',
-      filters: {'is_read': false},
-      limit: 1,
-    );
-    // Note: This returns 0 or 1; for exact count we'd need an RPC
-    return results.isNotEmpty ? results.length : 0;
+    try {
+      final results = await _api.select(
+        'notifications',
+        select: 'id',
+        filters: {'is_read': false},
+        limit: 1000,
+      );
+      return results.length;
+    } catch (_) {
+      return 0;
+    }
   }
 
   // ===== APP SETTINGS =====

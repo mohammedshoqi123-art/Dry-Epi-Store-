@@ -1,10 +1,18 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Vary': 'Origin',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
+
+function corsHeaders(origin: string | null): Record<string, string> {
+  const allowed = ALLOWED_ORIGINS.includes('*')
+    ? '*'
+    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 // Role hierarchy: higher number = more privilege
@@ -19,7 +27,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
 const VALID_ROLES = Object.keys(ROLE_HIERARCHY)
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
 
   try {
     // ─── Authentication Check ──────────────────────────────────
@@ -29,7 +37,7 @@ serve(async (req) => {
     if (expectedSecret && internalSecret !== expectedSecret) {
       return new Response(JSON.stringify({ error: 'Invalid internal secret' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
       })
     }
 
@@ -37,7 +45,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
       })
     }
 
@@ -62,7 +70,7 @@ serve(async (req) => {
     if (callerError || !caller) {
       return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
       })
     }
 
@@ -76,7 +84,7 @@ serve(async (req) => {
     if (profileError || !callerProfile || callerProfile.role !== 'admin') {
       return new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), {
         status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
       })
     }
 
@@ -90,7 +98,7 @@ serve(async (req) => {
         JSON.stringify({ error: 'email, password, and full_name are required' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -102,7 +110,7 @@ serve(async (req) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -117,7 +125,7 @@ serve(async (req) => {
         }),
         {
           status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -155,7 +163,7 @@ serve(async (req) => {
           }),
           {
             status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
           }
         )
       } else {
@@ -179,7 +187,7 @@ serve(async (req) => {
           }),
           {
             status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
           }
         )
       }
@@ -202,7 +210,7 @@ serve(async (req) => {
         JSON.stringify({ error: `Failed to create user: ${createError.message}` }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
         }
       )
     }
@@ -232,7 +240,7 @@ serve(async (req) => {
       }),
       {
         status: 201,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
       }
     )
   } catch (error) {
@@ -240,7 +248,7 @@ serve(async (req) => {
       JSON.stringify({ error: `Internal error: ${(error as Error).message}` }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
       }
     )
   }

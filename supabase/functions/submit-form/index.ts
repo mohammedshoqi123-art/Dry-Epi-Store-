@@ -1,11 +1,18 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Vary': 'Origin',
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
+
+function corsHeaders(origin: string | null): Record<string, string> {
+  const allowed = ALLOWED_ORIGINS.includes('*')
+    ? '*'
+    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 // ─── Role hierarchy for permission validation ────────────────
@@ -101,13 +108,13 @@ async function validateSubmissionPermissions(
 
 // ─── Main handler ────────────────────────────────────────────
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
 
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 401, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -120,7 +127,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 401, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -129,7 +136,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 submissions per minute.' }), {
         status: 429,
         headers: {
-          ...corsHeaders,
+          ...corsHeaders(req.headers.get('Origin')),
           'Content-Type': 'application/json',
           'Retry-After': '60',
         }
@@ -146,7 +153,7 @@ serve(async (req) => {
     // ─── Validate Required Fields ───────────────────────────
     if (!form_id || typeof form_id !== 'string') {
       return new Response(JSON.stringify({ error: 'form_id is required and must be a string' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -154,7 +161,7 @@ serve(async (req) => {
     const validStatuses = ['draft', 'submitted', 'reviewed', 'approved', 'rejected']
     if (!validStatuses.includes(status)) {
       return new Response(JSON.stringify({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -162,14 +169,14 @@ serve(async (req) => {
     if (gps_lat !== undefined && gps_lat !== null) {
       if (typeof gps_lat !== 'number' || gps_lat < -90 || gps_lat > 90) {
         return new Response(JSON.stringify({ error: 'Invalid gps_lat: must be between -90 and 90' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       }
     }
     if (gps_lng !== undefined && gps_lng !== null) {
       if (typeof gps_lng !== 'number' || gps_lng < -180 || gps_lng > 180) {
         return new Response(JSON.stringify({ error: 'Invalid gps_lng: must be between -180 and 180' }), {
-          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       }
     }
@@ -178,7 +185,7 @@ serve(async (req) => {
     const payloadSize = JSON.stringify(body).length
     if (payloadSize > 1024 * 1024) {
       return new Response(JSON.stringify({ error: 'Payload too large (max 1MB)' }), {
-        status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 413, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -190,7 +197,7 @@ serve(async (req) => {
     )
     if (!permCheck.valid) {
       return new Response(JSON.stringify({ error: permCheck.error }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 403, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -205,7 +212,7 @@ serve(async (req) => {
 
     if (formError || !form) {
       return new Response(JSON.stringify({ error: 'Form not found or inactive' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 404, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -219,21 +226,21 @@ serve(async (req) => {
     // Check role permission against form's allowed_roles
     if (form.allowed_roles && profile?.role && !form.allowed_roles.includes(profile.role)) {
       return new Response(JSON.stringify({ error: 'Your role does not have permission to submit this form' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 403, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
     // Check GPS requirement
     if (form.requires_gps && (gps_lat === undefined || gps_lat === null || gps_lng === undefined || gps_lng === null)) {
       return new Response(JSON.stringify({ error: 'GPS location is required for this form' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
     // Check photo requirement
     if (form.requires_photo && (!photos || photos.length === 0)) {
       return new Response(JSON.stringify({ error: 'At least one photo is required for this form' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -283,7 +290,7 @@ serve(async (req) => {
           offline_id
         }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       }
     }
@@ -297,7 +304,7 @@ serve(async (req) => {
     if (submitError) {
       console.error('Submit error:', submitError)
       return new Response(JSON.stringify({ error: submitError.message }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -316,13 +323,13 @@ serve(async (req) => {
       offline_id
     }), {
       status: 201,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
     })
   } catch (error) {
     console.error('Unhandled error:', error)
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
     })
   }
 })

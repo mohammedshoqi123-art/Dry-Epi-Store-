@@ -1,17 +1,25 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Vary': 'Origin',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
+
+function corsHeaders(origin: string | null): Record<string, string> {
+  const allowed = ALLOWED_ORIGINS.includes('*')
+    ? '*'
+    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
 }
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
 const GEMINI_STREAM_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent'
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
 
   try {
     // Auth check
@@ -19,7 +27,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -33,7 +41,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -43,7 +51,7 @@ serve(async (req) => {
     if (!message) {
       return new Response(JSON.stringify({ error: 'Message is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -60,7 +68,7 @@ serve(async (req) => {
           ]
         }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       }
       return new Response(JSON.stringify({
@@ -68,7 +76,7 @@ serve(async (req) => {
         reply: 'خدمة الذكاء الاصطناعي غير مُعدّة حالياً. يرجى التواصل مع مدير النظام.',
       }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -134,7 +142,7 @@ ${JSON.stringify(context, null, 2)}
           reply: 'حدث خطأ في خدمة الذكاء الاصطناعي.'
         }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       }
 
@@ -143,7 +151,7 @@ ${JSON.stringify(context, null, 2)}
       if (!reader) {
         return new Response(JSON.stringify({ error: 'Stream unavailable' }), {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       }
 
@@ -189,7 +197,7 @@ ${JSON.stringify(context, null, 2)}
       return new Response(readable, {
         status: 200,
         headers: {
-          ...corsHeaders,
+          ...corsHeaders(req.headers.get('Origin')),
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
@@ -216,7 +224,7 @@ ${JSON.stringify(context, null, 2)}
         reply: 'حدث خطأ في خدمة الذكاء الاصطناعي. يرجى المحاولة لاحقاً.'
       }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
@@ -227,12 +235,12 @@ ${JSON.stringify(context, null, 2)}
         const suggestions = JSON.parse(text)
         return new Response(JSON.stringify({ suggestions }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       } catch {
         return new Response(JSON.stringify({ suggestions: [] }), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
         })
       }
     }
@@ -242,7 +250,7 @@ ${JSON.stringify(context, null, 2)}
 
     return new Response(JSON.stringify({ reply }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
@@ -252,7 +260,7 @@ ${JSON.stringify(context, null, 2)}
       reply: 'حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.'
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
     })
   }
 })

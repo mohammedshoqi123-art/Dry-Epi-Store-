@@ -23,7 +23,6 @@ export 'src/ai/gemini_service.dart';
 export 'src/ai/local_ai_engine.dart';
 export 'src/ai/local_ai_service.dart';
 export 'src/ai/hybrid_ai_service.dart';
-export 'src/offline/local_repository.dart';
 export 'src/notifications/notification_service.dart';
 export 'src/reports/form_report_generator.dart';
 export 'src/reports/word_report_generator.dart';

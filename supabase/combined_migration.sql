@@ -590,3 +590,8 @@ INSERT INTO app_settings (key, value, label_ar, type, category) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 COMMIT;
+
+-- ============================================================
+-- 12. SEED DATA
+-- ============================================================
+-- (See migrations/002_seed_data.sql for full seed data)
