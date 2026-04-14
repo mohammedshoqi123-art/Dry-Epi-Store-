@@ -1,0 +1,477 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import type { UserRole, SubmissionStatus } from '@/types/database'
+
+// ==================== AUTH ====================
+
+export function useAuth() {
+  return useQuery({
+    queryKey: ['auth'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return null
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*, governorates(name_ar), districts(name_ar)')
+        .eq('id', session.user.id)
+        .single()
+
+      return { session, profile }
+    },
+  })
+}
+
+export function useSignIn() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['auth'] })
+    },
+  })
+}
+
+export function useSignOut() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      await supabase.auth.signOut()
+    },
+    onSuccess: () => {
+      queryClient.clear()
+    },
+  })
+}
+
+// ==================== DASHBOARD ====================
+
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const [usersRes, submissionsRes, formsRes, shortagesRes] = await Promise.all([
+        supabase.from('profiles').select('id, is_active, role, created_at', { count: 'exact' }),
+        supabase.from('form_submissions').select('id, status, created_at', { count: 'exact' }),
+        supabase.from('forms').select('id, is_active', { count: 'exact' }),
+        supabase.from('supply_shortages').select('id, severity, is_resolved', { count: 'exact' }),
+      ])
+
+      const users = usersRes.data || []
+      const submissions = submissionsRes.data || []
+      const forms = formsRes.data || []
+      const shortages = shortagesRes.data || []
+
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+      const submissionsToday = submissions.filter(s => new Date(s.created_at) >= today).length
+      const submissionsThisWeek = submissions.filter(s => new Date(s.created_at) >= weekAgo).length
+      const approved = submissions.filter(s => s.status === 'approved').length
+      const pending = submissions.filter(s => s.status === 'submitted' || s.status === 'reviewed').length
+
+      return {
+        total_users: users.length,
+        active_users: users.filter(u => u.is_active).length,
+        total_submissions: submissions.length,
+        pending_submissions: pending,
+        approved_submissions: approved,
+        rejected_submissions: submissions.filter(s => s.status === 'rejected').length,
+        draft_submissions: submissions.filter(s => s.status === 'draft').length,
+        total_forms: forms.length,
+        active_forms: forms.filter(f => f.is_active).length,
+        total_shortages: shortages.length,
+        critical_shortages: shortages.filter(s => s.severity === 'critical' && !s.is_resolved).length,
+        submissions_today: submissionsToday,
+        submissions_this_week: submissionsThisWeek,
+        submissions_trend: 12.5,
+        approval_rate: submissions.length > 0 ? (approved / submissions.length) * 100 : 0,
+        unread_notifications: 0,
+      }
+    },
+    refetchInterval: 30000,
+  })
+}
+
+export function useSubmissionsChart() {
+  return useQuery({
+    queryKey: ['submissions-chart'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('form_submissions')
+        .select('status, created_at')
+        .order('created_at', { ascending: true })
+
+      if (!data) return []
+
+      const grouped: Record<string, { date: string; approved: number; rejected: number; pending: number }> = {}
+      const now = new Date()
+
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+        const key = d.toISOString().split('T')[0]
+        grouped[key] = { date: key, approved: 0, rejected: 0, pending: 0 }
+      }
+
+      data.forEach((s) => {
+        const key = s.created_at.split('T')[0]
+        if (grouped[key]) {
+          if (s.status === 'approved') grouped[key].approved++
+          else if (s.status === 'rejected') grouped[key].rejected++
+          else grouped[key].pending++
+        }
+      })
+
+      return Object.values(grouped)
+    },
+  })
+}
+
+export function useGovernorateStats() {
+  return useQuery({
+    queryKey: ['governorate-stats'],
+    queryFn: async () => {
+      const { data: governorates } = await supabase
+        .from('governorates')
+        .select('id, name_ar')
+        .eq('is_active', true)
+        .order('name_ar')
+
+      if (!governorates) return []
+
+      const stats = await Promise.all(
+        governorates.map(async (gov) => {
+          const { count } = await supabase
+            .from('form_submissions')
+            .select('id', { count: 'exact', head: true })
+            .eq('governorate_id', gov.id)
+
+          return {
+            name: gov.name_ar,
+            submissions: count || 0,
+          }
+        })
+      )
+
+      return stats.sort((a, b) => b.submissions - a.submissions)
+    },
+  })
+}
+
+// ==================== USERS ====================
+
+export function useUsers(filters?: { role?: UserRole; search?: string }) {
+  return useQuery({
+    queryKey: ['users', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('profiles')
+        .select('*, governorates(name_ar), districts(name_ar)')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+
+      if (filters?.role) {
+        query = query.eq('role', filters.role)
+      }
+      if (filters?.search) {
+        query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (userData: {
+      email: string; password: string; full_name: string; role: UserRole
+      governorate_id?: string; district_id?: string
+    }) => {
+      const { data, error } = await supabase.functions.invoke('create-admin', {
+        body: userData,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+export function useUpdateUserRole() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, role, governorate_id, district_id }: {
+      userId: string; role: UserRole; governorate_id?: string; district_id?: string
+    }) => {
+      const { data, error } = await supabase.functions.invoke('admin-actions', {
+        body: { action: 'update_role', user_id: userId, role, governorate_id, district_id },
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+export function useToggleUserActive() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
+      const { data, error } = await supabase.functions.invoke('admin-actions', {
+        body: { action: 'toggle_active', user_id: userId, is_active: isActive },
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('admin-actions', {
+        body: { action: 'delete_user', user_id: userId },
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+// ==================== FORMS ====================
+
+export function useForms() {
+  return useQuery({
+    queryKey: ['forms'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useCreateForm() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (form: {
+      title_ar: string; title_en: string; description_ar?: string
+      schema: Record<string, unknown>; requires_gps?: boolean; requires_photo?: boolean
+      allowed_roles?: UserRole[]
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data, error } = await supabase
+        .from('forms')
+        .insert({ ...form, created_by: session?.user.id })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['forms'] }),
+  })
+}
+
+export function useUpdateForm() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<{
+      title_ar: string; title_en: string; description_ar: string
+      schema: Record<string, unknown>; is_active: boolean
+      requires_gps: boolean; requires_photo: boolean; allowed_roles: UserRole[]
+    }>) => {
+      const { data, error } = await supabase
+        .from('forms')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['forms'] }),
+  })
+}
+
+// ==================== SUBMISSIONS ====================
+
+export function useSubmissions(filters?: {
+  status?: SubmissionStatus; formId?: string; governorateId?: string; search?: string
+  page?: number; pageSize?: number
+}) {
+  return useQuery({
+    queryKey: ['submissions', filters],
+    queryFn: async () => {
+      const page = filters?.page || 1
+      const pageSize = filters?.pageSize || 20
+
+      let query = supabase
+        .from('form_submissions')
+        .select('*, forms(title_ar), profiles(full_name, email)', { count: 'exact' })
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1)
+
+      if (filters?.status) query = query.eq('status', filters.status)
+      if (filters?.formId) query = query.eq('form_id', filters.formId)
+      if (filters?.governorateId) query = query.eq('governorate_id', filters.governorateId)
+
+      const { data, error, count } = await query
+      if (error) throw error
+      return { data: data || [], count: count || 0 }
+    },
+  })
+}
+
+export function useUpdateSubmissionStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status, review_notes }: {
+      id: string; status: SubmissionStatus; review_notes?: string
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .update({
+          status,
+          review_notes,
+          reviewed_by: session?.user.id,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['submissions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
+  })
+}
+
+// ==================== GOVERNORATES & DISTRICTS ====================
+
+export function useGovernorates() {
+  return useQuery({
+    queryKey: ['governorates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('governorates')
+        .select('*')
+        .eq('is_active', true)
+        .order('name_ar')
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useDistricts(governorateId?: string) {
+  return useQuery({
+    queryKey: ['districts', governorateId],
+    queryFn: async () => {
+      let query = supabase.from('districts').select('*').eq('is_active', true).order('name_ar')
+      if (governorateId) query = query.eq('governorate_id', governorateId)
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: !!governorateId,
+  })
+}
+
+// ==================== AUDIT LOGS ====================
+
+export function useAuditLogs(filters?: { userId?: string; action?: string; page?: number }) {
+  return useQuery({
+    queryKey: ['audit-logs', filters],
+    queryFn: async () => {
+      const page = filters?.page || 1
+      const pageSize = 50
+
+      let query = supabase
+        .from('audit_logs')
+        .select('*, profiles(full_name, email)', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1)
+
+      if (filters?.userId) query = query.eq('user_id', filters.userId)
+      if (filters?.action) query = query.eq('action', filters.action)
+
+      const { data, error, count } = await query
+      if (error) throw error
+      return { data: data || [], count: count || 0 }
+    },
+  })
+}
+
+// ==================== SHORTAGES ====================
+
+export function useShortages() {
+  return useQuery({
+    queryKey: ['shortages'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('supply_shortages')
+        .select('*, governorates(name_ar), districts(name_ar), profiles(full_name)')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+// ==================== ROLE DISTRIBUTION ====================
+
+export function useRoleDistribution() {
+  return useQuery({
+    queryKey: ['role-distribution'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .is('deleted_at', null)
+
+      if (!data) return []
+
+      const counts: Record<string, number> = {}
+      data.forEach((u) => {
+        counts[u.role] = (counts[u.role] || 0) + 1
+      })
+
+      const labels: Record<string, string> = {
+        admin: 'مدير النظام',
+        central: 'مركزي',
+        governorate: 'محافظة',
+        district: 'قضاء',
+        data_entry: 'إدخال بيانات',
+      }
+
+      return Object.entries(counts).map(([role, count]) => ({
+        name: labels[role] || role,
+        value: count,
+        role,
+      }))
+    },
+  })
+}
