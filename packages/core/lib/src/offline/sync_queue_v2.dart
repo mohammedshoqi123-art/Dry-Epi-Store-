@@ -258,7 +258,6 @@ class ProductionSyncQueue {
       retrying: retrying,
       syncing: syncing,
       failed: failed,
-      total: pending + retrying + syncing,
     );
   }
 

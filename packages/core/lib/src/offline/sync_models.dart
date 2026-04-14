@@ -230,16 +230,15 @@ class QueueCounts {
   final int retrying;
   final int syncing;
   final int failed;
-  final int total;
 
   const QueueCounts({
     this.pending = 0,
     this.retrying = 0,
     this.syncing = 0,
     this.failed = 0,
-    this.total = 0,
   });
 
+  int get total => pending + retrying + syncing;
   bool get isEmpty => total == 0;
   bool get hasActivity => syncing > 0;
 
