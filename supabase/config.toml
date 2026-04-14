@@ -39,28 +39,28 @@ enable_confirmations = false
 
 # Edge Functions
 [functions.submit-form]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-offline]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-analytics]
-verify_jwt = true
+verify_jwt = false
 
 [functions.ai-chat]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-admin]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-actions]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-dashboard-stats]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-governorate-report]
-verify_jwt = true
+verify_jwt = false
 
 # Analytics
 [analytics]

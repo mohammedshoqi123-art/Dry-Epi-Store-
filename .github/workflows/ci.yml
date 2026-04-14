@@ -234,7 +234,7 @@ jobs:
             echo "⚠️ SUPABASE_ACCESS_TOKEN not set, skipping function deployment"
             exit 0
           fi
-          supabase functions deploy --project-ref $SUPABASE_PROJECT_REF
+          supabase functions deploy --project-ref $SUPABASE_PROJECT_REF --no-verify-jwt
 
   # ─── Create Release ──────────────────────────────────────
   release:
