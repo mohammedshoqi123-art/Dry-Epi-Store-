@@ -51,7 +51,9 @@ void main() {
       expect(UserRole.data_entry.canApprove, isFalse);
       expect(UserRole.data_entry.canManageUsers, isFalse);
       expect(UserRole.data_entry.canViewAuditLogs, isFalse);
-      expect(UserRole.data_entry.canUseAI, isFalse);
+      // canUseAI, canExport, canViewAllDistricts are now true for all roles
+      expect(UserRole.data_entry.canUseAI, isTrue);
+      expect(UserRole.data_entry.canExport, isTrue);
 
       // Governorate can approve
       expect(UserRole.governorate.canApprove, isTrue);
