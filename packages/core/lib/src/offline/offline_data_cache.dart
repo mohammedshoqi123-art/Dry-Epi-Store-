@@ -270,21 +270,27 @@ class OfflineDataCache {
 
   /// Get cached data as a list (handles the list wrapper format)
   List<Map<String, dynamic>>? getCachedDataList(String key) {
-    final cached = _offline.getCachedData(key);
+    final dynamic cached = _offline.getCachedData(key);
     if (cached == null) return null;
 
     // Handle list wrapper: { _type: 'list', _list: [...] }
-    if (cached is Map<String, dynamic>) {
+    if (cached is Map) {
       if (cached['_type'] == 'list' && cached['_list'] is List) {
         final list = cached['_list'] as List;
-        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        return list
+            .cast<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
       }
       return null;
     }
 
     // If it's directly a list
     if (cached is List) {
-      return cached.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      return cached
+          .cast<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
     }
 
     return null;

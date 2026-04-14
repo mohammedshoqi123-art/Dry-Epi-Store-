@@ -80,6 +80,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Widget _buildMap() {
+    final children = <Widget>[
+      TileLayer(
+        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        userAgentPackageName: 'com.epi.supervisor',
+      ),
+    ];
+
+    if (_showHeatmap) {
+      children.add(_buildHeatmapLayer());
+    } else {
+      children.add(
+        _mapMode == 'submissions' ? _buildSubmissionsLayer() : _buildShortagesLayer(),
+      );
+    }
+
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
@@ -88,13 +103,49 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         minZoom: 4.0,
         maxZoom: 18.0,
       ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.epi.supervisor',
-        ),
-        _mapMode == 'submissions' ? _buildSubmissionsLayer() : _buildShortagesLayer(),
-      ],
+      children: children,
+    );
+  }
+
+  Widget _buildHeatmapLayer() {
+    final governoratesAsync = ref.watch(governoratesProvider);
+
+    return governoratesAsync.when(
+      loading: () => const CircleLayer(circles: []),
+      error: (_, __) => const CircleLayer(circles: []),
+      data: (governorates) {
+        final circles = <CircleMarker>[];
+        for (final gov in governorates) {
+          final lat = gov['center_lat'];
+          final lng = gov['center_lng'];
+          if (lat == null || lng == null) continue;
+
+          // Use submission_count or default intensity
+          final count = (gov['submission_count'] as num?)?.toDouble() ?? 1.0;
+          final maxCount = 50.0;
+          final intensity = (count / maxCount).clamp(0.1, 1.0);
+
+          // Color gradient: green (low) → yellow (mid) → red (high)
+          Color color;
+          if (intensity < 0.33) {
+            color = Colors.green.withValues(alpha: 0.3 + intensity);
+          } else if (intensity < 0.66) {
+            color = Colors.orange.withValues(alpha: 0.3 + intensity);
+          } else {
+            color = Colors.red.withValues(alpha: 0.3 + intensity * 0.5);
+          }
+
+          circles.add(CircleMarker(
+            point: LatLng((lat as num).toDouble(), (lng as num).toDouble()),
+            radius: 15000 + (count * 500),
+            useRadiusInMeter: true,
+            color: color,
+            borderColor: color.withValues(alpha: 0.8),
+            borderStrokeWidth: 2,
+          ));
+        }
+        return CircleLayer(circles: circles);
+      },
     );
   }
 

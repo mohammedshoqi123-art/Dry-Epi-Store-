@@ -54,6 +54,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
         title: AppStrings.dashboard,
         showBackButton: false,
         actions: [
+          StreamBuilder<AppNotification>(
+            stream: NotificationService.stream,
+            builder: (context, _) {
+              final count = NotificationService.unreadCount;
+              return IconButton(
+                icon: Badge(
+                  label: Text('$count'),
+                  isLabelVisible: count > 0,
+                  backgroundColor: AppTheme.errorColor,
+                  textColor: Colors.white,
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                onPressed: () => context.go('/notifications'),
+                tooltip: 'الإشعارات',
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             onPressed: _exportDashboardPDF,

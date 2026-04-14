@@ -20,6 +20,7 @@ import '../screens/admin/forms_management_screen.dart';
 import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
 import '../screens/forms_status_screen.dart';
+import '../screens/notifications_screen.dart';
 import 'package:epi_features/epi_features.dart';
 import '../screens/references_screen.dart';
 import '../screens/admin/references_management_screen.dart';
@@ -156,6 +157,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/references',
             builder: (context, state) => const ReferencesScreen(),
+          ),
+          GoRoute(
+            path: '/notifications',
+            builder: (context, state) => const NotificationsScreen(),
           ),
         ],
       ),

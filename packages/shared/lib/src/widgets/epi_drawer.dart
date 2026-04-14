@@ -100,6 +100,7 @@ class EpiDrawer extends StatelessWidget {
                   _buildItem(context, Icons.dashboard_customize_outlined, 'حالة الاستمارات', '/forms/status'),
                   _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
                   _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
+                  _buildItem(context, Icons.notifications_rounded, 'الإشعارات', '/notifications'),
 
                   // References — visible to all roles
                   const Padding(
