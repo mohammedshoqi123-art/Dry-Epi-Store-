@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:epi_core/src/offline/offline_manager.dart';
+import 'package:epi_core/src/offline/sync_models.dart';
 import 'package:epi_core/src/errors/app_exceptions.dart';
 
 void main() {

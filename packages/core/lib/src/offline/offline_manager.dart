@@ -8,37 +8,8 @@ import '../config/app_config.dart';
 import '../security/encryption_service.dart';
 import '../errors/app_exceptions.dart';
 
-/// Sync result status enum
-enum OfflineSyncStatus { success, conflict, error, duplicate }
-
-/// Result of a sync attempt
-class OfflineSyncResult {
-  final String offlineId;
-  final OfflineSyncStatus status;
-  final String? errorMessage;
-  final Map<String, dynamic>? serverResponse;
-
-  OfflineSyncResult.success(this.offlineId, [this.serverResponse])
-      : status = OfflineSyncStatus.success,
-        errorMessage = null;
-  OfflineSyncResult.conflict(this.offlineId, [this.serverResponse])
-      : status = OfflineSyncStatus.conflict,
-        errorMessage = null;
-  OfflineSyncResult.error(this.offlineId, this.errorMessage)
-      : status = OfflineSyncStatus.error,
-        serverResponse = null;
-  OfflineSyncResult.duplicate(this.offlineId, [this.serverResponse])
-      : status = OfflineSyncStatus.duplicate,
-        errorMessage = null;
-
-  bool get isSuccess => status == OfflineSyncStatus.success;
-  bool get isConflict => status == OfflineSyncStatus.conflict;
-  bool get isError => status == OfflineSyncStatus.error;
-  bool get isDuplicate => status == OfflineSyncStatus.duplicate;
-
-  @override
-  String toString() => 'OfflineSyncResult($offlineId: $status${errorMessage != null ? ' - $errorMessage' : ''})';
-}
+// Re-export models from sync_models.dart
+export 'sync_models.dart' show OfflineSyncStatus, OfflineSyncResult;
 
 /// Manages offline data storage, sync queue, drafts, and cache.
 /// Handles conflict resolution and retry logic for reliable offline-first operation.

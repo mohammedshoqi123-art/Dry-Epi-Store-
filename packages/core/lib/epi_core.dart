@@ -11,6 +11,7 @@ export 'src/offline/offline_manager.dart';
 export 'src/offline/offline_data_cache.dart';
 export 'src/offline/enhanced_sync_service.dart';
 export 'src/offline/local_repository.dart';
+export 'src/offline/sync_models.dart';
 export 'src/offline/sync_queue_v2.dart';
 export 'src/offline/intelligent_offline_manager.dart';
 export 'src/sync/sync_service.dart';

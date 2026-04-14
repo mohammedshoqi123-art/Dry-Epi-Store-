@@ -5,6 +5,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../config/app_config.dart';
 import '../errors/app_exceptions.dart';
+import 'sync_models.dart' show ConflictStrategy;
+export 'sync_models.dart' show ConflictStrategy;
 
 /// Advanced connectivity state with quality metrics
 enum ConnectionQuality { excellent, good, poor, offline }
@@ -72,9 +74,6 @@ class NetworkState {
     return 'متصل ($qualityText)';
   }
 }
-
-/// Conflict resolution strategy
-enum ConflictStrategy { localWins, serverWins, merge, manual, smartMerge, manualReview }
 
 /// Single conflict record
 class DataConflict {

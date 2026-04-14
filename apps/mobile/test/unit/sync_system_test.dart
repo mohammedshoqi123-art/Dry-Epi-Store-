@@ -1,9 +1,5 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:epi_core/src/offline/sync_queue_v2.dart';
-import 'package:epi_core/src/offline/intelligent_offline_manager.dart';
-import 'package:epi_core/src/offline/enhanced_sync_service.dart' show ConflictStrategy;
+import 'package:epi_core/src/offline/sync_models.dart';
 import 'package:epi_core/src/security/encryption_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -24,39 +20,6 @@ class MockEncryptionService extends EncryptionService {
     }
     throw Exception('Invalid mock ciphertext');
   }
-}
-
-/// Controllable connectivity mock for testing online/offline transitions.
-class MockConnectivity {
-  final _controller = StreamController<List<ConnectivityResult>>.broadcast();
-  List<ConnectivityResult> _currentResult = [ConnectivityResult.wifi];
-  int _listenerCallCount = 0;
-
-  Stream<List<ConnectivityResult>> get onConnectivityChanged => _controller.stream;
-
-  Future<List<ConnectivityResult>> checkConnectivity() async => _currentResult;
-
-  int get listenerCallCount => _listenerCallCount;
-
-  void simulateOnline() {
-    _currentResult = [ConnectivityResult.wifi];
-    _controller.add(_currentResult);
-    _listenerCallCount++;
-  }
-
-  void simulateOffline() {
-    _currentResult = [ConnectivityResult.none];
-    _controller.add(_currentResult);
-    _listenerCallCount++;
-  }
-
-  void simulateMobile() {
-    _currentResult = [ConnectivityResult.mobile];
-    _controller.add(_currentResult);
-    _listenerCallCount++;
-  }
-
-  void dispose() => _controller.close();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

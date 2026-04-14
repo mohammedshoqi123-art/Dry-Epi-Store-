@@ -75,7 +75,10 @@ jobs:
         working-directory: apps/mobile
         run: |
           echo "=== Running flutter test ==="
-          flutter test --coverage 2>&1 || echo "::warning::Tests failed — check logs above"
+          flutter test --coverage 2>&1 || {
+            echo "::error::Tests failed!"
+            exit 1
+          }
 
   # ─── Build APK ───────────────────────────────────────────
   build-apk:
