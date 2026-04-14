@@ -146,80 +146,22 @@ jobs:
           retention-days: 30
 
   # ─── Build Web ───────────────────────────────────────────
+  # DISABLED: Admin dashboard (React) handles GitHub Pages deployment
+  # See: .github/workflows/deploy-admin.yml
   build-web:
-    name: Build Web
+    name: Build Web (Disabled)
     runs-on: ubuntu-latest
-    needs: analyze
-    if: github.ref == 'refs/heads/main'
+    if: false  # Disabled — admin dashboard deploys instead
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
-      - name: Setup project
-        run: |
-          cd packages/core && flutter pub get
-          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs || true
-          cd $GITHUB_WORKSPACE/packages/features && flutter pub get
-          cd $GITHUB_WORKSPACE/apps/mobile && flutter pub get
-
-      - name: Build Web (release)
-        working-directory: apps/mobile
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          GEMINI_FLAG=""
-          if [ "$GEMINI_API_KEY" != "NOT_SET" ] && [ -n "$GEMINI_API_KEY" ]; then
-            GEMINI_FLAG="--dart-define=GEMINI_API_KEY=$GEMINI_API_KEY"
-          fi
-          flutter build web --release \
-            --dart-define=SUPABASE_URL=$SUPABASE_URL \
-            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }} \
-            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
-            $GEMINI_FLAG \
-            --base-href "/EPI-Supervisor/"
-
-      - name: Upload Web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: epi-supervisor-web
-          path: apps/mobile/build/web/
-          retention-days: 30
+      - run: echo "Skipped"
 
   # ─── Deploy to GitHub Pages ─────────────────────────────
   deploy-pages:
-    name: Deploy to GitHub Pages
+    name: Deploy to GitHub Pages (Disabled)
     runs-on: ubuntu-latest
-    needs: build-web
-    if: github.ref == 'refs/heads/main'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    if: false  # Disabled — admin dashboard deploys instead
     steps:
-      - name: Download Web artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: epi-supervisor-web
-          path: _site/
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload to GitHub Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site/
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - run: echo "Skipped"
 
   # ─── Deploy Edge Functions ───────────────────────────────
   deploy-functions:
@@ -249,7 +191,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-apk, build-web]
+    needs: [build-apk]
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4

@@ -4,12 +4,9 @@ import path from 'path'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // GitHub Pages: repo name is EPI-Supervisor, admin dashboard at /admin/
-  const base = process.env.VITE_BASE_PATH || '/'
 
   return {
     plugins: [react()],
-    base,
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

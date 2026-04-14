@@ -17,13 +17,13 @@ const queryClient = new QueryClient({
   },
 })
 
-// Dynamically detect base path for GitHub Pages deployment
-// Supports: / (root), /EPI-Supervisor/, /EPI-Supervisor/admin/
+// Dynamic basename for GitHub Pages deployment
 const getBasename = () => {
   const path = window.location.pathname
-  // If deployed under a subdirectory, extract the base
-  if (path.startsWith('/EPI-Supervisor/admin/')) return '/EPI-Supervisor/admin'
-  if (path.startsWith('/EPI-Supervisor/')) return '/EPI-Supervisor'
+  if (path.includes('/EPI-Supervisor/')) {
+    const match = path.match(/^(\/EPI-Supervisor)/)
+    return match ? match[1] : ''
+  }
   return ''
 }
 
