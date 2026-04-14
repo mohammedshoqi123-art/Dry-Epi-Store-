@@ -53,8 +53,8 @@ enum UserRole {
 
   /// Edit permissions — can only edit their own submissions
   bool get canApprove => hierarchyLevel >= 3;
-  bool get canExport => hierarchyLevel >= 2;
-  bool get canUseAI => hierarchyLevel >= 3;
+  bool get canExport => true; // all roles
+  bool get canUseAI => true; // all roles
 
   bool canManage(UserRole other) => hierarchyLevel > other.hierarchyLevel;
 }

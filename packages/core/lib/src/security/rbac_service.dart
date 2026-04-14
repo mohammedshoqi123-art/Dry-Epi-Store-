@@ -52,15 +52,15 @@ class RBACService {
       case RBACAction.rejectSubmissions:
         return role.hierarchyLevel >= 3; // governorate+
       case RBACAction.exportData:
-        return role.hierarchyLevel >= 3; // governorate+
+        return true; // all authenticated users
       case RBACAction.viewAnalytics:
-        return role.hierarchyLevel >= 2; // district+
+        return true; // all authenticated users
       case RBACAction.submitForms:
         return true; // all authenticated users
       case RBACAction.viewOwnData:
         return true; // all authenticated users
       case RBACAction.viewMap:
-        return role.hierarchyLevel >= 2; // district+
+        return true; // all authenticated users
       case RBACAction.manageGovernorates:
         return role == UserRole.admin;
       case RBACAction.manageDistricts:
@@ -68,7 +68,7 @@ class RBACService {
       case RBACAction.viewAuditLogs:
         return role.hierarchyLevel >= 4; // central+
       case RBACAction.useAI:
-        return role.hierarchyLevel >= 3; // governorate+
+        return true; // all authenticated users
     }
   }
 
