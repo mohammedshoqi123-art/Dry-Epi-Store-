@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../config/sentry_config.dart';
@@ -229,13 +230,13 @@ class ApiClient {
 
       // Refresh if token expires within 5 minutes
       if (expiresAt.difference(now).inMinutes < 5) {
-        await _safeClient.auth.refreshSession().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            debugPrint('[ApiClient] Session refresh timed out, proceeding with current token');
-            return;
-          },
-        );
+        try {
+          await _safeClient.auth.refreshSession().timeout(
+            const Duration(seconds: 10),
+          );
+        } on TimeoutException {
+          debugPrint('[ApiClient] Session refresh timed out, proceeding with current token');
+        }
       }
     } catch (_) {
       // If refresh fails here, the main call will handle the 401
