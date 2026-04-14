@@ -197,6 +197,7 @@ class OfflineManager {
       final queue = _getQueue();
       queue.add(submission);
       await _saveQueue(queue);
+      _invalidatePendingCount();
 
       return offlineId;
     });
@@ -236,13 +237,27 @@ class OfflineManager {
     final queue = _getQueue();
     queue.removeWhere((item) => item['offline_id'] == offlineId);
     await _saveQueue(queue);
+    _invalidatePendingCount();
   }
 
   Future<void> clearQueue() async {
     await _safeBox.delete(_syncQueueKey);
+    _invalidatePendingCount();
   }
 
-  int get pendingCount => _getQueue().length;
+  // ✅ FIX: Cache pending count to avoid decrypting queue on every access
+  int _cachedPendingCount = -1;
+  int get pendingCount {
+    if (_cachedPendingCount < 0) {
+      _cachedPendingCount = _getQueue().length;
+    }
+    return _cachedPendingCount;
+  }
+
+  /// Force recalculate count (call after queue changes)
+  void _invalidatePendingCount() {
+    _cachedPendingCount = -1;
+  }
 
   /// Sync all pending items with retry logic and conflict handling.
   /// ═══ FIX: Process in-memory, save ONCE at end — prevents data loss on crash ═══
@@ -322,6 +337,7 @@ class OfflineManager {
 
     // ═══ FIX: Save ONCE — remaining items only. No intermediate writes. ═══
     await _saveQueue(remaining);
+    _invalidatePendingCount();
 
     _logSyncSummary(results);
     return results;
