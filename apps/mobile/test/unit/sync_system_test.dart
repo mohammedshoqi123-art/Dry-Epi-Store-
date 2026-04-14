@@ -12,6 +12,8 @@ import 'package:epi_core/src/security/encryption_service.dart';
 
 /// Simple mock encryption that passes data through (for testing only).
 class MockEncryptionService extends EncryptionService {
+  MockEncryptionService() : super(overrideKey: 'MOCK_TEST_KEY_32_CHARS_MINIMUM________');
+
   @override
   String encrypt(String plaintext) => 'enc:$plaintext';
 

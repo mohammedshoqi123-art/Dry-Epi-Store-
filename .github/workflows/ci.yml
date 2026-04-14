@@ -74,7 +74,11 @@ jobs:
       - name: Run tests with coverage
         working-directory: apps/mobile
         run: |
-          flutter test --coverage --dart-define=ENCRYPTION_KEY=EPI_SUPERVISOR_TEST_KEY_32_CHARS_MINIMUM
+          echo "=== Running flutter test ==="
+          flutter test --coverage 2>&1 || {
+            echo "::error::Tests failed!"
+            exit 1
+          }
 
   # ─── Build APK ───────────────────────────────────────────
   build-apk:

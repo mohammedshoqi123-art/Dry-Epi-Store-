@@ -26,24 +26,25 @@ class EncryptionService {
   static const int _ivLength = 12; // GCM standard IV length
 
   // ═══ PBKDF2 KEY CACHE ═══
-  // Cache derived keys by salt bytes to skip expensive PBKDF2 on repeat ops.
-  // PBKDF2(salt, password) is deterministic — same inputs always produce same key.
-  // The cache is per-isolate and per-process, which is fine for single-isolate use.
   static final Map<String, enc.Key> _keyCache = {};
 
   late final enc.Key _key;
   late final Uint8List _salt;
+  final String _activeKey;
 
-  EncryptionService() {
-    if (_envKey.isEmpty) {
+  /// Create an encryption service.
+  /// [overrideKey] — optional key for testing. If null, uses ENCRYPTION_KEY from environment.
+  EncryptionService({String? overrideKey})
+      : _activeKey = overrideKey ?? _envKey {
+    if (_activeKey.isEmpty) {
       throw StateError(
         'ENCRYPTION_KEY is not set. '
         'Pass --dart-define=ENCRYPTION_KEY=<your-key> when building, '
-        'or set it in your .env file. '
+        'or provide overrideKey for testing. '
         'The key must be at least 32 characters for AES-256.',
       );
     }
-    final keyBytes = utf8.encode(_envKey);
+    final keyBytes = utf8.encode(_activeKey);
     // Generate a cryptographically secure random salt per instance
     _salt = _generateSecureRandom(_saltLength);
     _key = _cachedDeriveKey(keyBytes, _salt);
@@ -128,7 +129,7 @@ class EncryptionService {
       final encrypted = enc.Encrypted(Uint8List.fromList(bytes.sublist(offset)));
 
       // Re-derive the key using the salt from the ciphertext (cached)
-      final keyBytes = utf8.encode(_envKey);
+      final keyBytes = utf8.encode(_activeKey);
       final key = _cachedDeriveKey(keyBytes, salt);
 
       // GCM automatically verifies the auth tag during decryption
