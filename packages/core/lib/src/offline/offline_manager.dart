@@ -339,7 +339,9 @@ class OfflineManager {
 
   // ===== CONFLICTS =====
 
-  Future<void> _saveConflict(Map<String, dynamic> local, Map<String, dynamic> server) async {
+  /// Save a conflict between local and server data for manual resolution.
+  /// Public method so SyncService can record conflicts during batch sync.
+  Future<void> saveConflict(Map<String, dynamic> local, Map<String, dynamic> server) async {
     try {
       final conflicts = _getConflicts();
       conflicts[local['offline_id']] = {
@@ -353,6 +355,10 @@ class OfflineManager {
     } catch (e) {
       if (kDebugMode) print('Failed to save conflict: $e');
     }
+  }
+
+  Future<void> _saveConflict(Map<String, dynamic> local, Map<String, dynamic> server) async {
+    return saveConflict(local, server);
   }
 
   Map<String, dynamic> _getConflicts() {

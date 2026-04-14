@@ -17,6 +17,8 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTickerProviderStateMixin {
   String _selectedPeriod = '30d';
   String? _selectedFormId;
+  String? _selectedGovernorateId;
+  String? _selectedDistrictId;
   late TabController _tabController;
 
   @override
@@ -30,6 +32,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     _tabController.dispose();
     super.dispose();
   }
+
+  /// Build the current filter from UI state
+  AnalyticsFilter get _currentFilter => AnalyticsFilter(
+    governorateId: _selectedGovernorateId,
+    districtId: _selectedDistrictId,
+    formId: _selectedFormId,
+    startDate: _startDate,
+  );
 
   DateTime? get _startDate {
     final now = DateTime.now();
@@ -47,25 +57,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    final analytics = ref.watch(dashboardAnalyticsProvider);
+    final analytics = ref.watch(dashboardAnalyticsProvider(_currentFilter));
 
     return Scaffold(
       appBar: EpiAppBar(
         title: AppStrings.analytics,
         showBackButton: false,
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (v) => setState(() => _selectedPeriod = v),
-            itemBuilder: (_) => [
-              PopupMenuItem(value: '7d', child: Text('آخر 7 أيام', style: TextStyle(fontWeight: _selectedPeriod == '7d' ? FontWeight.bold : null))),
-              PopupMenuItem(value: '30d', child: Text('آخر 30 يوم', style: TextStyle(fontWeight: _selectedPeriod == '30d' ? FontWeight.bold : null))),
-              PopupMenuItem(value: '90d', child: Text('آخر 90 يوم', style: TextStyle(fontWeight: _selectedPeriod == '90d' ? FontWeight.bold : null))),
-            ],
-            child: const Padding(
-              padding: EdgeInsets.all(12),
-              child: Icon(Icons.calendar_today),
-            ),
-          ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             onPressed: _exportPDF,
@@ -95,12 +93,12 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(dashboardAnalyticsProvider),
+        onRefresh: () async => ref.invalidate(dashboardAnalyticsProvider(_currentFilter)),
         child: analytics.when(
           loading: () => const EpiLoading.shimmer(),
           error: (e, _) => EpiErrorWidget(
             message: e.toString(),
-            onRetry: () => ref.invalidate(dashboardAnalyticsProvider),
+            onRetry: () => ref.invalidate(dashboardAnalyticsProvider(_currentFilter)),
           ),
           data: (data) => TabBarView(
             controller: _tabController,
@@ -131,6 +129,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildActiveFiltersBar(),
           _buildHealthScore(data),
           const SizedBox(height: 20),
           Row(
@@ -174,6 +173,46 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     );
   }
 
+  /// Shows which filters are currently active
+  Widget _buildActiveFiltersBar() {
+    final chips = <Widget>[];
+    if (_selectedGovernorateId != null) {
+      chips.add(_activeFilterChip('محافظة محددة', () => setState(() => _selectedGovernorateId = null)));
+    }
+    if (_selectedDistrictId != null) {
+      chips.add(_activeFilterChip('مديرية محددة', () => setState(() => _selectedDistrictId = null)));
+    }
+    if (_selectedFormId != null) {
+      chips.add(_activeFilterChip('نموذج محدد', () => setState(() => _selectedFormId = null)));
+    }
+    if (_selectedPeriod != '30d') {
+      final labels = {'7d': '7 أيام', '90d': '90 يوم'};
+      chips.add(_activeFilterChip(labels[_selectedPeriod] ?? _selectedPeriod, () => setState(() => _selectedPeriod = '30d')));
+    }
+    if (chips.isEmpty) return const SizedBox();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          const Text('فلاتر نشطة:', style: TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary)),
+          ...chips,
+        ],
+      ),
+    );
+  }
+
+  Widget _activeFilterChip(String label, VoidCallback onRemove) {
+    return Chip(
+      label: Text(label, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11)),
+      deleteIcon: const Icon(Icons.close, size: 14),
+      onDeleted: onRemove,
+      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════
   // TAB 2: Per-Form Analysis (تحليل حسب النموذج)
   // ═══════════════════════════════════════════════════════════
@@ -195,11 +234,51 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: forms.length,
+      itemCount: forms.length + 1, // +1 for summary header
       itemBuilder: (context, index) {
-        final form = forms[index];
-        return _buildFormCard(form);
+        if (index == 0) return _buildFormsSummaryHeader(forms);
+        return _buildFormCard(forms[index - 1]);
       },
+    );
+  }
+
+  /// Summary header showing total submissions across all forms
+  Widget _buildFormsSummaryHeader(List<Map<String, dynamic>> forms) {
+    int totalAll = 0;
+    int totalQuestions = 0;
+    for (final f in forms) {
+      final stats = f['stats'] as Map<String, dynamic>? ?? {};
+      totalAll += (stats['total'] as int?) ?? 0;
+      final qs = (f['questions'] as List?) ?? [];
+      totalQuestions += qs.length;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${forms.length} نماذج', style: const TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+                const SizedBox(height: 4),
+                Text('إجمالي الإرساليات: $totalAll | $totalQuestions سؤال', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: Colors.white70)),
+              ],
+            ),
+          ),
+          const Icon(Icons.analytics, color: Colors.white, size: 32),
+        ],
+      ),
     );
   }
 
@@ -225,6 +304,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       'rejected': 'مرفوض',
     };
 
+    // Calculate overall completion rate for this form
+    int avgCompletion = 0;
+    if (questions.isNotEmpty) {
+      int sum = 0;
+      for (final q in questions) {
+        sum += (q['completionRate'] as int?) ?? 0;
+      }
+      avgCompletion = (sum / questions.length).round();
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -249,9 +338,32 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
             titleAr,
             style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold, fontSize: 14),
           ),
-          subtitle: Text(
-            'إجمالي الإرساليات: $total',
-            style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary),
+          subtitle: Row(
+            children: [
+              Text(
+                'إجمالي: $total',
+                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              if (questions.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: (avgCompletion >= 80 ? AppTheme.successColor : avgCompletion >= 50 ? AppTheme.warningColor : AppTheme.errorColor).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'اكتمال: $avgCompletion%',
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: avgCompletion >= 80 ? AppTheme.successColor : avgCompletion >= 50 ? AppTheme.warningColor : AppTheme.errorColor,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           children: [
             // Status breakdown
@@ -284,12 +396,17 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
 
             // Question analysis
             if (questions.isNotEmpty) ...[
-              const Align(
-                alignment: Alignment.centerRight,
-                child: Text('تحليل الأسئلة:', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600, fontSize: 13)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('تحليل الأسئلة:', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text('${questions.length} أسئلة', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint)),
+                ],
               ),
               const SizedBox(height: 8),
-              ...questions.map((q) => _buildQuestionAnalysis(q)),
+              ...questions.asMap().entries.map((entry) {
+                return _buildQuestionAnalysis(entry.value, index: entry.key + 1);
+              }),
             ],
           ],
         ),
@@ -297,14 +414,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     );
   }
 
-  Widget _buildQuestionAnalysis(Map<String, dynamic> question) {
+  Widget _buildQuestionAnalysis(Map<String, dynamic> question, {int? index}) {
     final label = question['label'] as String? ?? '';
     final type = question['type'] as String? ?? 'text';
     final completionRate = question['completionRate'] as int? ?? 0;
     final answered = question['answered'] as int? ?? 0;
+    final notAnswered = question['notAnswered'] as int? ?? 0;
     final totalSubmissions = question['totalSubmissions'] as int? ?? 0;
     final distribution = question['distribution'] as Map<String, dynamic>? ?? {};
     final yesCount = question['yesCount'] as int?;
+    final noCount = question['noCount'] as int?;
     final yesRate = question['yesRate'] as int?;
     final numericStats = question['numericStats'] as Map<String, dynamic>?;
 
@@ -313,6 +432,32 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
         : completionRate >= 50
             ? AppTheme.warningColor
             : AppTheme.errorColor;
+
+    // Type icon
+    IconData typeIcon;
+    switch (type) {
+      case 'yesno':
+        typeIcon = Icons.check_circle_outline;
+        break;
+      case 'number':
+        typeIcon = Icons.numbers;
+        break;
+      case 'select':
+      case 'radio':
+        typeIcon = Icons.radio_button_checked;
+        break;
+      case 'multiselect':
+        typeIcon = Icons.checklist;
+        break;
+      case 'date':
+        typeIcon = Icons.calendar_today;
+        break;
+      case 'text':
+        typeIcon = Icons.text_fields;
+        break;
+      default:
+        typeIcon = Icons.help_outline;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -325,34 +470,74 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Question label
+          // Question header with number, icon, label, and completion badge
           Row(
             children: [
+              if (index != null) ...[
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Center(
+                    child: Text('$index', style: const TextStyle(fontFamily: 'Cairo', fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Icon(typeIcon, size: 16, color: AppTheme.textSecondary),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   label,
                   style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600, fontSize: 13),
                 ),
               ),
+              // Completion badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: rateColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  '$completionRate%',
-                  style: TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.bold, color: rateColor),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      completionRate >= 80 ? Icons.check_circle : completionRate >= 50 ? Icons.warning : Icons.error,
+                      size: 12,
+                      color: rateColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$completionRate%',
+                      style: TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.bold, color: rateColor),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
-            'تم الإجابة: $answered / $totalSubmissions',
+            'تم الإجابة: $answered / $totalSubmissions${notAnswered > 0 ? ' ($notAnswered بدون إجابة)' : ''}',
             style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint),
           ),
           const SizedBox(height: 8),
+
+          // Completion bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: totalSubmissions > 0 ? answered / totalSubmissions : 0,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation(rateColor),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 10),
 
           // Type-specific analysis
           if (type == 'yesno' && yesCount != null) ...[
@@ -363,30 +548,34 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _miniStatCard('لا', '${answered - yesCount}', '${100 - (yesRate ?? 0)}%', AppTheme.errorColor),
+                  child: _miniStatCard('لا', '${noCount ?? (answered - yesCount)}', '${100 - (yesRate ?? 0)}%', AppTheme.errorColor),
                 ),
               ],
             ),
           ] else if (type == 'number' && numericStats != null) ...[
             Row(
               children: [
-                Expanded(child: _miniStatCard('الحد الأدنى', '${numericStats['min']}', '', AppTheme.infoColor)),
+                Expanded(child: _miniStatCard('الحد الأدنى', '${numericStats['min'] ?? '-'}', '', AppTheme.infoColor)),
                 const SizedBox(width: 8),
-                Expanded(child: _miniStatCard('المتوسط', '${numericStats['avg']}', '', AppTheme.primaryColor)),
+                Expanded(child: _miniStatCard('المتوسط', '${numericStats['avg'] ?? '-'}', '', AppTheme.primaryColor)),
                 const SizedBox(width: 8),
-                Expanded(child: _miniStatCard('الحد الأقصى', '${numericStats['max']}', '', AppTheme.warningColor)),
+                Expanded(child: _miniStatCard('الحد الأقصى', '${numericStats['max'] ?? '-'}', '', AppTheme.warningColor)),
               ],
             ),
-          ] else if (distribution.isNotEmpty && distribution.length <= 10) ...[
-            // Show distribution for select/radio fields
-            ...distribution.entries.take(8).map((e) {
+            if (numericStats['total'] != null) ...[
+              const SizedBox(height: 6),
+              Text('المجموع الكلي: ${numericStats['total']}', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint)),
+            ],
+          ] else if (distribution.isNotEmpty && distribution.length <= 15) ...[
+            // Distribution bars for select/radio/multiselect fields
+            ...distribution.entries.take(10).map((e) {
               final pct = answered > 0 ? ((e.value / answered) * 100).toStringAsFixed(0) : '0';
               return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
                   children: [
-                    Expanded(
-                      flex: 3,
+                    SizedBox(
+                      width: 80,
                       child: Text(e.key, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12), overflow: TextOverflow.ellipsis),
                     ),
                     Expanded(
@@ -403,13 +592,35 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                     ),
                     const SizedBox(width: 8),
                     SizedBox(
-                      width: 40,
+                      width: 50,
                       child: Text('${e.value} ($pct%)', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 10), textAlign: TextAlign.end),
                     ),
                   ],
                 ),
               );
             }),
+            if (distribution.length > 10)
+              Text('+ ${distribution.length - 10} خيارات أخرى', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: AppTheme.textHint)),
+          ] else if (distribution.isNotEmpty && distribution.length > 15) ...[
+            // Too many values — show top 5
+            Text('أكثر الإجابات تكراراً:', style: TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: Colors.grey.shade600)),
+            const SizedBox(height: 4),
+            ...(() {
+              final sorted = distribution.entries.toList()
+                ..sort((a, b) => (b.value as int).compareTo(a.value as int));
+              return sorted.take(5).map((e) {
+                final pct = answered > 0 ? ((e.value / answered) * 100).toStringAsFixed(0) : '0';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(e.key, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11), overflow: TextOverflow.ellipsis)),
+                      Text('${e.value} ($pct%)', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: AppTheme.textSecondary)),
+                    ],
+                  ),
+                );
+              });
+            }()),
           ],
         ],
       ),
@@ -439,13 +650,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
   Widget _buildFilterTab(Map<String, dynamic> data) {
     final forms = (data['forms'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final govBreakdown = (data['governorateBreakdown'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final governorates = ref.watch(governoratesProvider).valueOrNull ?? [];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Form filter
+          // ═══ Form filter ═══
           _sectionTitle('فلتر حسب النموذج'),
           const SizedBox(height: 12),
           Container(
@@ -476,7 +688,49 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
           ),
           const SizedBox(height: 24),
 
-          // Period filter
+          // ═══ Governorate filter ═══
+          _sectionTitle('فلتر حسب المحافظة'),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String?>(
+                isExpanded: true,
+                value: _selectedGovernorateId,
+                hint: const Text('جميع المحافظات', style: TextStyle(fontFamily: 'Tajawal')),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('جميع المحافظات', style: TextStyle(fontFamily: 'Tajawal')),
+                  ),
+                  ...governorates.map((gov) => DropdownMenuItem<String?>(
+                    value: gov['id'] as String?,
+                    child: Text(gov['name_ar'] as String? ?? '', style: const TextStyle(fontFamily: 'Tajawal'), overflow: TextOverflow.ellipsis),
+                  )),
+                ],
+                onChanged: (v) => setState(() {
+                  _selectedGovernorateId = v;
+                  _selectedDistrictId = null; // Reset district when governorate changes
+                }),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // District filter (only when governorate is selected)
+          if (_selectedGovernorateId != null) ...[
+            _buildDistrictDropdown(),
+            const SizedBox(height: 12),
+          ],
+
+          const SizedBox(height: 12),
+
+          // ═══ Period filter ═══
           _sectionTitle('الفترة الزمنية'),
           const SizedBox(height: 12),
           Row(
@@ -488,9 +742,47 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
               _periodChip('90 يوم', '90d'),
             ],
           ),
+          const SizedBox(height: 16),
+
+          // ═══ Apply / Reset buttons ═══
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Filters are already applied reactively via _currentFilter
+                    _tabController.animateTo(0); // Go to overview to see results
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('تطبيق الفلاتر', style: TextStyle(fontFamily: 'Tajawal')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () => setState(() {
+                  _selectedFormId = null;
+                  _selectedGovernorateId = null;
+                  _selectedDistrictId = null;
+                  _selectedPeriod = '30d';
+                }),
+                icon: const Icon(Icons.refresh),
+                label: const Text('إعادة تعيين', style: TextStyle(fontFamily: 'Tajawal')),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
 
-          // Governorate breakdown
+          // ═══ Governorate breakdown ═══
           if (govBreakdown.isNotEmpty) ...[
             _sectionTitle('الإرساليات حسب المحافظة'),
             const SizedBox(height: 12),
@@ -501,35 +793,54 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10)],
               ),
               child: Column(
-                children: govBreakdown.take(10).map((gov) {
+                children: govBreakdown.take(15).map((gov) {
                   final name = gov['nameAr'] as String? ?? '';
                   final count = gov['count'] as int? ?? 0;
                   final maxCount = govBreakdown.first['count'] as int? ?? 1;
                   final pct = count / maxCount;
+                  final isSelected = _selectedGovernorateId == gov['id'];
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(name, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13)),
-                            ),
-                            Text('$count', style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700, fontSize: 14)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: pct,
-                            backgroundColor: Colors.grey.shade200,
-                            valueColor: const AlwaysStoppedAnimation(AppTheme.primaryColor),
-                            minHeight: 8,
+                  return InkWell(
+                    onTap: () => setState(() {
+                      _selectedGovernorateId = isSelected ? null : gov['id'] as String?;
+                      _selectedDistrictId = null;
+                    }),
+                    child: Container(
+                      color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.05) : null,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: TextStyle(
+                                    fontFamily: 'Tajawal',
+                                    fontSize: 13,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                              Text('$count', style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700, fontSize: 14)),
+                              if (isSelected) const Padding(
+                                padding: EdgeInsets.only(right: 4),
+                                child: Icon(Icons.check_circle, size: 16, color: AppTheme.primaryColor),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: pct,
+                              backgroundColor: Colors.grey.shade200,
+                              valueColor: AlwaysStoppedAnimation(isSelected ? AppTheme.primaryColor : AppTheme.primaryColor.withValues(alpha: 0.6)),
+                              minHeight: 8,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }).toList(),
@@ -538,11 +849,41 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
             const SizedBox(height: 24),
           ],
 
-          // Selected form detail
+          // ═══ Selected form detail ═══
           if (_selectedFormId != null) ...[
             _buildSelectedFormDetail(data),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDistrictDropdown() {
+    final districts = ref.watch(districtsProvider(_selectedGovernorateId)).valueOrNull ?? [];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String?>(
+          isExpanded: true,
+          value: _selectedDistrictId,
+          hint: const Text('جميع المديريات', style: TextStyle(fontFamily: 'Tajawal')),
+          items: [
+            const DropdownMenuItem<String?>(
+              value: null,
+              child: Text('جميع المديريات', style: TextStyle(fontFamily: 'Tajawal')),
+            ),
+            ...districts.map((d) => DropdownMenuItem<String?>(
+              value: d['id'] as String?,
+              child: Text(d['name_ar'] as String? ?? '', style: const TextStyle(fontFamily: 'Tajawal'), overflow: TextOverflow.ellipsis),
+            )),
+          ],
+          onChanged: (v) => setState(() => _selectedDistrictId = v),
+        ),
       ),
     );
   }
@@ -582,11 +923,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
 
     final questions = (selectedForm['questions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
     final titleAr = selectedForm['titleAr'] as String? ?? '';
+    final stats = selectedForm['stats'] as Map<String, dynamic>? ?? {};
+    final total = stats['total'] as int? ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionTitle('تحليل أسئلة: $titleAr'),
+        const SizedBox(height: 4),
+        Text('إجمالي الإرساليات: $total', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textHint)),
         const SizedBox(height: 12),
         if (questions.isEmpty)
           Container(
@@ -600,7 +945,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
             ),
           )
         else
-          ...questions.map((q) => _buildQuestionAnalysis(q)),
+          ...questions.asMap().entries.map((entry) => _buildQuestionAnalysis(entry.value, index: entry.key + 1)),
       ],
     );
   }
@@ -816,7 +1161,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
   }
 
   void _exportCSV() {
-    final analytics = ref.read(dashboardAnalyticsProvider);
+    final analytics = ref.read(dashboardAnalyticsProvider(_currentFilter));
     analytics.whenData((data) {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
       final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
@@ -843,7 +1188,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
   }
 
   void _exportText() {
-    final analytics = ref.read(dashboardAnalyticsProvider);
+    final analytics = ref.read(dashboardAnalyticsProvider(_currentFilter));
     analytics.whenData((data) {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
       final shortages = data['shortages'] as Map<String, dynamic>? ?? {};
@@ -875,7 +1220,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
         buffer.writeln('  • ${labels[entry.key] ?? entry.key}: ${entry.value}');
       }
 
-      // Per-form summary
       final forms = (data['forms'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       if (forms.isNotEmpty) {
         buffer.writeln('');
@@ -896,7 +1240,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
   }
 
   Future<void> _exportPDF() async {
-    final analytics = ref.read(dashboardAnalyticsProvider);
+    final analytics = ref.read(dashboardAnalyticsProvider(_currentFilter));
     analytics.whenData((data) async {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
       final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};

@@ -628,7 +628,7 @@ CREATE TABLE IF NOT EXISTS health_facilities (
 -- References table (NEW)
 -- ═══════════════════════════════════════
 
-CREATE TABLE IF NOT EXISTS references (
+CREATE TABLE IF NOT EXISTS doc_references (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title_ar TEXT NOT NULL,
   description_ar TEXT,
@@ -641,7 +641,7 @@ CREATE TABLE IF NOT EXISTS references (
   deleted_at TIMESTAMPTZ
 );
 
-ALTER TABLE references ENABLE ROW LEVEL SECURITY;
+ALTER TABLE doc_references ENABLE ROW LEVEL SECURITY;
 
 -- ═══════════════════════════════════════
 -- Dynamic Pages (from 010)

@@ -46,7 +46,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    final analytics = ref.watch(dashboardAnalyticsProvider);
+    final analytics = ref.watch(dashboardAnalyticsProvider(const AnalyticsFilter()));
     final authState = ref.watch(authStateProvider);
 
     return Scaffold(
@@ -78,12 +78,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(dashboardAnalyticsProvider),
+            onPressed: () => ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter())),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(dashboardAnalyticsProvider),
+        onRefresh: () async => ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter())),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
@@ -107,7 +107,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
                 loading: () => const EpiLoading.shimmer(),
                 error: (e, _) => EpiErrorWidget(
                   message: e.toString(),
-                  onRetry: () => ref.invalidate(dashboardAnalyticsProvider),
+                  onRetry: () => ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter())),
                 ),
                 data: (data) => _buildDashboard(context, ref, data),
               ),
@@ -568,7 +568,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
   }
 
   Future<void> _exportDashboardPDF() async {
-    final analytics = ref.read(dashboardAnalyticsProvider);
+    final analytics = ref.read(dashboardAnalyticsProvider(const AnalyticsFilter()));
     analytics.whenData((data) async {
       final submissions = data['submissions'] as Map<String, dynamic>? ?? {};
       final byStatus = submissions['byStatus'] as Map<String, dynamic>? ?? {};

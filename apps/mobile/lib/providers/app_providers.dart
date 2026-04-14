@@ -221,15 +221,64 @@ final submissionsProvider =
   },
 );
 
+/// Analytics filter for passing governorate/district/date/form filters to the provider.
+class AnalyticsFilter {
+  final String? governorateId;
+  final String? districtId;
+  final String? formId;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  const AnalyticsFilter({
+    this.governorateId,
+    this.districtId,
+    this.formId,
+    this.startDate,
+    this.endDate,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AnalyticsFilter &&
+          runtimeType == other.runtimeType &&
+          governorateId == other.governorateId &&
+          districtId == other.districtId &&
+          formId == other.formId &&
+          startDate == other.startDate &&
+          endDate == other.endDate;
+
+  @override
+  int get hashCode => Object.hash(governorateId, districtId, formId, startDate, endDate);
+
+  String get cacheKey {
+    final parts = ['dashboard_analytics'];
+    if (governorateId != null) parts.add('gov_$governorateId');
+    if (districtId != null) parts.add('dist_$districtId');
+    if (formId != null) parts.add('form_$formId');
+    if (startDate != null) parts.add('from_${startDate!.toIso8601String()}');
+    if (endDate != null) parts.add('to_${endDate!.toIso8601String()}');
+    return parts.join('_');
+  }
+}
+
 final dashboardAnalyticsProvider =
-    FutureProvider<Map<String, dynamic>>((ref) async {
-  final cache = await ref.watch(offlineDataCacheProvider.future);
-  return cache.getMap(
-    'dashboard_analytics',
-    () => ref.read(analyticsServiceProvider).getAnalytics(),
-    maxAge: const Duration(minutes: 30),
-  );
-});
+    FutureProvider.family<Map<String, dynamic>, AnalyticsFilter>(
+  (ref, filter) async {
+    final cache = await ref.watch(offlineDataCacheProvider.future);
+    return cache.getMap(
+      filter.cacheKey,
+      () => ref.read(analyticsServiceProvider).getAnalytics(
+            governorateId: filter.governorateId,
+            districtId: filter.districtId,
+            formId: filter.formId,
+            startDate: filter.startDate,
+            endDate: filter.endDate,
+          ),
+      maxAge: const Duration(minutes: 30),
+    );
+  },
+);
 
 final shortagesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final cache = await ref.watch(offlineDataCacheProvider.future);
