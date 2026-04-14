@@ -288,7 +288,7 @@ class DatabaseService {
 
       final response = await client
           .from('notifications')
-          .select('id', { count: 'exact', head: true })
+          .select('*', const FetchOptions(count: CountOption.exact, head: true))
           .eq('is_read', false);
 
       return response.count ?? 0;
