@@ -15,161 +15,144 @@ function corsHeaders(origin: string | null): Record<string, string> {
   }
 }
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
-const GEMINI_STREAM_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent'
+// ─── MiMo API Configuration (OpenAI-compatible) ───────────
+const MIMO_API_URL = 'https://api.xiaomimimo.com/v1/chat/completions'
+const MIMO_MODEL = 'mimo-v2-pro'
+
+const SYSTEM_PROMPT = `أنت مساعد ذكي متخصص في تحليل بيانات حملات التطعيم في اليمن (منصة مشرف EPI).
+مهامك:
+- تحليل بيانات الإرساليات والنواقص والإحصائيات
+- تقديم رؤى وتوصيات مبنية على البيانات
+- الإجابة باللغة العربية بشكل احترافي ومفيد
+- اقتراح حلول للمشاكل الميدانية
+- مقارنة الأداء بين المحافظات والفترات
+
+قواعد الإجابة:
+- كن دقيقاً ومختصراً
+- استخدم الأرقام من البيانات المتاحة
+- قدم توصيات عملية قابلة للتنفيذ
+- إذا لم تتوفر بيانات كافية، اطلب توضيحاً`
+
+function parseJwtPayload(token: string): { sub: string; email?: string; role?: string } | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.sub ? payload : null
+  } catch { return null }
+}
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
+  const origin = req.headers.get('Origin')
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) })
+
+  const jsonResponse = (data: unknown, status: number) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
+    })
 
   try {
-    // Auth check
+    // Auth
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
-    }
+    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401)
 
+    const token = authHeader.replace('Bearer ', '')
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    const token = authHeader.replace('Bearer ', '')
-    // Try getUser() first, fall back to JWT parsing
-    let user: any = null
+    let userId: string | null = null
     try {
-      const { data, error } = await supabase.auth.getUser()
-      if (!error && data.user) user = data.user
-    } catch { /* fallback below */ }
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (!error && user) userId = user.id
+    } catch { /* fallback */ }
 
-    if (!user) {
-      try {
-        const parts = token.split('.')
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-          if (payload.sub) { user = { id: payload.sub, email: payload.email }; console.warn('[Auth] JWT fallback:', user.id) }
-        }
-      } catch {}
+    if (!userId) {
+      const jwt = parseJwtPayload(token)
+      if (jwt) { userId = jwt.sub; console.warn('[Auth] JWT fallback:', userId) }
     }
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
-    }
+    if (!userId) return jsonResponse({ error: 'Unauthorized' }, 401)
 
     // Parse request
-    const { message, history = [], context, language = 'ar', mode, stream = false } = await req.json()
+    const { message, history = [], context, mode, stream = false } = await req.json()
+    if (!message) return jsonResponse({ error: 'Message is required' }, 400)
 
-    if (!message) {
-      return new Response(JSON.stringify({ error: 'Message is required' }), {
-        status: 400,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Check Gemini API key
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
-    if (!geminiApiKey) {
-      // Suggestions mode fallback
+    // Check MiMo API key
+    const mimoApiKey = Deno.env.get('MIMO_API_KEY') ?? Deno.env.get('GEMINI_API_KEY')
+    if (!mimoApiKey) {
       if (mode === 'suggestions') {
-        return new Response(JSON.stringify({
+        return jsonResponse({
           suggestions: [
             'ما هي المحافظات الأكثر نشاطاً في الإرسال؟',
             'ما أكثر النواقص شيوعاً هذا الشهر؟',
-            'كيف تقارن إرساليات هذا الأسبوع بالأسبوع الماضي؟'
+            'كيف تقارن إرساليات هذا الأسبوع بالأسبوع الماضي؟',
           ]
-        }), {
-          status: 200,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        }, 200)
       }
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'AI service not configured',
         reply: 'خدمة الذكاء الاصطناعي غير مُعدّة حالياً. يرجى التواصل مع مدير النظام.',
-      }), {
-        status: 200,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      }, 200)
     }
 
-    // Build context
-    let systemContext = ''
+    // Build messages (OpenAI format)
+    const messages: Array<{ role: string; content: string }> = []
+
+    // System prompt
+    let systemContent = SYSTEM_PROMPT
     if (context) {
-      systemContext = `
-أنت مساعد ذكي متخصص في تحليل بيانات حملات التطعيم في اليمن.
-قدم إجابات مفيدة ودقيقة باللغة العربية.
-البيانات المتاحة:
-${JSON.stringify(context, null, 2)}
-`
+      systemContent += `\n\nالبيانات المتاحة:\n${JSON.stringify(context, null, 2)}`
     }
-
-    // Build conversation
-    const contents = []
-    if (systemContext) {
-      contents.push({ role: 'user', parts: [{ text: systemContext }] })
-      contents.push({ role: 'model', parts: [{ text: 'فهمت. سأقوم بتحليل البيانات وتقديم رؤى مفيدة.' }] })
+    if (mode === 'suggestions') {
+      systemContent = 'اقترح 3 أسئلة تحليلية مفيدة لمستخدم منصة إشراف التطعيم. أرجع كل سؤال في سطر منفصل بدون ترقيم.'
     }
+    messages.push({ role: 'system', content: systemContent })
 
-    // Add history
+    // History (last 10 messages)
     for (const msg of history.slice(-10)) {
-      contents.push({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }]
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
       })
     }
 
-    // Add current message
-    contents.push({ role: 'user', parts: [{ text: message }] })
+    // Current message
+    messages.push({ role: 'user', content: message })
 
     const requestBody = {
-      contents,
-      generationConfig: {
-        maxOutputTokens: 2048,
-        temperature: 0.7,
-        ...(mode === 'suggestions' ? { responseMimeType: 'application/json' } : {}),
-      },
-      ...(mode === 'suggestions' ? {
-        systemInstruction: {
-          parts: [{ text: 'اقترح 3 أسئلة تحليلية مفيدة. أرجع النتيجة كـ JSON array من strings فقط.' }]
-        }
-      } : {}),
+      model: MIMO_MODEL,
+      messages,
+      max_tokens: 2048,
+      temperature: 0.7,
+      stream,
     }
 
     // ─── Streaming response ────────────────────────────────
     if (stream) {
-      const response = await fetch(GEMINI_STREAM_URL, {
+      const response = await fetch(MIMO_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-goog-api-key': geminiApiKey,
+          'Authorization': `Bearer ${mimoApiKey}`,
         },
-        body: JSON.stringify({ ...requestBody, alt: 'sse' }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
         const err = await response.text()
-        console.error('Gemini stream error:', err)
-        return new Response(JSON.stringify({
+        console.error('MiMo stream error:', err)
+        return jsonResponse({
           error: 'AI service error',
           reply: 'حدث خطأ في خدمة الذكاء الاصطناعي.'
-        }), {
-          status: 200,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        }, 200)
       }
 
-      // Stream SSE chunks to the client
       const reader = response.body?.getReader()
       if (!reader) {
-        return new Response(JSON.stringify({ error: 'Stream unavailable' }), {
-          status: 500,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ error: 'Stream unavailable' }, 500)
       }
 
       const { readable, writable } = new TransformStream()
@@ -177,7 +160,6 @@ ${JSON.stringify(context, null, 2)}
       const encoder = new TextEncoder()
       const decoder = new TextDecoder()
 
-      // Process stream in background
       ;(async () => {
         try {
           let buffer = ''
@@ -190,22 +172,25 @@ ${JSON.stringify(context, null, 2)}
             buffer = lines.pop() ?? ''
 
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6).trim()
-                if (data === '[DONE]') continue
-                try {
-                  const parsed = JSON.parse(data)
-                  const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text
-                  if (text) {
-                    await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-                  }
-                } catch { /* skip malformed JSON */ }
+              const trimmed = line.trim()
+              if (!trimmed || !trimmed.startsWith('data: ')) continue
+              const data = trimmed.slice(6)
+              if (data === '[DONE]') {
+                await writer.write(encoder.encode('data: [DONE]\n\n'))
+                continue
               }
+              try {
+                const parsed = JSON.parse(data)
+                const text = parsed.choices?.[0]?.delta?.content
+                if (text) {
+                  await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+                }
+              } catch { /* skip malformed */ }
             }
           }
           await writer.write(encoder.encode('data: [DONE]\n\n'))
         } catch (err) {
-          console.error('Stream processing error:', err)
+          console.error('Stream error:', err)
         } finally {
           await writer.close()
         }
@@ -214,7 +199,7 @@ ${JSON.stringify(context, null, 2)}
       return new Response(readable, {
         status: 200,
         headers: {
-          ...corsHeaders(req.headers.get('Origin')),
+          ...corsHeaders(origin),
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
@@ -222,12 +207,12 @@ ${JSON.stringify(context, null, 2)}
       })
     }
 
-    // ─── Non-streaming response (default) ──────────────────
-    const response = await fetch(GEMINI_API_URL, {
+    // ─── Non-streaming response ────────────────────────────
+    const response = await fetch(MIMO_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': geminiApiKey,
+        'Authorization': `Bearer ${mimoApiKey}`,
       },
       body: JSON.stringify(requestBody),
     })
@@ -235,49 +220,34 @@ ${JSON.stringify(context, null, 2)}
     const result = await response.json()
 
     if (!response.ok) {
-      console.error('Gemini error:', result)
-      return new Response(JSON.stringify({
+      console.error('MiMo error:', result)
+      return jsonResponse({
         error: 'AI service error',
         reply: 'حدث خطأ في خدمة الذكاء الاصطناعي. يرجى المحاولة لاحقاً.'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      }, 200)
     }
 
-    // Suggestions mode — parse as JSON
+    // Suggestions mode
     if (mode === 'suggestions') {
       try {
-        const text = result.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]'
-        const suggestions = JSON.parse(text)
-        return new Response(JSON.stringify({ suggestions }), {
-          status: 200,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        const text = result.choices?.[0]?.message?.content ?? ''
+        const suggestions = text.split('\n').filter((s: string) => s.trim().length > 5).slice(0, 3)
+        return jsonResponse({ suggestions }, 200)
       } catch {
-        return new Response(JSON.stringify({ suggestions: [] }), {
-          status: 200,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ suggestions: [] }, 200)
       }
     }
 
-    const reply = result.candidates?.[0]?.content?.parts?.[0]?.text ??
+    const reply = result.choices?.[0]?.message?.content ??
       'عذراً، لم أتمكن من معالجة طلبك.'
 
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-    })
+    return jsonResponse({ reply }, 200)
 
   } catch (error) {
     console.error('AI chat error:', error)
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Internal error',
       reply: 'حدث خطأ غير متوقع. يرجى المحاولة لاحقاً.'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-    })
+    }, 500)
   }
 })
