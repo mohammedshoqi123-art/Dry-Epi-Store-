@@ -281,17 +281,12 @@ class DatabaseService {
   /// Get unread notification count using efficient count query
   Future<int> getUnreadNotificationCount() async {
     try {
-      final client = SupabaseConfig.isConfigured
-          ? Supabase.instance.client
-          : null;
-      if (client == null) return 0;
-
-      final response = await client
-          .from('notifications')
-          .select('*', const FetchOptions(count: CountOption.exact, head: true))
-          .eq('is_read', false);
-
-      return response.count ?? 0;
+      final results = await _api.select(
+        'notifications',
+        select: 'id',
+        filters: {'is_read': false},
+      );
+      return results.length;
     } catch (_) {
       return 0;
     }
