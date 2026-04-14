@@ -1,64 +1,19 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
-
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allowed = ALLOWED_ORIGINS.includes('*')
-    ? '*'
-    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
-
-function parseJwtPayload(token: string): { sub: string; email?: string; role?: string } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    return payload.sub ? payload : null
-  } catch { return null }
-}
+import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
+import { authenticateRequest, createUserClient } from '../_shared/auth.ts'
 
 serve(async (req) => {
   const origin = req.headers.get('Origin')
-
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) })
-
-  const jsonResponse = (data: unknown, status: number) =>
-    new Response(JSON.stringify(data), {
-      status,
-      headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
-    })
 
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401)
+    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
 
-    const token = authHeader.replace('Bearer ', '')
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    // Try getUser() first, fall back to JWT parsing
-    let userId: string | null = null
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser()
-      if (!error && user) userId = user.id
-    } catch { /* fallback below */ }
-
-    if (!userId) {
-      const jwt = parseJwtPayload(token)
-      if (jwt) { userId = jwt.sub; console.warn('[Auth] JWT fallback:', userId) }
-    }
-
-    if (!userId) return jsonResponse({ error: 'Unauthorized' }, 401)
+    // Authenticate — no JWT fallback
+    const supabase = createUserClient(authHeader)
+    const auth = await authenticateRequest(supabase, authHeader)
+    if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
 
     const body = await req.json().catch(() => ({}))
     const { governorate_id, district_id, start_date, end_date, form_id } = body
@@ -145,10 +100,10 @@ serve(async (req) => {
       topGovernorates: [], forms: formAnalytics, governorateBreakdown: govBreakdown,
       generatedAt: new Date().toISOString(),
       filters: { governorate_id, district_id, start_date, end_date, form_id },
-    }, 200)
+    }, 200, origin)
 
   } catch (error) {
     console.error('Analytics error:', error)
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Internal server error' }, 500)
+    return jsonResponse({ error: error instanceof Error ? error.message : 'Internal server error' }, 500, origin)
   }
 })

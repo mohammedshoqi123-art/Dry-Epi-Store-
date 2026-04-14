@@ -42,9 +42,10 @@ class AppConfig {
   static const Duration realtimeHeartbeat = Duration(seconds: 30);
 
   // ─── AI ──────────────────────────────────────────────────────────────────
-  static const String geminiModel = 'gemini-1.5-flash';
+  static const String aiModel = 'mimo-v2-pro';
+  static const String aiProvider = 'xiaomi-mimo';
   static const int maxChatHistory = 20;
-  static const int geminiMaxTokens = 2048;
+  static const int aiMaxTokens = 2048;
 
   // ─── Environment ─────────────────────────────────────────────────────────
   static const String environment = String.fromEnvironment(

@@ -1,21 +1,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
+import { authenticateRequest, createUserClient, createAdminClient } from '../_shared/auth.ts'
 
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allowed = ALLOWED_ORIGINS.includes('*')
-    ? '*'
-    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
-
-// Role hierarchy: higher number = more privilege
 const ROLE_HIERARCHY: Record<string, number> = {
   admin: 5,
   central: 4,
@@ -23,119 +9,75 @@ const ROLE_HIERARCHY: Record<string, number> = {
   district: 2,
   data_entry: 1,
 }
-
 const VALID_ROLES = Object.keys(ROLE_HIERARCHY)
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
+  const origin = req.headers.get('Origin')
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) })
 
   try {
-    // ─── Authentication Check ──────────────────────────────────
     // ─── Internal Secret Check (defense in depth) ───────────
     const internalSecret = req.headers.get('x-internal-secret')
     const expectedSecret = Deno.env.get('CREATE_ADMIN_SECRET')
     if (expectedSecret && internalSecret !== expectedSecret) {
-      return new Response(JSON.stringify({ error: 'Invalid internal secret' }), {
-        status: 403,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-      })
+      return jsonResponse({ error: 'Invalid internal secret' }, 403, origin)
     }
 
+    // ─── Authentication ────────────────────────────────────
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-      })
+      return jsonResponse({ error: 'Missing authorization header' }, 401, origin)
     }
 
-    // Use service role key for admin operations
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    )
+    const supabaseAdmin = createAdminClient()
+    if (!supabaseAdmin) {
+      return jsonResponse({ error: 'Admin operations not configured' }, 500, origin)
+    }
 
-    // ─── Authorization: Verify caller is an admin ───────────────
-    // Extract the caller's JWT from the Authorization header
-    const jwt = authHeader.replace('Bearer ', '')
-    const { data: { user: caller }, error: callerError } =
-      await supabaseAdmin.auth.getUser(jwt)
-
-    if (callerError || !caller) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-        status: 401,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-      })
+    // Verify caller via admin client (validates JWT signature)
+    const supabase = createUserClient(authHeader)
+    const auth = await authenticateRequest(supabase, authHeader)
+    if (!auth) {
+      return jsonResponse({ error: 'Invalid or expired token' }, 401, origin)
     }
 
     // Check that the caller has admin role
     const { data: callerProfile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
-      .eq('id', caller.id)
+      .eq('id', auth.userId)
       .single()
 
     if (profileError || !callerProfile || callerProfile.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), {
-        status: 403,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-      })
+      return jsonResponse({ error: 'Forbidden: admin role required' }, 403, origin)
     }
 
-    // ─── Parse Request ─────────────────────────────────────────
+    // ─── Parse Request ─────────────────────────────────────
     const body = await req.json()
     const { email, password, full_name, role = 'admin' } = body
 
-    // Validate inputs
     if (!email || !password || !full_name) {
-      return new Response(
-        JSON.stringify({ error: 'email, password, and full_name are required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-        }
-      )
+      return jsonResponse({ error: 'email, password, and full_name are required' }, 400, origin)
     }
 
     if (!VALID_ROLES.includes(role)) {
-      return new Response(
-        JSON.stringify({
-          error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-        }
-      )
+      return jsonResponse({ error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` }, 400, origin)
     }
 
-    // ─── Role hierarchy enforcement ────────────────────────────
+    // ─── Role hierarchy enforcement ────────────────────────
     const callerLevel = ROLE_HIERARCHY[callerProfile.role]
     const targetLevel = ROLE_HIERARCHY[role]
     if (targetLevel >= callerLevel) {
-      return new Response(
-        JSON.stringify({
-          error: `Cannot assign role '${role}' — you can only assign roles lower than your own`,
-        }),
-        {
-          status: 403,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-        }
-      )
+      return jsonResponse({
+        error: `Cannot assign role '${role}' — you can only assign roles lower than your own`,
+      }, 403, origin)
     }
 
-    // ─── Check if User Already Exists ──────────────────────────
+    // ─── Check if User Already Exists ──────────────────────
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
     const existingUser = existingUsers?.users?.find((u) => u.email === email)
 
     if (existingUser) {
-      // User exists - check if profile exists and update role
       const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('id, role')
@@ -143,113 +85,56 @@ serve(async (req) => {
         .maybeSingle()
 
       if (profile) {
-        // Update role if different
         if (profile.role !== role) {
           await supabaseAdmin
             .from('profiles')
             .update({ role, full_name, updated_at: new Date().toISOString() })
             .eq('id', existingUser.id)
         }
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'User already exists. Profile updated.',
-            user: {
-              id: existingUser.id,
-              email: existingUser.email,
-              role: role,
-            },
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-          }
-        )
+        return jsonResponse({
+          success: true,
+          message: 'User already exists. Profile updated.',
+          user: { id: existingUser.id, email: existingUser.email, role },
+        }, 200, origin)
       } else {
-        // User exists in auth but no profile - create profile
         await supabaseAdmin.from('profiles').insert({
           id: existingUser.id,
-          email: email,
-          full_name: full_name,
-          role: role,
-        })
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'User existed in auth. Profile created.',
-            user: {
-              id: existingUser.id,
-              email: existingUser.email,
-              role: role,
-            },
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-          }
-        )
-      }
-    }
-
-    // ─── Create New Auth User ──────────────────────────────────
-    const { data: newUser, error: createError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
+          email,
           full_name,
           role,
-        },
-      })
+        })
+        return jsonResponse({
+          success: true,
+          message: 'User existed in auth. Profile created.',
+          user: { id: existingUser.id, email: existingUser.email, role },
+        }, 200, origin)
+      }
+    }
+
+    // ─── Create New Auth User ──────────────────────────────
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name, role },
+    })
 
     if (createError) {
-      return new Response(
-        JSON.stringify({ error: `Failed to create user: ${createError.message}` }),
-        {
-          status: 400,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-        }
-      )
+      return jsonResponse({ error: `Failed to create user: ${createError.message}` }, 400, origin)
     }
 
-    // Profile is auto-created by the handle_new_user() trigger
-    // But let's ensure it has the correct data
-    if (newUser?.user) {
-      await supabaseAdmin
-        .from('profiles')
-        .upsert({
-          id: newUser.user.id,
-          email: email,
-          full_name: full_name,
-          role: role,
-        })
-    }
+    return jsonResponse({
+      success: true,
+      message: 'User created successfully',
+      user: {
+        id: newUser.user.id,
+        email: newUser.user.email,
+        role,
+      },
+    }, 201, origin)
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'User created successfully',
-        user: {
-          id: newUser?.user?.id,
-          email: email,
-          role: role,
-        },
-      }),
-      {
-        status: 201,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-      }
-    )
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: `Internal error: ${(error as Error).message}` }),
-      {
-        status: 500,
-        headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-      }
-    )
+    console.error('Create admin error:', error)
+    return jsonResponse({ error: 'Internal server error' }, 500, origin)
   }
 })

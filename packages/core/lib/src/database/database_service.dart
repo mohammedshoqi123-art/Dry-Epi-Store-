@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../api/api_client.dart';
 
@@ -277,16 +278,20 @@ class DatabaseService {
     );
   }
 
-  /// Get unread notification count
+  /// Get unread notification count using efficient count query
   Future<int> getUnreadNotificationCount() async {
     try {
-      final results = await _api.select(
-        'notifications',
-        select: 'id',
-        filters: {'is_read': false},
-        limit: 1000,
-      );
-      return results.length;
+      final client = SupabaseConfig.isConfigured
+          ? Supabase.instance.client
+          : null;
+      if (client == null) return 0;
+
+      final response = await client
+          .from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_read', false);
+
+      return response.count ?? 0;
     } catch (_) {
       return 0;
     }

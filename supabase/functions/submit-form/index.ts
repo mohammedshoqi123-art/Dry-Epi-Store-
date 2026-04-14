@@ -1,19 +1,7 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
-
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allowed = ALLOWED_ORIGINS.includes('*')
-    ? '*'
-    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
+import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
+import { authenticateRequest, createUserClient } from '../_shared/auth.ts'
 
 // ─── Role hierarchy for permission validation ────────────────
 const ROLE_HIERARCHY: Record<string, number> = {
@@ -24,7 +12,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
   'data_entry': 1,
 }
 
-// ─── Rate limiting via DB (survives across stateless invocations) ──
+// ─── Rate limiting via DB (fail-closed for sensitive operations) ──
 async function checkRateLimit(
   supabase: ReturnType<typeof createClient>,
   userId: string,
@@ -39,15 +27,15 @@ async function checkRateLimit(
       p_max_requests: limit,
     })
     if (error) {
-      // RPC doesn't exist or failed — allow request (fail-open)
-      console.warn('Rate limit RPC error (allowing request):', error.message)
-      return true
+      // RPC failed — fail-closed for form submissions (sensitive operation)
+      console.error('Rate limit RPC error (blocking request):', error.message)
+      return false
     }
-    return data?.[0]?.allowed ?? true
+    return data?.[0]?.allowed ?? false
   } catch (e) {
-    // Fail-open: don't block submissions if rate limiting is broken
-    console.warn('Rate limit check failed (allowing request):', e)
-    return true
+    // Fail-closed: block submissions if rate limiting is broken
+    console.error('Rate limit check failed (blocking request):', e)
+    return false
   }
 }
 
@@ -77,7 +65,6 @@ async function validateSubmissionPermissions(
   switch (p.role) {
     case 'admin':
     case 'central':
-      // Can submit for any governorate/district
       return { valid: true }
 
     case 'governorate':
@@ -108,58 +95,32 @@ async function validateSubmissionPermissions(
 
 // ─── Main handler ────────────────────────────────────────────
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
+  const origin = req.headers.get('Origin')
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) })
 
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Missing authorization header' }, 401, origin)
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
+    const supabase = createUserClient(authHeader)
 
-    // Try getUser() first, fall back to JWT parsing
-    let user: any = null
-    try {
-      const { data, error } = await supabase.auth.getUser()
-      if (!error && data.user) user = data.user
-    } catch { /* fallback below */ }
-
-    if (!user) {
-      try {
-        const parts = token.split('.')
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-          if (payload.sub) {
-            user = { id: payload.sub, email: payload.email }
-            console.warn('[Auth] JWT fallback for user:', user.id)
-          }
-        }
-      } catch {}
+    // Authenticate — no JWT fallback, signature must be valid
+    const auth = await authenticateRequest(supabase, authHeader)
+    if (!auth) {
+      return jsonResponse({ error: 'Unauthorized' }, 401, origin)
     }
 
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
-    }
-
-    // ─── Rate Limiting ──────────────────────────────────────
-    if (!(await checkRateLimit(supabase, user.id))) {
+    // ─── Rate Limiting (fail-closed) ──────────────────────
+    if (!(await checkRateLimit(supabase, auth.userId))) {
       return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 10 submissions per minute.' }), {
         status: 429,
         headers: {
-          ...corsHeaders(req.headers.get('Origin')),
+          ...corsHeaders(origin),
           'Content-Type': 'application/json',
           'Retry-After': '60',
-        }
+        },
       })
     }
 
@@ -172,53 +133,38 @@ serve(async (req) => {
 
     // ─── Validate Required Fields ───────────────────────────
     if (!form_id || typeof form_id !== 'string') {
-      return new Response(JSON.stringify({ error: 'form_id is required and must be a string' }), {
-        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'form_id is required and must be a string' }, 400, origin)
     }
 
-    // Validate status enum
     const validStatuses = ['draft', 'submitted', 'reviewed', 'approved', 'rejected']
     if (!validStatuses.includes(status)) {
-      return new Response(JSON.stringify({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }), {
-        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, 400, origin)
     }
 
-    // Validate GPS coordinates if provided
     if (gps_lat !== undefined && gps_lat !== null) {
       if (typeof gps_lat !== 'number' || gps_lat < -90 || gps_lat > 90) {
-        return new Response(JSON.stringify({ error: 'Invalid gps_lat: must be between -90 and 90' }), {
-          status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ error: 'Invalid gps_lat: must be between -90 and 90' }, 400, origin)
       }
     }
     if (gps_lng !== undefined && gps_lng !== null) {
       if (typeof gps_lng !== 'number' || gps_lng < -180 || gps_lng > 180) {
-        return new Response(JSON.stringify({ error: 'Invalid gps_lng: must be between -180 and 180' }), {
-          status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ error: 'Invalid gps_lng: must be between -180 and 180' }, 400, origin)
       }
     }
 
-    // Validate payload size (max 1MB)
     const payloadSize = JSON.stringify(body).length
     if (payloadSize > 1024 * 1024) {
-      return new Response(JSON.stringify({ error: 'Payload too large (max 1MB)' }), {
-        status: 413, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Payload too large (max 1MB)' }, 413, origin)
     }
 
     // ─── Hierarchical Permission Check ──────────────────────
     const permCheck = await validateSubmissionPermissions(
-      supabase, user.id,
+      supabase, auth.userId,
       governorate_id ?? null,
       district_id ?? null
     )
     if (!permCheck.valid) {
-      return new Response(JSON.stringify({ error: permCheck.error }), {
-        status: 403, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: permCheck.error }, 403, origin)
     }
 
     // ─── Verify Form Exists ─────────────────────────────────
@@ -231,125 +177,79 @@ serve(async (req) => {
       .single()
 
     if (formError || !form) {
-      return new Response(JSON.stringify({ error: 'Form not found or inactive' }), {
-        status: 404, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Form not found or inactive' }, 404, origin)
     }
 
     // Get user profile for role check
     const { data: profile } = await supabase
       .from('profiles')
       .select('governorate_id, district_id, role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     // Check role permission against form's allowed_roles
     if (form.allowed_roles && profile?.role && !form.allowed_roles.includes(profile.role)) {
-      return new Response(JSON.stringify({ error: 'Your role does not have permission to submit this form' }), {
-        status: 403, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Your role does not have permission to submit this form' }, 403, origin)
     }
 
     // Check GPS requirement
-    if (form.requires_gps && (gps_lat === undefined || gps_lat === null || gps_lng === undefined || gps_lng === null)) {
-      return new Response(JSON.stringify({ error: 'GPS location is required for this form' }), {
-        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+    if (form.requires_gps && (gps_lat == null || gps_lng == null)) {
+      return jsonResponse({ error: 'This form requires GPS coordinates' }, 400, origin)
     }
 
     // Check photo requirement
     if (form.requires_photo && (!photos || photos.length === 0)) {
-      return new Response(JSON.stringify({ error: 'At least one photo is required for this form' }), {
-        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'This form requires at least one photo' }, 400, origin)
     }
 
-    // ─── Use authoritative profile values (NOT user-supplied) ────
-    // Only admin/central can override governorate/district
-    const effectiveGovId = (profile?.role === 'admin' || profile?.role === 'central')
-      ? (governorate_id || profile?.governorate_id || null)
-      : (profile?.governorate_id || null)
-
-    const effectiveDistId = (profile?.role === 'admin' || profile?.role === 'central')
-      ? (district_id || profile?.district_id || null)
-      : (profile?.district_id || null)
-
+    // ─── Insert Submission ─────────────────────────────────
     const submissionData = {
       form_id,
-      submitted_by: user.id,
-      governorate_id: effectiveGovId,
-      district_id: effectiveDistId,
+      submitted_by: auth.userId,
+      governorate_id: governorate_id || profile?.governorate_id || null,
+      district_id: district_id || profile?.district_id || null,
       status,
       data: formData || {},
       gps_lat: gps_lat || null,
       gps_lng: gps_lng || null,
       gps_accuracy: gps_accuracy || null,
-      photos: Array.isArray(photos) ? photos : [],
+      photos: photos || [],
       notes: notes || null,
       offline_id: offline_id || null,
       device_id: device_id || null,
       app_version: app_version || null,
       is_offline,
-      submitted_at: status === 'submitted' ? new Date().toISOString() : null,
+      submitted_at: new Date().toISOString(),
       synced_at: is_offline ? new Date().toISOString() : null,
     }
 
-    // ─── Check for duplicate offline submission (Idempotency) ────
-    if (offline_id) {
-      const { data: existing } = await supabase
-        .from('form_submissions')
-        .select('id, status')
-        .eq('offline_id', offline_id)
-        .maybeSingle()
-
-      if (existing) {
-        return new Response(JSON.stringify({
-          success: true,
-          status: 'duplicate',
-          submission: existing,
-          offline_id
-        }), {
-          status: 200,
-          headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
-      }
-    }
-
-    const { data: submission, error: submitError } = await supabase
+    const { data: submission, error: insertError } = await supabase
       .from('form_submissions')
       .insert(submissionData)
-      .select()
+      .select('id, status, created_at')
       .single()
 
-    if (submitError) {
-      console.error('Submit error:', submitError)
-      return new Response(JSON.stringify({ error: submitError.message }), {
-        status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+    if (insertError) {
+      if (insertError.code === '23505') {
+        // Unique constraint violation — duplicate offline_id
+        return jsonResponse({
+          success: true,
+          message: 'Duplicate submission detected',
+          duplicate: true,
+        }, 200, origin)
+      }
+      return jsonResponse({ error: `Submission failed: ${insertError.message}` }, 400, origin)
     }
 
-    // Log audit (fire-and-forget)
-    await supabase.from('audit_logs').insert({
-      user_id: user.id,
-      action: 'submit',
-      table_name: 'form_submissions',
-      record_id: submission.id,
-      metadata: { form_id, is_offline, offline_id, governorate_id: effectiveGovId }
-    }).then(() => {}).catch(() => {})
-
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
-      submission,
-      offline_id
-    }), {
-      status: 201,
-      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-    })
+      submission_id: submission.id,
+      status: submission.status,
+      created_at: submission.created_at,
+    }, 201, origin)
+
   } catch (error) {
-    console.error('Unhandled error:', error)
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }), {
-      status: 500,
-      headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-    })
+    console.error('Submit form error:', error)
+    return jsonResponse({ error: 'Internal server error' }, 500, origin)
   }
 })

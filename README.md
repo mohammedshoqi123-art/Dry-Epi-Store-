@@ -2,10 +2,11 @@
 
 <div align="center">
 
-![EPI Supervisor](https://img.shields.io/badge/Platform-Flutter%203.19+-blue?style=for-the-badge&logo=flutter)
-![Backend](https://img.shields.io/badge/Backend-Supabase-green?style=for-the-badge&logo=supabase)
+![Flutter](https://img.shields.io/badge/Flutter-3.19+-blue?style=for-the-badge&logo=flutter&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-green?style=for-the-badge&logo=supabase&logoColor=white)
+![MiMo AI](https://img.shields.io/badge/MiMo-AI-orange?style=for-the-badge&logo=xiaomi&logoColor=white)
 ![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.0.0-orange?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen?style=for-the-badge)
 
 **نظام إشراف ميداني متكامل لحملات التطعيم**  
 *Field Supervision System for Immunization Campaigns*
@@ -16,8 +17,11 @@
 
 ## 📋 نظرة عامة
 
-منصة **مشرف EPI** هي نظام SaaS متكامل لإدارة والإشراف على حملات التطعيم الميداني في اليمن.  
-تتيح المنصة للمشرفين على مختلف المستويات الإدارية (مركزي، محافظة، منطقة، مدخل بيانات) إدارة النماذج الميدانية، تتبع النواقص، ومراقبة الأداء.
+منصة **مشرف EPI** هي نظام SaaS متكامل لإدارة والإشراف على حملات التطعيم الميدانية في اليمن.
+
+تتيح المنصة للمشرفين على مختلف المستويات الإدارية إدارة النماذج الميدانية، تتبع النواقص، ومراقبة الأداء — حتى بدون إنترنت.
+
+---
 
 ## ✨ المميزات الرئيسية
 
@@ -28,159 +32,200 @@
 | 📡 Offline First | عمل كامل بدون إنترنت مع مزامنة تلقائية |
 | 🗺️ خرائط تفاعلية | OpenStreetMap + clustering + heatmap |
 | 📊 تحليلات | لوحة KPI مع رسوم بيانية وتصدير CSV/PDF |
-| 🤖 ذكاء اصطناعي | مساعد Gemini للتحليل والرؤى باللغة العربية |
+| 🤖 ذكاء اصطناعي | مساعد MiMo للتحليل والرؤى باللغة العربية |
 | 🔔 مراقبة | Sentry + Supabase logs |
-| 📱 متعدد المنصات | Android APK + Web (موحّد) |
+| 📱 متعدد المنصات | Android APK + Web |
+
+---
 
 ## 🏗️ البنية المعمارية
 
 ```
-supervisor app/
+EPI-Supervisor/
 ├── apps/
-│   ├── mobile/          # Flutter app (Android + Web PWA)
-│   └── web/             # Flutter Web (مخصص للويب)
+│   └── mobile/                    # Flutter App (Android + Web PWA)
+│       ├── lib/
+│       │   ├── main.dart          # نقطة الدخول الرئيسية
+│       │   ├── router/            # التوجيه (go_router)
+│       │   └── providers/         # حالة التطبيق (Riverpod)
+│       └── test/                  # الاختبارات
 ├── packages/
-│   ├── core/            # Business logic, API, Auth, Offline, Sync, AI
-│   ├── shared/          # UI components, Theme, Extensions, Strings
-│   └── features/        # Feature modules (Forms, Maps, Analytics, Chat)
+│   ├── core/                      # منطق العمل، API، Auth، Offline، Sync
+│   │   └── lib/src/
+│   │       ├── auth/              # المصادقة وإدارة الجلسات
+│   │       ├── api/               # عميل API الموحد
+│   │       ├── offline/           # نظام Offline-First
+│   │       ├── security/          # التشفير و RBAC
+│   │       ├── ai/                # خدمات الذكاء الاصطناعي
+│   │       └── database/          # خدمات قاعدة البيانات
+│   ├── shared/                    # مكونات UI، Theme، Models
+│   └── features/                  # وحدات الميزات (لوحة الإدارة، إنشاء النماذج)
 ├── supabase/
-│   ├── functions/       # 8 Edge Functions (Deno/TypeScript)
-│   │   ├── admin-actions/
-│   │   ├── ai-chat/
-│   │   ├── create-admin/
-│   │   ├── get-analytics/
-│   │   ├── get-dashboard-stats/
-│   │   ├── get-governorate-report/
-│   │   ├── submit-form/
-│   │   ├── sync-offline/
-│   │   ├── ai-chat/
-│   │   └── sync-offline/
-│   └── migrations/
-│       ├── 001_initial_schema.sql  # Schema + RLS + Triggers
-│       └── 002_seed_data.sql       # 19 محافظة + بيانات تجريبية
-├── scripts/
-│   ├── build_and_deploy.ps1  # بناء APK + Web
-│   └── setup_supabase.ps1    # إعداد Supabase
-└── .env.example              # متغيرات البيئة
+│   ├── functions/                 # 7 Edge Functions (Deno/TypeScript)
+│   │   ├── _shared/               # 🔗 وظائف مشتركة (Auth, CORS)
+│   │   ├── submit-form/           # إرسال النماذج
+│   │   ├── sync-offline/          # مزامنة البيانات غير المتصلة
+│   │   ├── ai-chat/               # محادثة AI
+│   │   ├── get-analytics/         # الإحصائيات
+│   │   ├── get-dashboard-stats/   # إحصائيات لوحة التحكم
+│   │   ├── get-governorate-report/# تقارير المحافظات
+│   │   ├── admin-actions/         # إدارة المستخدمين
+│   │   └── create-admin/          # إنشاء مدير
+│   └── migrations/                # هيكل قاعدة البيانات
+│       ├── 001_schema.sql         # الجداول + RLS + المشغلات
+│       └── 002_seed_data.sql      # 19 محافظة + بيانات تجريبية
+├── scripts/                       # سكريبتات البناء والنشر
+├── melos.yaml                     # إدارة Monorepo
+└── .github/workflows/ci.yml       # CI/CD Pipeline
 ```
 
-## 🚀 خطوات التشغيل
+---
 
-### المتطلبات
+## 🚀 دليل التشغيل
 
-- Flutter SDK 3.19+
-- Dart SDK 3.3+
-- حساب Supabase
-- مفتاح Gemini API
+### المتطلبات الأساسية
 
-### 1. إعداد المشروع
+| الأداة | الإصدار المطلوب | الرابط |
+|--------|-----------------|--------|
+| Flutter SDK | 3.19+ | [flutter.dev](https://flutter.dev) |
+| Dart SDK | 3.3+ | مُرفق مع Flutter |
+| Supabase CLI | أحدث | `npm install -g supabase` |
+| حساب Supabase | — | [supabase.com](https://supabase.com) |
+| مفتاح MiMo AI (اختياري) | — | [api.xiaomimimo.com](https://api.xiaomimimo.com) |
 
-```powershell
+### الخطوة 1: إعداد المشروع
+
+```bash
+# استنساخ المشروع
+git clone https://github.com/mohammedshoqi123-art/EPI-Supervisor.git
+cd EPI-Supervisor
+
 # نسخ ملف البيئة
-Copy-Item .env.example .env
+cp .env.example .env
 
 # تعديل القيم في .env
-notepad .env
+nano .env  # أو أي محرر نصوص
 ```
 
-### 2. إعداد Supabase
+### الخطوة 2: إعداد Supabase
 
-```powershell
-# تثبيت Supabase CLI
-npm install -g supabase
-
-# تسجيل الدخول
+```bash
+# تسجيل الدخول إلى Supabase CLI
 supabase login
 
-# إعداد كامل (migrations + seed + functions + admin)
-.\scripts\setup_supabase.ps1 `
-  -projectRef "YOUR_PROJECT_REF" `
-  -supabaseUrl "https://YOUR_PROJECT.supabase.co" `
-  -serviceRoleKey "YOUR_SERVICE_ROLE_KEY" `
-  -geminiApiKey "YOUR_GEMINI_KEY"
+# ربط المشروع
+supabase link --project-ref YOUR_PROJECT_REF
+
+# تطبيق migrations
+supabase db push
+
+# نشر Edge Functions
+supabase functions deploy
 ```
 
-### 3. تشغيل التطبيق محلياً
+### الخطوة 3: متغيرات البيئة في Supabase Edge Functions
 
-```powershell
-cd apps\mobile
+اضف المتغيرات التالية في Supabase Dashboard → Edge Functions → Secrets:
+
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+MIMO_API_KEY=your-mimo-api-key
+ALLOWED_ORIGINS=https://your-domain.com,http://localhost:3000
+CREATE_ADMIN_SECRET=your-random-secret
+```
+
+> ⚠️ **لا تضع `*` في `ALLOWED_ORIGINS` في الإنتاج!** حدد النطاقات المسموحة فقط.
+
+### الخطوة 4: تشغيل التطبيق
+
+```bash
+cd apps/mobile
 
 # تثبيت الحزم
 flutter pub get
 
-# تشغيل في وضع debug
+# تشغيل على Android
 flutter run --dart-define=SUPABASE_URL="https://..." --dart-define=SUPABASE_ANON_KEY="..."
 
 # تشغيل على الويب
 flutter run -d chrome --dart-define=SUPABASE_URL="..." --dart-define=SUPABASE_ANON_KEY="..."
 ```
 
-### 4. بناء APK (Release)
+### الخطوة 5: بناء APK
 
-```powershell
-.\scripts\build_and_deploy.ps1 -apk `
-  -supabaseUrl "https://YOUR_PROJECT.supabase.co" `
-  -supabaseAnonKey "YOUR_ANON_KEY" `
-  -geminiApiKey "YOUR_GEMINI_KEY"
-
-# APK يُحفظ في: build\outputs\epi-supervisor-v1.0.0.apk
+```bash
+flutter build apk --release \
+  --dart-define=SUPABASE_URL="https://..." \
+  --dart-define=SUPABASE_ANON_KEY="..." \
+  --dart-define=ENCRYPTION_KEY="your-32-char-minimum-key"
 ```
 
-### 5. بناء ونشر الويب
+---
 
-```powershell
-.\scripts\build_and_deploy.ps1 -web `
-  -supabaseUrl "https://YOUR_PROJECT.supabase.co" `
-  -supabaseAnonKey "YOUR_ANON_KEY"
+## 🔐 نظام الصلاحيات (RBAC)
 
-# نشر على Vercel
-vercel deploy build\outputs\web --prod
+| الدور | المستوى | الصلاحيات |
+|-------|---------|-----------|
+| **admin** | 5 | وصول كامل — إدارة المستخدمين، النماذج، المحافظات |
+| **central** | 4 | رؤية كل البيانات، إدارة النماذج، الموافقة/الرفض |
+| **governorate** | 3 | رؤية بيانات محافظته، الموافقة/الرفض، التصدير، AI |
+| **district** | 2 | رؤية بيانات مديريته، التصدير |
+| **data_entry** | 1 | إرسال النماذج، رؤية بياناته فقط |
 
-# أو خدمة محلية
-cd build\outputs\web
-python -m http.server 8080
-```
-
-## 🔐 بيانات الدخول الافتراضية
-
-> ⚠️ **كلمة المرور الافتراضية موجودة في `.env.example` — غيّرها فوراً بعد أول تسجيل دخول!**
-
-يتم إنشاء حساب Admin أثناء تشغيل `setup_supabase.ps1` أو `scripts/setup.sh`.
-راجع ملف `.env` للحصول على الإيميل وكلمة المرور.
+---
 
 ## 🗄️ قاعدة البيانات
 
 | الجدول | الغرض |
 |--------|--------|
 | `profiles` | بيانات المستخدمين + الأدوار |
-| `governorates` | المحافظات (محافظات يمنية) + GIS |
-| `districts` | المناطق/المديريات |
+| `governorates` | 19 محافظة يمنية + بيانات GIS |
+| `districts` | المديريات التابعة للمحافظات |
 | `forms` | تعريفات النماذج (JSON Schema) |
-| `form_submissions` | بيانات الإرساليات + GPS + الصور |
+| `form_submissions` | الإرساليات + GPS + الصور |
 | `supply_shortages` | نواقص التجهيزات |
 | `audit_logs` | سجل تدقيق غير قابل للتعديل |
+| `health_facilities` | المنشآت الصحية |
+| `notifications` | إشعارات المستخدمين |
+| `app_settings` | إعدادات التطبيق |
+
+---
+
+## 📡 نظام Offline-First
+
+المنصة تعمل بشكل كامل بدون إنترنت:
+
+1. **الحفظ المحلي أولاً** — كل البيانات تُحفظ في Hive أولاً
+2. **طابور المزامنة** — أولويات: Critical → High → Normal → Low
+3. **إعادة المحاولة التلقائية** — 10s → 30s → 90s → 5min → 15min
+4. **حل التعارضات** — 4 استراتيجيات (Smart Merge)
+5. **مزامنة تلقائية** — كل 5 دقائق + عند استعادة الاتصال
+
+---
 
 ## 🔒 الأمان
 
+- ✅ AES-256-GCM مع PBKDF2 (100,000 iterations) للتشفير المحلي
 - ✅ Row Level Security على جميع الجداول
-- ✅ تشفير التخزين المحلي (AES XOR)
-- ✅ JWT validation في كل Edge Function
-- ✅ Rate limiting للـ API
+- ✅ JWT validation في كل Edge Function (بدون fallback غير آمن)
+- ✅ Rate limiting (10 طلبات/دقيقة) مع fail-closed
+- ✅ CORS مقيد بنطاق محدد
 - ✅ Audit logs لجميع العمليات
 - ✅ Soft delete لجميع السجلات
 
-## 📦 Edge Functions
+---
 
-| الوظيفة | الغرض |
-|---------|--------|
-| `create-admin` | إنشاء مستخدم admin |
-| `admin-actions` | إدارة المستخدمين (تعديل الدور، تعطيل، حذف) |
-| `submit-form` | إرسال النماذج مع التحقق |
-| `get-analytics` | تجميع إحصائيات KPI |
-| `ai-chat` | محادثة Gemini + رؤى |
-| `sync-offline` | مزامنة الإرساليات الغير متصل |
+## 🔄 CI/CD Pipeline
 
-## 🤖 التقنيات المستخدمة
+```
+push to main → Analyze & Test → Build APK → Build Web → Deploy Pages → Deploy Functions
+```
+
+---
+
+## 📦 التقنيات المستخدمة
 
 **Frontend:**
 - Flutter 3.19+ (Dart)
@@ -199,10 +244,12 @@ python -m http.server 8080
 - Row Level Security
 
 **AI:**
-- Google Gemini 1.5 Flash (Arabic)
+- MiMo API (Xiaomi) — OpenAI-compatible endpoint
 
 ---
 
 <div align="center">
+
 Built with ❤️ | منصة مشرف EPI v1.0.0
+
 </div>

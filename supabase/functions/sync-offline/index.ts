@@ -1,29 +1,18 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
+import { authenticateRequest, createUserClient, createAdminClient } from '../_shared/auth.ts'
 
 /**
- * EPI Supervisor — Offline Sync Edge Function (v3)
+ * EPI Supervisor — Offline Sync Edge Function (v4)
  *
- * v3 Fixes:
- * - Graceful fallback if SERVICE_ROLE_KEY not configured
+ * v4 Fixes:
+ * - Uses shared auth module (no JWT fallback)
+ * - Uses shared CORS module (consistent headers)
  * - Per-item error isolation (one bad item doesn't kill the batch)
  * - Better duplicate detection with submitted_by filter
- * - Timeout protection per item
+ * - Graceful fallback if SERVICE_ROLE_KEY not configured
  */
-
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allowed = ALLOWED_ORIGINS.includes('*')
-    ? '*'
-    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
 
 const MAX_BATCH_SIZE = 50
 
@@ -55,79 +44,45 @@ type SyncResult = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
+  const origin = req.headers.get('Origin')
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) })
 
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401)
+    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
 
-    // User-authenticated client (for auth verification)
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    // Try getUser() first, fall back to JWT parsing
-    let user: any = null
-    try {
-      const { data, error } = await supabase.auth.getUser()
-      if (!error && data.user) user = data.user
-    } catch { /* fallback below */ }
-
-    if (!user) {
-      try {
-        const parts = authHeader.replace('Bearer ', '').split('.')
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-          if (payload.sub) {
-            user = { id: payload.sub, email: payload.email }
-            console.warn('[Auth] JWT fallback for user:', user.id)
-          }
-        }
-      } catch {}
-    }
-
-    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401)
+    // Authenticate — no JWT fallback
+    const supabase = createUserClient(authHeader)
+    const auth = await authenticateRequest(supabase, authHeader)
+    if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
 
     // Parse body
     const body = await req.json()
     const items: SyncItem[] = body.items ?? []
 
     if (!Array.isArray(items) || items.length === 0) {
-      return jsonResponse({ results: [], errors: [], message: 'No items to sync' }, 200)
+      return jsonResponse({ results: [], errors: [], message: 'No items to sync' }, 200, origin)
     }
 
     if (items.length > MAX_BATCH_SIZE) {
-      return jsonResponse({ error: `Batch too large: ${items.length} items (max ${MAX_BATCH_SIZE})` }, 400)
+      return jsonResponse({ error: `Batch too large: ${items.length} items (max ${MAX_BATCH_SIZE})` }, 400, origin)
     }
 
-    // ✅ FIX: Try admin client first, fall back to user client
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    let admin: ReturnType<typeof createClient>
-    let useAdmin = false
-
-    if (serviceKey && serviceKey.length > 10) {
-      admin = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        serviceKey,
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      )
-      useAdmin = true
-    } else {
-      // ✅ FIX: Fall back to user client instead of crashing
+    // Admin client with fallback to user client
+    const admin = createAdminClient() ?? supabase
+    const useAdmin = createAdminClient() !== null
+    if (!useAdmin) {
       console.warn('SUPABASE_SERVICE_ROLE_KEY not configured — using user client (RLS applies)')
-      admin = supabase
     }
 
     // Fetch user profile once
     const { data: profile } = await admin
       .from('profiles')
       .select('governorate_id, district_id, role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
-    // ✅ FIX: Pre-check existing offline_ids with submitted_by filter for accuracy
+    // Pre-check existing offline_ids with submitted_by filter
     const offlineIds = items.filter(i => i.offline_id).map(i => i.offline_id!)
     const existingMap = new Map<string, { id: string; updated_at: string }>()
 
@@ -136,7 +91,7 @@ serve(async (req) => {
         .from('form_submissions')
         .select('offline_id, id, updated_at')
         .in('offline_id', offlineIds)
-        .eq('submitted_by', user.id)
+        .eq('submitted_by', auth.userId)
         .is('deleted_at', null)
 
       if (existing) {
@@ -168,10 +123,9 @@ serve(async (req) => {
           continue
         }
 
-        // ✅ FIX: Add submitted_by to ensure RLS compliance
         const submissionData: Record<string, unknown> = {
           form_id: item.form_id,
-          submitted_by: user.id,
+          submitted_by: auth.userId,
           governorate_id: item.governorate_id || profile?.governorate_id || null,
           district_id: item.district_id || profile?.district_id || null,
           status: 'submitted',
@@ -196,7 +150,6 @@ serve(async (req) => {
           .single()
 
         if (insertError) {
-          // ✅ FIX: Handle unique constraint violation as duplicate
           if (insertError.code === '23505') {
             results.push({ offline_id: offlineId, status: 'duplicate', error: 'Already exists' })
             continue
@@ -207,10 +160,10 @@ serve(async (req) => {
 
         results.push({ offline_id: offlineId, status: 'synced', submission_id: submission.id })
 
-        // Audit log (fire-and-forget, don't block on errors)
+        // Audit log (fire-and-forget)
         try {
           admin.from('audit_logs').insert({
-            user_id: user.id,
+            user_id: auth.userId,
             action: 'create',
             table_name: 'form_submissions',
             record_id: submission.id,
@@ -241,21 +194,15 @@ serve(async (req) => {
         conflicts: 0,
         failed: errors.length,
       },
-    }, 200)
+    }, 200, origin)
 
   } catch (error) {
     console.error('Sync error:', error)
+    const origin = req.headers.get('Origin')
     return jsonResponse({
       error: error instanceof Error ? error.message : 'Internal server error',
       results: [],
       errors: [{ status: 'error', error: error instanceof Error ? error.message : 'Internal server error' }],
-    }, 500)
+    }, 500, origin)
   }
 })
-
-function jsonResponse(data: unknown, status: number) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' },
-  })
-}

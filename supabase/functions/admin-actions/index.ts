@@ -1,19 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
-
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map(s => s.trim())
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const allowed = ALLOWED_ORIGINS.includes('*')
-    ? '*'
-    : (origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '*')
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-  }
-}
+import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
+import { authenticateRequest, createUserClient, createAdminClient } from '../_shared/auth.ts'
 
 const ROLE_HIERARCHY: Record<string, number> = {
   admin: 5,
@@ -24,67 +11,38 @@ const ROLE_HIERARCHY: Record<string, number> = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
+  const origin = req.headers.get('Origin')
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(origin) })
 
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Unauthorized' }, 401, origin)
     }
 
-    // Client with user auth (for permission check)
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    // Verify auth
-    const token = authHeader.replace('Bearer ', '')
-    // Try getUser() first, fall back to JWT parsing
-    let user: any = null
-    try {
-      const { data, error } = await supabase.auth.getUser()
-      if (!error && data.user) user = data.user
-    } catch { /* fallback below */ }
-
-    if (!user) {
-      try {
-        const parts = token.split('.')
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-          if (payload.sub) { user = { id: payload.sub, email: payload.email }; console.warn('[Auth] JWT fallback:', user.id) }
-        }
-      } catch {}
-    }
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+    // Authenticate — no JWT fallback
+    const supabase = createUserClient(authHeader)
+    const auth = await authenticateRequest(supabase, authHeader)
+    if (!auth) {
+      return jsonResponse({ error: 'Unauthorized' }, 401, origin)
     }
 
     // Check if user is admin
     const { data: callerProfile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (callerProfile?.role !== 'admin') {
-      return new Response(JSON.stringify({ error: 'Admin access required' }), {
-        status: 403, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-      })
+      return jsonResponse({ error: 'Admin access required' }, 403, origin)
     }
 
     // Admin client (bypasses RLS)
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const supabaseAdmin = createAdminClient()
+    if (!supabaseAdmin) {
+      return jsonResponse({ error: 'Admin operations not configured' }, 500, origin)
+    }
 
     const body = await req.json()
     const { action } = body
@@ -93,14 +51,10 @@ serve(async (req) => {
       case 'update_role': {
         const { user_id, role, governorate_id, district_id } = body
         if (!user_id || !role) {
-          return new Response(JSON.stringify({ error: 'user_id and role are required' }), {
-            status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-          })
+          return jsonResponse({ error: 'user_id and role are required' }, 400, origin)
         }
         if (!ROLE_HIERARCHY[role]) {
-          return new Response(JSON.stringify({ error: `Invalid role: ${role}` }), {
-            status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-          })
+          return jsonResponse({ error: `Invalid role: ${role}` }, 400, origin)
         }
 
         const updateData: Record<string, unknown> = {
@@ -116,22 +70,16 @@ serve(async (req) => {
           .eq('id', user_id)
 
         if (updateError) {
-          return new Response(JSON.stringify({ error: updateError.message }), {
-            status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-          })
+          return jsonResponse({ error: updateError.message }, 400, origin)
         }
 
-        return new Response(JSON.stringify({ success: true, message: 'Role updated' }), {
-          status: 200, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ success: true, message: 'Role updated' }, 200, origin)
       }
 
       case 'toggle_active': {
         const { user_id, is_active } = body
         if (!user_id || is_active === undefined) {
-          return new Response(JSON.stringify({ error: 'user_id and is_active are required' }), {
-            status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-          })
+          return jsonResponse({ error: 'user_id and is_active are required' }, 400, origin)
         }
 
         const { error: toggleError } = await supabaseAdmin
@@ -140,29 +88,21 @@ serve(async (req) => {
           .eq('id', user_id)
 
         if (toggleError) {
-          return new Response(JSON.stringify({ error: toggleError.message }), {
-            status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-          })
+          return jsonResponse({ error: toggleError.message }, 400, origin)
         }
 
-        return new Response(JSON.stringify({ success: true, message: is_active ? 'User activated' : 'User deactivated' }), {
-          status: 200, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ success: true, message: is_active ? 'User activated' : 'User deactivated' }, 200, origin)
       }
 
       case 'delete_user': {
         const { user_id } = body
         if (!user_id) {
-          return new Response(JSON.stringify({ error: 'user_id is required' }), {
-            status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-          })
+          return jsonResponse({ error: 'user_id is required' }, 400, origin)
         }
 
         // Prevent self-deletion
-        if (user_id === user.id) {
-          return new Response(JSON.stringify({ error: 'Cannot delete your own account' }), {
-            status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-          })
+        if (user_id === auth.userId) {
+          return jsonResponse({ error: 'Cannot delete your own account' }, 400, origin)
         }
 
         // Soft delete profile
@@ -171,25 +111,19 @@ serve(async (req) => {
           .update({ deleted_at: new Date().toISOString(), is_active: false })
           .eq('id', user_id)
 
-        // Disable auth user (can't delete via admin API easily, so we disable)
+        // Disable auth user
         await supabaseAdmin.auth.admin.updateUserById(user_id, {
           ban_duration: '876000h', // ~100 years
         })
 
-        return new Response(JSON.stringify({ success: true, message: 'User deleted' }), {
-          status: 200, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ success: true, message: 'User deleted' }, 200, origin)
       }
 
       default:
-        return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
-          status: 400, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-        })
+        return jsonResponse({ error: `Unknown action: ${action}` }, 400, origin)
     }
   } catch (error) {
     console.error('Admin action error:', error)
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
-    })
+    return jsonResponse({ error: 'Internal server error' }, 500, origin)
   }
 })
