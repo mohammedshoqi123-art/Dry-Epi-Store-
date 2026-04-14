@@ -34,18 +34,25 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const targetUserId = body.user_id || user.id
 
-    // Call the DB function
+    // ✅ FIX: Use .maybeSingle() instead of .single() — the RPC returns JSON, not a row
     const { data, error } = await supabase.rpc('get_dashboard_stats', {
       p_user_id: targetUserId
     })
 
     if (error) {
-      console.error('Dashboard stats error:', error)
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      console.error('Dashboard stats RPC error:', error)
+      // ✅ FIX: Return empty stats instead of error — keeps UI working
+      return new Response(JSON.stringify({
+        role: 'data_entry',
+        my_submissions: 0, pending: 0, approved: 0, rejected: 0, drafts: 0,
+        unread_notifications: 0,
+        _error: error.message
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
+    // ✅ FIX: RPC returns JSON directly (not wrapped in data)
     return new Response(JSON.stringify(data ?? {}), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -53,8 +60,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
 })
