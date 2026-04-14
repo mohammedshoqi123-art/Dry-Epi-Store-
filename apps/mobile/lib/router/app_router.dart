@@ -168,39 +168,93 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class MainShell extends ConsumerWidget {
+/// Reactive connectivity provider — watches ConnectivityUtils stream
+/// so the UI rebuilds when connectivity changes.
+final connectivityProvider = StreamProvider<bool>((ref) {
+  return ConnectivityUtils.onConnectivityChanged;
+});
+
+class MainShell extends ConsumerStatefulWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
+  bool _isSyncing = false;
+
+  Future<void> _triggerManualSync() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    try {
+      final syncService = await ref.read(syncServiceProvider.future);
+      final result = await syncService.sync();
+      if (mounted) {
+        final msg = result.synced > 0
+            ? 'تمت مزامنة ${result.synced} عنصر ✅'
+            : result.failed > 0
+                ? 'فشلت مزامنة ${result.failed} عنصر ❌'
+                : 'لا توجد عناصر للمزامنة';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg, style: const TextStyle(fontFamily: 'Tajawal')),
+            duration: const Duration(seconds: 2)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشلت المزامنة: $e', style: const TextStyle(fontFamily: 'Tajawal')),
+            duration: const Duration(seconds: 3)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final connectivityAsync = ref.watch(connectivityProvider);
+    final isOnline = connectivityAsync.valueOrNull ?? ConnectivityUtils.isOnline;
+    final pendingAsync = ref.watch(syncPendingCountProvider);
+    final pendingCount = pendingAsync.valueOrNull ?? 0;
+
     return Scaffold(
       body: Column(
         children: [
           // Offline/Online status banner
-          _buildConnectivityBanner(ref),
-          Expanded(child: child),
+          if (!isOnline || pendingCount > 0)
+            ConnectivityBanner(
+              isOnline: isOnline,
+              pendingCount: pendingCount,
+            ),
+          Expanded(child: widget.child),
         ],
       ),
+      floatingActionButton: pendingCount > 0
+          ? FloatingActionButton.extended(
+              onPressed: _isSyncing ? null : _triggerManualSync,
+              icon: _isSyncing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.sync, size: 20),
+              label: Text(
+                _isSyncing ? 'جاري المزامنة...' : 'مزامنة ($pendingCount)',
+                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13),
+              ),
+              backgroundColor: isOnline ? Colors.green : Colors.orange,
+            )
+          : null,
       bottomNavigationBar: EpiBottomNav(
         currentIndex: _getSelectedIndex(context),
         onTap: (index) => _onItemTapped(context, index),
       ),
       drawer: const AppDrawer(),
-    );
-  }
-
-  Widget _buildConnectivityBanner(WidgetRef ref) {
-    // Watch the connectivity stream from ConnectivityUtils
-    final isOnline = ConnectivityUtils.isOnline;
-    final pendingAsync = ref.watch(syncPendingCountProvider);
-    final pendingCount = pendingAsync.valueOrNull ?? 0;
-
-    if (isOnline && pendingCount == 0) return const SizedBox.shrink();
-
-    return ConnectivityBanner(
-      isOnline: isOnline,
-      pendingCount: pendingCount,
     );
   }
 

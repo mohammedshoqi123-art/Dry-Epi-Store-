@@ -17,26 +17,52 @@ class SyncService {
   SyncState _currentState = const SyncState();
   SyncState get currentState => _currentState;
 
-  SyncService(this._api, this._offline);
+  SyncService(this._api, this._offline) {
+    // ═══ FIX: Listen for connectivity changes and trigger sync on reconnect ═══
+    // When the device reconnects after being offline, immediately sync pending items.
+    _offline.connectivityStream.listen((isOnline) {
+      if (isOnline && _offline.pendingCount > 0) {
+        if (kDebugMode) print('[SyncService] Reconnected — triggering sync (${_offline.pendingCount} items)');
+        _attemptSync('reconnect');
+      }
+    });
+  }
 
-  /// Start periodic auto-sync (every 2 minutes — more responsive than 5)
+  /// Start periodic auto-sync with proper timing.
+  /// ═══ FIX: More resilient auto-sync that doesn't depend on connectivity state ═══
+  /// The actual network call will determine if we're online — the connectivity
+  /// plugin can misreport status (VPN, captive portals, etc.).
   void startAutoSync() {
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(
       const Duration(minutes: 2),
-      (_) => sync(),
+      (_) => _attemptSync('timer'),
     );
-    // Also try an initial sync after 10 seconds
-    Timer(const Duration(seconds: 10), () => sync());
+    // ═══ FIX: Try initial sync after 5 seconds (shorter delay) ═══
+    Timer(const Duration(seconds: 5), () => _attemptSync('initial'));
+    if (kDebugMode) print('[SyncService] Auto-sync started (every 2 min)');
   }
 
   void stopAutoSync() {
     _syncTimer?.cancel();
+    if (kDebugMode) print('[SyncService] Auto-sync stopped');
+  }
+
+  /// Internal sync attempt with logging context.
+  /// ═══ FIX: Don't block on connectivity check — try the actual call. ═══
+  Future<void> _attemptSync(String trigger) async {
+    if (_isSyncing) return;
+    if (!_offline.isInitialized) return;
+
+    final pending = _offline.pendingCount;
+    if (pending == 0) return;
+
+    if (kDebugMode) print('[SyncService] Auto-sync triggered by $trigger ($pending items)');
+    await sync();
   }
 
   /// Perform a sync cycle. Returns summary of results.
-  /// FIX: Don't trust isOnline blindly — try the actual sync and handle failures.
-  /// The connectivity plugin can misreport status (VPN, proxy, etc).
+  /// ═══ FIX: More robust sync that handles edge cases ═══
   Future<SyncCycleResult> sync() async {
     if (_isSyncing) return SyncCycleResult.empty();
     if (!_offline.isInitialized) return SyncCycleResult.empty();
@@ -44,10 +70,9 @@ class SyncService {
     final pending = _offline.pendingCount;
     if (pending == 0) return SyncCycleResult.empty();
 
-    // Only skip if we KNOW we're offline AND there have been recent failures
-    // Otherwise, try the sync — the actual network call will determine if we're connected
+    // ═══ FIX: Don't trust isOnline blindly — try the actual sync and handle failures.
+    // The connectivity plugin can misreport status (VPN, proxy, captive portal).
     if (!_offline.isOnline) {
-      // Still try, but log it
       if (kDebugMode) print('[SyncService] Connectivity reports offline, attempting sync anyway...');
     }
 
@@ -126,7 +151,7 @@ class SyncService {
     if (kDebugMode) {
       print('[SyncService] Sync complete: synced=${result.synced}, '
           'duplicates=${result.duplicates}, conflicts=${result.conflicts}, '
-          'failed=${result.failed}');
+          'failed=${result.failed}, remaining=${_offline.pendingCount}');
     }
 
     return result;
@@ -152,7 +177,9 @@ class SyncService {
       lastSync: lastSync,
       pendingCount: pendingCount,
     );
-    _syncStateController.add(_currentState);
+    if (!_syncStateController.isClosed) {
+      _syncStateController.add(_currentState);
+    }
   }
 
   void dispose() {

@@ -249,11 +249,44 @@ class ProductionSyncQueue {
     _queueBox = await Hive.openBox<String>(_queueBoxName);
     _failedBox = await Hive.openBox<String>(_failedBoxName);
 
+    // ═══ FIX: Recover stuck items from previous crashes ═══
+    await _recoverStuckItems();
+
     // Auto-cleanup every hour: remove completed items older than 24h
     _cleanupTimer = Timer.periodic(const Duration(hours: 1), (_) => _autoCleanup());
 
     // Emit initial counts
     _emitCounts();
+  }
+
+  /// Reset items stuck in `syncing` state back to `pending`.
+  /// These are orphaned from a previous app crash during sync.
+  Future<void> _recoverStuckItems() async {
+    if (_queueBox == null || !_queueBox!.isOpen) return;
+    int recovered = 0;
+    for (final key in _queueBox!.keys) {
+      final raw = _queueBox!.get(key);
+      if (raw == null) continue;
+      try {
+        final entry = SyncQueueEntry.fromJson(
+          Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+        );
+        if (entry.status == QueueItemStatus.syncing) {
+          // Reset to pending so it gets picked up on next sync
+          final resetEntry = entry.copyWith(
+            status: QueueItemStatus.pending,
+            lastAttemptAt: null,
+          );
+          await _saveEntry(resetEntry);
+          recovered++;
+        }
+      } catch (_) {
+        // Corrupted entry — leave for auto-cleanup
+      }
+    }
+    if (recovered > 0 && kDebugMode) {
+      print('[SyncQueue] Recovered $recovered stuck syncing items');
+    }
   }
 
   // ─── ENQUEUE ─────────────────────────────────────────────────────────────

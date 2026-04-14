@@ -22,6 +22,8 @@ final geminiServiceProvider = Provider<GeminiService>(
 );
 
 // ─── Offline / Sync ───────────────────────────────────────────────────────────
+
+/// ═══ FIX: Robust offline manager initialization with connectivity bridge ═══
 final offlineManagerProvider = FutureProvider<OfflineManager>((ref) async {
   final manager = OfflineManager(ref.read(encryptionServiceProvider));
   try {
@@ -38,13 +40,22 @@ final offlineManagerProvider = FutureProvider<OfflineManager>((ref) async {
     rethrow;
   }
 
-  // Bridge: push ConnectivityUtils updates to OfflineManager
-  // This avoids duplicate connectivity listeners across the app
+  // ═══ FIX: Set initial connectivity from ConnectivityUtils ═══
+  // Without this, OfflineManager defaults to isOnline=true which may be wrong
+  manager.updateConnectivity(ConnectivityUtils.isOnline);
+
+  // ═══ FIX: Bridge ConnectivityUtils updates to OfflineManager ═══
+  // This ensures OfflineManager always has the correct connectivity state.
   StreamSubscription? connSub;
   try {
-    connSub = ConnectivityUtils.onConnectivityChanged.listen((online) {
-      manager.updateConnectivity(online);
-    });
+    connSub = ConnectivityUtils.onConnectivityChanged.listen(
+      (online) {
+        manager.updateConnectivity(online);
+      },
+      onError: (e) {
+        debugPrint('[offlineManagerProvider] Connectivity bridge error: $e');
+      },
+    );
   } catch (e) {
     debugPrint('[offlineManagerProvider] Connectivity bridge failed: $e');
   }
@@ -57,28 +68,41 @@ final offlineManagerProvider = FutureProvider<OfflineManager>((ref) async {
 });
 
 /// Offline-first data cache — stores Supabase query results locally.
-/// This is the KEY component that allows the app to work without internet.
 final offlineDataCacheProvider = FutureProvider<OfflineDataCache>((ref) async {
   final offline = await ref.watch(offlineManagerProvider.future);
   final encryption = ref.read(encryptionServiceProvider);
   return OfflineDataCache(offline, encryption);
 });
 
+/// ═══ FIX: Reliable sync service with proper initialization chain ═══
 final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   final offline = await ref.watch(offlineManagerProvider.future);
   final service = SyncService(ref.read(apiClientProvider), offline);
+
+  // ═══ Start auto-sync immediately ═══
   service.startAutoSync();
+
   ref.onDispose(service.dispose);
   return service;
 });
 
+/// ═══ FIX: Manual sync trigger — used by UI pull-to-refresh and sync button ═══
+final manualSyncProvider = Provider<Future<SyncCycleResult> Function()>((ref) {
+  return () async {
+    final syncService = await ref.read(syncServiceProvider.future);
+    return syncService.sync();
+  };
+});
+
 /// Pending items count for UI badges and banners.
+/// ═══ FIX: Use stream-based polling with longer interval to reduce PBKDF2 overhead ═══
 final syncPendingCountProvider = StreamProvider<int>((ref) async* {
   final offline = await ref.watch(offlineManagerProvider.future);
   // Emit current count immediately
   yield offline.pendingCount;
-  // Then poll every 30 seconds for updates
-  yield* Stream.periodic(const Duration(seconds: 30), (_) => offline.pendingCount);
+  // ═══ FIX: Poll every 60s instead of 30s — reduces PBKDF2 decrypt overhead ═══
+  // The count is not time-critical; 60s is responsive enough for UI badges
+  yield* Stream.periodic(const Duration(seconds: 60), (_) => offline.pendingCount);
 });
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -127,7 +151,6 @@ class SubmissionsFilter {
   @override
   int get hashCode => Object.hash(status, formId, governorateId, districtId, limit, offset);
 
-  /// Generate a cache key from filter parameters
   String get cacheKey {
     final parts = <String>['submissions'];
     if (formId != null) parts.add('form_$formId');
@@ -154,7 +177,7 @@ final governoratesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) as
   return cache.getList(
     'governorates',
     () => ref.read(databaseServiceProvider).getGovernorates(),
-    maxAge: const Duration(hours: 24), // Governorates rarely change
+    maxAge: const Duration(hours: 24),
   );
 });
 
@@ -175,7 +198,7 @@ final formsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   return cache.getList(
     'forms',
     () => ref.read(databaseServiceProvider).getForms(),
-    maxAge: const Duration(hours: 1), // Forms can be updated by admins
+    maxAge: const Duration(hours: 1),
   );
 });
 
@@ -193,7 +216,7 @@ final submissionsProvider =
             limit: filter.limit,
             offset: filter.offset,
           ),
-      maxAge: const Duration(minutes: 15), // Submissions change frequently
+      maxAge: const Duration(minutes: 15),
     );
   },
 );

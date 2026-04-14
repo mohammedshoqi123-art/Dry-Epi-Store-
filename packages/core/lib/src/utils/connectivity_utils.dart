@@ -15,6 +15,10 @@ class ConnectivityUtils {
   /// Minimum interval between state emissions to prevent event storms
   static const Duration _minEmitInterval = Duration(milliseconds: 800);
 
+  /// ═══ FIX: Track subscribers so we can emit initial state to new listeners ═══
+  static StreamSubscription? _broadcastSub;
+  static final Set<StreamSubscription<bool>> _activeSubs = {};
+
   /// Call once at app startup to start monitoring.
   static Future<void> initialize() async {
     try {
@@ -45,7 +49,9 @@ class ConnectivityUtils {
       return;
     }
     _lastEmit = now;
-    _controller.add(value);
+    if (!_controller.isClosed) {
+      _controller.add(value);
+    }
   }
 
   static bool _isConnected(List<ConnectivityResult> results) {
@@ -57,8 +63,25 @@ class ConnectivityUtils {
   static bool get isOnline => _isOnline;
   static bool get isOffline => !_isOnline;
 
-  /// Stream of connectivity changes (true = online, false = offline)
-  static Stream<bool> get onConnectivityChanged => _controller.stream;
+  /// ═══ FIX: Stream that emits current state immediately on subscription,
+  /// then subsequent changes. This ensures Riverpod providers get the initial value. ═══
+  static Stream<bool> get onConnectivityChanged {
+    // Use a custom stream that emits the current value first, then the broadcast stream
+    return Stream.multi(
+      (controller) {
+        // Emit current state immediately
+        controller.add(_isOnline);
+        // Then subscribe to future changes
+        final sub = _controller.stream.listen(
+          controller.add,
+          onError: controller.addError,
+          onDone: controller.close,
+        );
+        controller.onCancel = () => sub.cancel();
+      },
+      isBroadcast: true,
+    );
+  }
 
   /// Wait until device is online (useful before sync attempts)
   static Future<void> waitForConnection({
@@ -66,7 +89,7 @@ class ConnectivityUtils {
   }) async {
     if (_isOnline) return;
 
-    await _controller.stream.firstWhere((online) => online).timeout(timeout);
+    await onConnectivityChanged.firstWhere((online) => online).timeout(timeout);
   }
 
   static void dispose() {

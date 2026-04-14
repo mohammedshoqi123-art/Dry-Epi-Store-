@@ -54,13 +54,12 @@ class OfflineManager {
 
   Box<String>? _box;
   final EncryptionService _encryption;
-  final Connectivity _connectivity = Connectivity();
   final _connectivityController = StreamController<bool>.broadcast();
   final _uuid = const Uuid();
 
-  // ═══ FIX: Serialize write operations to prevent race conditions ═══
   bool _initialized = false;
 
+  // ═══ FIX: Use late-initialized connectivity status, default to true ═══
   bool _isOnline = true;
   bool get isOnline => _isOnline;
   Stream<bool> get connectivityStream => _connectivityController.stream;
@@ -69,7 +68,10 @@ class OfflineManager {
   void updateConnectivity(bool online) {
     if (_isOnline != online) {
       _isOnline = online;
-      _connectivityController.add(_isOnline);
+      if (!_connectivityController.isClosed) {
+        _connectivityController.add(_isOnline);
+      }
+      if (kDebugMode) print('[OfflineManager] Connectivity changed: ${online ? "online" : "offline"}');
     }
   }
 
@@ -84,10 +86,7 @@ class OfflineManager {
       return;
     }
 
-    // ═══ FIX: Guard Hive.initFlutter() against double-init ═══
     try {
-      // Check if Hive is already initialized by trying to open the box directly.
-      // If Hive isn't initialized yet, this will throw and we'll init it.
       try {
         _box = await Hive.openBox<String>(_boxName).timeout(
           const Duration(seconds: 10),
@@ -96,7 +95,6 @@ class OfflineManager {
           },
         );
       } catch (_) {
-        // Box open failed — need to init Hive first
         await Hive.initFlutter().timeout(
           const Duration(seconds: 10),
           onTimeout: () {
@@ -116,30 +114,17 @@ class OfflineManager {
       rethrow;
     }
 
-    // Initial connectivity check only
-    try {
-      final results = await _connectivity.checkConnectivity().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () {
-          if (kDebugMode) print('Initial connectivity check timed out');
-          return <ConnectivityResult>[];
-        },
-      );
-      _isOnline = results.isNotEmpty &&
-          results.any((r) => r != ConnectivityResult.none);
-    } catch (e) {
-      _isOnline = true; // Assume online if check fails
-    }
+    // ═══ FIX: Recover stuck items from previous crashes ═══
+    await _recoverStuckSyncingItems();
 
     _initialized = true;
+    if (kDebugMode) print('[OfflineManager] Initialized. Pending items: ${_getQueue().length}');
   }
 
   // ═══ FIX: Serialize write operations to prevent race conditions ═══
-  // Uses a queue of completers for proper async locking (no busy-wait).
   final _lockQueue = <Completer<void>>[];
 
   Future<T> _withWriteLock<T>(Future<T> Function() action) async {
-    // Wait for all previous lock holders to finish
     final prevLock = _lockQueue.isNotEmpty ? _lockQueue.last : null;
     final myLock = Completer<void>();
     _lockQueue.add(myLock);
@@ -153,6 +138,41 @@ class OfflineManager {
     } finally {
       myLock.complete();
       _lockQueue.remove(myLock);
+    }
+  }
+
+  // ═══ FIX: Recover items stuck in "syncing" state from previous crashes/restarts ═══
+  Future<void> _recoverStuckSyncingItems() async {
+    if (_box == null || !_box!.isOpen) return;
+
+    final data = _safeBox.get(_syncQueueKey);
+    if (data == null || data.isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(_encryption.decrypt(data));
+      final queue = List<Map<String, dynamic>>.from(decoded);
+
+      int recovered = 0;
+      for (int i = 0; i < queue.length; i++) {
+        final item = queue[i];
+        if (item['_syncing'] == true) {
+          // Reset stuck items: remove the _syncing flag, reset retry count
+          // so they get picked up on next sync attempt
+          queue[i] = Map<String, dynamic>.from(item);
+          queue[i].remove('_syncing');
+          queue[i]['retry_count'] = (item['retry_count'] ?? 0);
+          queue[i]['_recovered'] = true;
+          recovered++;
+        }
+      }
+
+      if (recovered > 0) {
+        final encrypted = _encryption.encrypt(jsonEncode(queue));
+        await _safeBox.put(_syncQueueKey, encrypted);
+        if (kDebugMode) print('[OfflineManager] Recovered $recovered stuck syncing items');
+      }
+    } catch (e) {
+      if (kDebugMode) print('[OfflineManager] Recovery check failed: $e');
     }
   }
 
@@ -198,7 +218,6 @@ class OfflineManager {
       final decoded = jsonDecode(_encryption.decrypt(data));
       return List<Map<String, dynamic>>.from(decoded);
     } catch (e) {
-      // ═══ FIX: Don't delete queue on decryption failure — might be key issue ═══
       if (kDebugMode) print('[OfflineManager] Queue decrypt error: $e');
       return [];
     }
@@ -233,12 +252,20 @@ class OfflineManager {
 
     final results = <OfflineSyncResult>[];
     final remaining = <Map<String, dynamic>>[];
-    final successfullySynced = <String>[]; // Track IDs to remove
+    final successfullySynced = <String>[];
+
+    // ═══ FIX: Mark items as _syncing to prevent duplicate processing ═══
+    // If we crash during sync, _recoverStuckSyncingItems will reset them on next init
+    for (final item in pending) {
+      item['_syncing'] = true;
+    }
 
     for (final item in pending) {
       try {
         // Add sync metadata
         final payload = Map<String, dynamic>.from(item);
+        payload.remove('_syncing');
+        payload.remove('_recovered');
         payload['sync_metadata'] = {
           'client_timestamp': DateTime.now().toIso8601String(),
           'app_version': AppConfig.appVersion,
@@ -262,26 +289,34 @@ class OfflineManager {
           if (retryCount < _maxRetries) {
             item['retry_count'] = retryCount + 1;
             item['last_retry_at'] = DateTime.now().toIso8601String();
+            item.remove('_syncing');
+            remaining.add(item);
+            results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
+          } else {
+            item.remove('_syncing');
+            remaining.add(item);
+            results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
           }
-          remaining.add(item);
-          results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
         }
       } on ApiException catch (e) {
         final retryCount = (item['retry_count'] ?? 0) as int;
         if (_isRetryableError(e) && retryCount < _maxRetries) {
           item['retry_count'] = retryCount + 1;
           item['last_retry_at'] = DateTime.now().toIso8601String();
+          item.remove('_syncing');
           remaining.add(item);
           results.add(OfflineSyncResult.error(item['offline_id'], 'RETRY_${retryCount + 1}/$_maxRetries: ${e.message}'));
         } else {
           await _logSyncError(item, e);
-          results.add(OfflineSyncResult.error(item['offline_id'], e.message));
+          item.remove('_syncing');
           remaining.add(item); // Keep for manual review
+          results.add(OfflineSyncResult.error(item['offline_id'], e.message));
         }
       } catch (e) {
         await _logSyncError(item, e);
-        results.add(OfflineSyncResult.error(item['offline_id'], e.toString()));
+        item.remove('_syncing');
         remaining.add(item);
+        results.add(OfflineSyncResult.error(item['offline_id'], e.toString()));
       }
     }
 
@@ -365,7 +400,6 @@ class OfflineManager {
 
   // ===== DRAFTS =====
 
-  /// ═══ FIX: Serialize draft saves to prevent race condition ═══
   Future<void> saveDraft(String formId, Map<String, dynamic> data) async {
     return _withWriteLock(() async {
       final drafts = _getDrafts();
@@ -384,7 +418,6 @@ class OfflineManager {
     try {
       return Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(data)));
     } catch (e) {
-      // ═══ FIX: Don't delete drafts on decrypt error — log instead ═══
       if (kDebugMode) print('[OfflineManager] Drafts decrypt error: $e');
       return {};
     }
@@ -395,7 +428,6 @@ class OfflineManager {
     return drafts[formId];
   }
 
-  /// Get all draft form IDs (for showing draft indicators on forms list)
   Set<String> getDraftFormIds() {
     return _getDrafts().keys.toSet();
   }
