@@ -8,6 +8,7 @@ class EpiAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
   final VoidCallback? onBackPressed;
   final bool centerTitle;
+  final PreferredSizeWidget? bottom;
 
   const EpiAppBar({
     super.key,
@@ -17,6 +18,7 @@ class EpiAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.onBackPressed,
     this.centerTitle = true,
+    this.bottom,
   });
 
   @override
@@ -32,9 +34,12 @@ class EpiAppBar extends StatelessWidget implements PreferredSizeWidget {
                 )
               : null),
       actions: actions,
+      bottom: bottom,
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => Size.fromHeight(
+        kToolbarHeight + (bottom?.preferredSize.height ?? 0),
+      );
 }
