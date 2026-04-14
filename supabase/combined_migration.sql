@@ -3111,14 +3111,14 @@ BEGIN
       'total_users', (SELECT COUNT(*) FROM profiles WHERE is_active = true AND deleted_at IS NULL),
       'total_forms', (SELECT COUNT(*) FROM forms WHERE is_active = true AND deleted_at IS NULL),
       'total_submissions', (SELECT COUNT(*) FROM form_submissions WHERE deleted_at IS NULL),
-      'pending_reviews', (SELECT COUNT(*) FROM form_submissions WHERE status = 'pending' AND deleted_at IS NULL),
+      'pending_reviews', (SELECT COUNT(*) FROM form_submissions WHERE status = 'submitted' AND deleted_at IS NULL),
       'today_submissions', (SELECT COUNT(*) FROM form_submissions WHERE created_at::date = CURRENT_DATE AND deleted_at IS NULL),
       'unread_notifications', (SELECT COUNT(*) FROM notifications WHERE recipient_id = p_user_id AND is_read = false)
     ) INTO v_result;
   ELSE
     SELECT json_build_object(
       'my_submissions', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND deleted_at IS NULL),
-      'pending', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'pending' AND deleted_at IS NULL),
+      'pending', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'submitted' AND deleted_at IS NULL),
       'approved', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'approved' AND deleted_at IS NULL),
       'rejected', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'rejected' AND deleted_at IS NULL),
       'unread_notifications', (SELECT COUNT(*) FROM notifications WHERE recipient_id = p_user_id AND is_read = false)
@@ -3145,7 +3145,7 @@ BEGIN
   RETURN QUERY
   SELECT g.id, g.name_ar::TEXT,
     COUNT(fs.id), COUNT(fs.id) FILTER (WHERE fs.status = 'approved'),
-    COUNT(fs.id) FILTER (WHERE fs.status = 'pending'), COUNT(fs.id) FILTER (WHERE fs.status = 'rejected'),
+    COUNT(fs.id) FILTER (WHERE fs.status = 'submitted'), COUNT(fs.id) FILTER (WHERE fs.status = 'rejected'),
     ROUND(COUNT(fs.id) FILTER (WHERE fs.status = 'approved')::NUMERIC / NULLIF(COUNT(fs.id), 0) * 100, 2),
     ROUND(COUNT(fs.id)::NUMERIC / NULLIF(p_end_date - p_start_date, 0), 2)
   FROM governorates g

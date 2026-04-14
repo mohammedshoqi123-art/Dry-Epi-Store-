@@ -724,7 +724,7 @@ COMMIT;
 -- ============================================================
 -- 4. SAMPLE REFERENCES
 -- ============================================================
-INSERT INTO references_table (title_ar, description_ar, category, is_active) VALUES
+INSERT INTO doc_references (title_ar, description_ar, category, is_active) VALUES
   ('دليل برنامج التطعيم الموسع', 'الدليل الرسمي لبرنامج EPI شامل لجميع اللقاحات والجداول', 'guide', true),
   ('كتيب النشاط الايصالي التكاملي', 'دليل ميداني لتنفيذ حملات SIA', 'manual', true),
   ('دليل مكافحة شلل الأطفال', 'خطوات الترصد والاستجابة لشلل الأطفال', 'guide', true),

@@ -117,10 +117,13 @@ ${JSON.stringify(context, null, 2)}
 
     // ─── Streaming response ────────────────────────────────
     if (stream) {
-      const response = await fetch(`${GEMINI_STREAM_URL}?key=${geminiApiKey}&alt=sse`, {
+      const response = await fetch(GEMINI_STREAM_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': geminiApiKey,
+        },
+        body: JSON.stringify({ ...requestBody, alt: 'sse' }),
       })
 
       if (!response.ok) {
@@ -195,9 +198,12 @@ ${JSON.stringify(context, null, 2)}
     }
 
     // ─── Non-streaming response (default) ──────────────────
-    const response = await fetch(`${GEMINI_API_URL}?key=${geminiApiKey}`, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': geminiApiKey,
+      },
       body: JSON.stringify(requestBody),
     })
 

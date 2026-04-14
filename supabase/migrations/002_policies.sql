@@ -153,13 +153,13 @@ CREATE POLICY "settings_select_auth" ON app_settings FOR SELECT USING (auth.uid(
 CREATE POLICY "settings_manage_admin" ON app_settings FOR ALL USING (public.user_role() = 'admin');
 
 -- ─── REFERENCES (NEW) ─────────────────────────────────
-DROP POLICY IF EXISTS "references_select_active" ON "references";
-DROP POLICY IF EXISTS "references_manage_admin" ON "references";
+DROP POLICY IF EXISTS "references_select_active" ON doc_references;
+DROP POLICY IF EXISTS "references_manage_admin" ON doc_references;
 
-CREATE POLICY "references_select_active" ON "references"
+CREATE POLICY "references_select_active" ON doc_references
   FOR SELECT USING (is_active = true AND deleted_at IS NULL);
 
-CREATE POLICY "references_manage_admin" ON "references"
+CREATE POLICY "references_manage_admin" ON doc_references
   FOR ALL USING (public.user_role() = 'admin');
 
 -- ============================================================
@@ -200,7 +200,7 @@ CREATE POLICY "Authenticated can view references" ON storage.objects
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_profiles_governorate ON profiles(governorate_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_profiles_district ON profiles(district_id) WHERE deleted_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_submissions_user ON form_submissions(user_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_submissions_user ON form_submissions(submitted_by) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_submissions_form ON form_submissions(form_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_submissions_gov ON form_submissions(governorate_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_submissions_district ON form_submissions(district_id) WHERE deleted_at IS NULL;
@@ -210,8 +210,8 @@ CREATE INDEX IF NOT EXISTS idx_shortages_severity ON supply_shortages(severity) 
 CREATE INDEX IF NOT EXISTS idx_shortages_gov ON supply_shortages(governorate_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_audit_user_date ON audit_logs(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(table_name, record_id);
-CREATE INDEX IF NOT EXISTS idx_references_category ON "references"(category) WHERE deleted_at IS NULL;
-CREATE INDEX IF NOT EXISTS idx_references_active ON "references"(is_active) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_references_category ON doc_references(category) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_references_active ON doc_references(is_active) WHERE deleted_at IS NULL;
 
 -- Full-text search on forms
 CREATE INDEX IF NOT EXISTS idx_forms_title_search ON forms USING gin(to_tsvector('arabic', coalesce(title_ar,'') || ' ' || coalesce(title_en,'')));
@@ -233,7 +233,7 @@ GRANT SELECT ON audit_logs TO authenticated;
 GRANT SELECT ON health_facilities TO authenticated;
 GRANT SELECT ON pages TO authenticated;
 GRANT SELECT ON app_settings TO authenticated;
-GRANT SELECT ON "references" TO authenticated;
+GRANT SELECT ON doc_references TO authenticated;
 GRANT INSERT ON profiles TO anon;
 
 COMMIT;

@@ -207,8 +207,14 @@ class EpiSupervisorApp extends ConsumerWidget {
         Widget content = Directionality(
           textDirection: TextDirection.rtl,
           child: MediaQuery(
-            // Prevent font size changes from accessibility settings affecting layout
-            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.noScaling),
+            // Allow accessibility text scaling up to 1.3x for readability
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(
+                MediaQuery.of(context).textScaler.scale(1.0) > 1.3
+                  ? 1.3
+                  : MediaQuery.of(context).textScaler.scale(1.0)
+              ),
+            ),
             child: child!,
           ),
         );

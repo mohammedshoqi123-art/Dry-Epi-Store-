@@ -111,7 +111,7 @@ BEGIN
       'total_users', (SELECT COUNT(*) FROM profiles WHERE is_active = true AND deleted_at IS NULL),
       'total_forms', (SELECT COUNT(*) FROM forms WHERE is_active = true AND deleted_at IS NULL),
       'total_submissions', (SELECT COUNT(*) FROM form_submissions WHERE deleted_at IS NULL),
-      'pending_reviews', (SELECT COUNT(*) FROM form_submissions WHERE status = 'pending' AND deleted_at IS NULL),
+      'pending_reviews', (SELECT COUNT(*) FROM form_submissions WHERE status = 'submitted' AND deleted_at IS NULL),
       'today_submissions', (SELECT COUNT(*) FROM form_submissions WHERE created_at::date = CURRENT_DATE AND deleted_at IS NULL),
       'week_submissions', (SELECT COUNT(*) FROM form_submissions WHERE created_at >= date_trunc('week', now()) AND deleted_at IS NULL),
       'total_shortages', (SELECT COUNT(*) FROM supply_shortages WHERE is_resolved = false AND deleted_at IS NULL),
@@ -137,7 +137,7 @@ BEGIN
         LEFT JOIN (
           SELECT governorate_id,
             COUNT(*) as count,
-            COUNT(*) FILTER (WHERE status = 'pending') as pending
+            COUNT(*) FILTER (WHERE status = 'submitted') as pending
           FROM form_submissions
           WHERE deleted_at IS NULL
           GROUP BY governorate_id
@@ -152,7 +152,7 @@ BEGIN
       'governorate_id', v_gov_id,
       'total_users', (SELECT COUNT(*) FROM profiles WHERE governorate_id = v_gov_id AND is_active = true AND deleted_at IS NULL),
       'total_submissions', (SELECT COUNT(*) FROM form_submissions WHERE governorate_id = v_gov_id AND deleted_at IS NULL),
-      'pending_reviews', (SELECT COUNT(*) FROM form_submissions WHERE governorate_id = v_gov_id AND status = 'pending' AND deleted_at IS NULL),
+      'pending_reviews', (SELECT COUNT(*) FROM form_submissions WHERE governorate_id = v_gov_id AND status = 'submitted' AND deleted_at IS NULL),
       'today_submissions', (SELECT COUNT(*) FROM form_submissions WHERE governorate_id = v_gov_id AND created_at::date = CURRENT_DATE AND deleted_at IS NULL),
       'week_submissions', (SELECT COUNT(*) FROM form_submissions WHERE governorate_id = v_gov_id AND created_at >= date_trunc('week', now()) AND deleted_at IS NULL),
       'shortages', (SELECT COUNT(*) FROM supply_shortages WHERE governorate_id = v_gov_id AND is_resolved = false AND deleted_at IS NULL),
@@ -164,7 +164,7 @@ BEGIN
       'role', v_role,
       'district_id', v_dist_id,
       'my_submissions', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND deleted_at IS NULL),
-      'pending', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'pending' AND deleted_at IS NULL),
+      'pending', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'submitted' AND deleted_at IS NULL),
       'approved', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'approved' AND deleted_at IS NULL),
       'rejected', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'rejected' AND deleted_at IS NULL),
       'unread_notifications', (SELECT COUNT(*) FROM notifications WHERE recipient_id = p_user_id AND is_read = false)
@@ -174,7 +174,7 @@ BEGIN
     SELECT json_build_object(
       'role', v_role,
       'my_submissions', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND deleted_at IS NULL),
-      'pending', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'pending' AND deleted_at IS NULL),
+      'pending', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'submitted' AND deleted_at IS NULL),
       'approved', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'approved' AND deleted_at IS NULL),
       'rejected', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'rejected' AND deleted_at IS NULL),
       'drafts', (SELECT COUNT(*) FROM form_submissions WHERE submitted_by = p_user_id AND status = 'draft' AND deleted_at IS NULL),
@@ -215,7 +215,7 @@ BEGIN
     g.name_ar::TEXT AS governorate_name,
     COUNT(fs.id) AS total_submissions,
     COUNT(fs.id) FILTER (WHERE fs.status = 'approved') AS approved,
-    COUNT(fs.id) FILTER (WHERE fs.status = 'pending') AS pending,
+    COUNT(fs.id) FILTER (WHERE fs.status = 'submitted') AS pending,
     COUNT(fs.id) FILTER (WHERE fs.status = 'rejected') AS rejected,
     COUNT(fs.id) FILTER (WHERE fs.status = 'submitted') AS submitted,
     ROUND(
@@ -365,6 +365,7 @@ RETURNS TABLE(field_name TEXT, error_message TEXT, error_code TEXT)
 LANGUAGE plpgsql IMMUTABLE
 AS $$
 DECLARE
+  v_section JSONB;
   v_field JSONB;
   v_field_name TEXT;
   v_field_type TEXT;
@@ -375,53 +376,116 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Iterate over schema fields
-  FOR v_field IN
-    SELECT jsonb_array_elements(p_schema->'fields')
-  LOOP
-    v_field_name := v_field->>'name';
-    v_field_type := v_field->>'type';
-    v_required := COALESCE((v_field->>'required')::BOOLEAN, false);
-    v_value := p_data->v_field_name;
+  -- Handle nested sections format (sections[].fields[])
+  IF p_schema->'sections' IS NOT NULL THEN
+    FOR v_section IN
+      SELECT jsonb_array_elements(p_schema->'sections')
+    LOOP
+      IF v_section->'fields' IS NULL THEN CONTINUE; END IF;
+      
+      FOR v_field IN
+        SELECT jsonb_array_elements(v_section->'fields')
+      LOOP
+        v_field_name := v_field->>'key';
+        v_field_type := v_field->>'type';
+        v_required := COALESCE((v_field->>'required')::BOOLEAN, false);
+        v_value := p_data->v_field_name;
 
-    -- Required check
-    IF v_required AND (v_value IS NULL OR v_value = 'null'::JSONB OR v_value = '""'::JSONB) THEN
-      field_name := v_field_name;
-      error_message := 'الحقل "' || v_field_name || '" مطلوب';
-      error_code := 'REQUIRED';
-      RETURN NEXT;
-      CONTINUE;
-    END IF;
+        -- Required check
+        IF v_required AND (v_value IS NULL OR v_value = 'null'::JSONB OR v_value = '""'::JSONB) THEN
+          field_name := v_field_name;
+          error_message := 'الحقل "' || COALESCE(v_field->>'label_ar', v_field_name) || '" مطلوب';
+          error_code := 'REQUIRED';
+          RETURN NEXT;
+          CONTINUE;
+        END IF;
 
-    IF v_value IS NULL OR v_value = 'null'::JSONB THEN
-      CONTINUE;
-    END IF;
+        IF v_value IS NULL OR v_value = 'null'::JSONB THEN
+          CONTINUE;
+        END IF;
 
-    -- Type checks
-    CASE v_field_type
-      WHEN 'number' THEN
-        IF jsonb_typeof(v_value) != 'number' THEN
-          field_name := v_field_name;
-          error_message := 'الحقل "' || v_field_name || '" يجب أن يكون رقماً';
-          error_code := 'INVALID_TYPE';
-          RETURN NEXT;
-        END IF;
-      WHEN 'text', 'textarea' THEN
-        IF jsonb_typeof(v_value) != 'string' THEN
-          field_name := v_field_name;
-          error_message := 'الحقل "' || v_field_name || '" يجب أن يكون نصاً';
-          error_code := 'INVALID_TYPE';
-          RETURN NEXT;
-        END IF;
-      WHEN 'date' THEN
-        IF jsonb_typeof(v_value) != 'string' THEN
-          field_name := v_field_name;
-          error_message := 'التاريخ في "' || v_field_name || '" غير صحيح';
-          error_code := 'INVALID_DATE';
-          RETURN NEXT;
-        END IF;
-    END CASE;
-  END LOOP;
+        -- Type checks
+        CASE v_field_type
+          WHEN 'number' THEN
+            IF jsonb_typeof(v_value) != 'number' THEN
+              field_name := v_field_name;
+              error_message := 'الحقل "' || COALESCE(v_field->>'label_ar', v_field_name) || '" يجب أن يكون رقماً';
+              error_code := 'INVALID_TYPE';
+              RETURN NEXT;
+            END IF;
+          WHEN 'text', 'textarea', 'phone', 'date', 'time' THEN
+            IF jsonb_typeof(v_value) != 'string' THEN
+              field_name := v_field_name;
+              error_message := 'الحقل "' || COALESCE(v_field->>'label_ar', v_field_name) || '" يجب أن يكون نصاً';
+              error_code := 'INVALID_TYPE';
+              RETURN NEXT;
+            END IF;
+          WHEN 'yesno' THEN
+            IF jsonb_typeof(v_value) NOT IN ('boolean', 'string') THEN
+              field_name := v_field_name;
+              error_message := 'الحقل "' || COALESCE(v_field->>'label_ar', v_field_name) || '" يجب أن يكون نعم/لا';
+              error_code := 'INVALID_TYPE';
+              RETURN NEXT;
+            END IF;
+          WHEN 'select' THEN
+            IF jsonb_typeof(v_value) != 'string' THEN
+              field_name := v_field_name;
+              error_message := 'الحقل "' || COALESCE(v_field->>'label_ar', v_field_name) || '" يجب أن يكون نصاً';
+              error_code := 'INVALID_TYPE';
+              RETURN NEXT;
+            END IF;
+          ELSE
+            NULL; -- Skip unknown types (photo, signature, gps, etc.)
+        END CASE;
+      END LOOP;
+    END LOOP;
+  -- Handle flat fields format (fields[])
+  ELSIF p_schema->'fields' IS NOT NULL THEN
+    FOR v_field IN
+      SELECT jsonb_array_elements(p_schema->'fields')
+    LOOP
+      v_field_name := COALESCE(v_field->>'key', v_field->>'name');
+      v_field_type := v_field->>'type';
+      v_required := COALESCE((v_field->>'required')::BOOLEAN, false);
+      v_value := p_data->v_field_name;
+
+      IF v_required AND (v_value IS NULL OR v_value = 'null'::JSONB OR v_value = '""'::JSONB) THEN
+        field_name := v_field_name;
+        error_message := 'الحقل "' || v_field_name || '" مطلوب';
+        error_code := 'REQUIRED';
+        RETURN NEXT;
+        CONTINUE;
+      END IF;
+
+      IF v_value IS NULL OR v_value = 'null'::JSONB THEN
+        CONTINUE;
+      END IF;
+
+      CASE v_field_type
+        WHEN 'number' THEN
+          IF jsonb_typeof(v_value) != 'number' THEN
+            field_name := v_field_name;
+            error_message := 'الحقل "' || v_field_name || '" يجب أن يكون رقماً';
+            error_code := 'INVALID_TYPE';
+            RETURN NEXT;
+          END IF;
+        WHEN 'text', 'textarea' THEN
+          IF jsonb_typeof(v_value) != 'string' THEN
+            field_name := v_field_name;
+            error_message := 'الحقل "' || v_field_name || '" يجب أن يكون نصاً';
+            error_code := 'INVALID_TYPE';
+            RETURN NEXT;
+          END IF;
+        WHEN 'date' THEN
+          IF jsonb_typeof(v_value) != 'string' THEN
+            field_name := v_field_name;
+            error_message := 'التاريخ في "' || v_field_name || '" غير صحيح';
+            error_code := 'INVALID_DATE';
+            RETURN NEXT;
+          END IF;
+      END CASE;
+    END LOOP;
+  END IF;
 END;
 $$;
 
