@@ -230,19 +230,21 @@ serve(async (req) => {
           submission_id: submission.id,
         })
 
-        // Audit log (fire-and-forget)
-        admin.from('audit_logs').insert({
-          user_id: user.id,
-          action: 'create',
-          table_name: 'form_submissions',
-          record_id: submission.id,
-          metadata: {
-            offline_sync: true,
-            offline_id: offlineId,
-            device_id: item.device_id,
-            app_version: item.app_version,
-          },
-        }).then(() => {}).catch(() => {})
+        // Audit log (non-blocking, wrapped to prevent unhandled rejection)
+        try {
+          admin.from('audit_logs').insert({
+            user_id: user.id,
+            action: 'create',
+            table_name: 'form_submissions',
+            record_id: submission.id,
+            metadata: {
+              offline_sync: true,
+              offline_id: offlineId,
+              device_id: item.device_id,
+              app_version: item.app_version,
+            },
+          }).then(() => {}, () => {})
+        } catch (_) {}
 
       } catch (err) {
         errors.push({

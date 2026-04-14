@@ -17,6 +17,7 @@ class AnalyticsService {
     String? districtId,
     DateTime? startDate,
     DateTime? endDate,
+    String? formId,
   }) async {
     try {
       // Try Edge Function first for complex aggregation
@@ -25,6 +26,7 @@ class AnalyticsService {
         'district_id': districtId,
         'start_date': startDate?.toIso8601String(),
         'end_date': endDate?.toIso8601String(),
+        'form_id': formId,
       });
       return result;
     } catch (_) {

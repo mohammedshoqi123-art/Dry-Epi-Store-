@@ -64,7 +64,12 @@ class SyncService {
   /// Perform a sync cycle. Returns summary of results.
   /// ═══ FIX: More robust sync that handles edge cases ═══
   Future<SyncCycleResult> sync() async {
-    if (_isSyncing) return SyncCycleResult.empty();
+    if (_isSyncing) {
+      // ═══ FIX: Auto-reset stale lock after 3 minutes ═══
+      // This prevents the sync from being permanently blocked after a crash
+      if (kDebugMode) print('[SyncService] Sync already in progress, skipping');
+      return SyncCycleResult.empty();
+    }
     if (!_offline.isInitialized) return SyncCycleResult.empty();
 
     final pending = _offline.pendingCount;
@@ -79,26 +84,41 @@ class SyncService {
     _isSyncing = true;
     _updateState(isSyncing: true);
 
+    // ═══ FIX: Safety timeout to auto-reset _isSyncing ═══
+    Timer(const Duration(minutes: 3), () {
+      if (_isSyncing) {
+        if (kDebugMode) print('[SyncService] WARNING: Sync lock auto-reset after 3min timeout');
+        _isSyncing = false;
+        _updateState(isSyncing: false);
+      }
+    });
+
     final result = SyncCycleResult();
 
     try {
       final syncResults = await _offline.syncPendingItems((item) async {
-        final response = await _api.callFunction(
-          SupabaseConfig.fnSyncOffline,
-          {'items': [item]},
-        );
-        final results = (response['results'] as List?) ?? [];
-        final errors = (response['errors'] as List?) ?? [];
+        try {
+          final response = await _api.callFunction(
+            SupabaseConfig.fnSyncOffline,
+            {'items': [item]},
+          );
+          final results = (response['results'] as List?) ?? [];
+          final errors = (response['errors'] as List?) ?? [];
 
-        if (results.isNotEmpty) {
-          final r = results.first;
-          return {'success': true, 'status': r['status'], ...r};
+          if (results.isNotEmpty) {
+            final r = results.first;
+            return {'success': true, 'status': r['status'], ...r};
+          }
+          if (errors.isNotEmpty) {
+            final e = errors.first;
+            return {'success': false, 'error': e['error']};
+          }
+          return {'success': false, 'error': 'Unknown sync response'};
+        } catch (itemError) {
+          // ═══ FIX: Catch per-item errors so one bad item doesn't kill the whole batch ═══
+          if (kDebugMode) print('[SyncService] Item sync error: $itemError');
+          return {'success': false, 'error': itemError.toString()};
         }
-        if (errors.isNotEmpty) {
-          final e = errors.first;
-          return {'success': false, 'error': e['error']};
-        }
-        return {'success': false, 'error': 'Unknown sync response'};
       }).timeout(
         const Duration(minutes: 2),
         onTimeout: () {
