@@ -124,7 +124,7 @@ export default function DashboardPage() {
     <div className="page-enter">
       <Header
         title="لوحة التحكم"
-        subtitle="مرحباً بك في لوحة إدارة منصة مشرف EPI"
+        subtitle="مرحباً بك في لوحة إدارة منصة EPI Supervisor's"
         onRefresh={() => refetch()}
       />
 

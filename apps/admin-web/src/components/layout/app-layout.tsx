@@ -49,7 +49,7 @@ export function AppLayout() {
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b bg-background/80 backdrop-blur-md">
           <MobileSidebar user={user} />
-          <h1 className="font-heading font-bold text-lg">مشرف EPI</h1>
+          <h1 className="font-heading font-bold text-lg">EPI Supervisor's <span className="text-xs text-muted-foreground font-normal">المشرف</span></h1>
         </div>
 
         {/* Page Content */}

@@ -205,7 +205,7 @@ export function AIChatWidget() {
                 </div>
                 <h3 className="font-heading font-bold text-lg">مرحباً! 👋</h3>
                 <p className="text-sm text-muted-foreground max-w-[280px]">
-                  أنا مساعدك الذكي لمنصة مشرف EPI. اسألني عن أي شيء!
+                  أنا مساعدك الذكي لمنصة EPI Supervisor's. اسألني عن أي شيء!
                 </p>
               </div>
 

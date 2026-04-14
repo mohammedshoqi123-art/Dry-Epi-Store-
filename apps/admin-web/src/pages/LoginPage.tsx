@@ -66,10 +66,10 @@ export default function LoginPage() {
 
           {/* App Title */}
           <h1 className="text-3xl font-heading font-bold text-gray-900 mb-1">
-            مشرف <span className="text-blue-600">EPI</span>
+            <span className="text-blue-600">EPI</span> Supervisor's
           </h1>
-          <p className="text-gray-500 text-sm">
-            منصة الإشراف الميداني لحملات التطعيم
+          <p className="text-gray-500 text-sm font-medium">
+            المشرف — منصة الإشراف الميداني لحملات التطعيم
           </p>
 
           {/* Partner logos */}
@@ -170,7 +170,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center mt-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <p className="text-xs text-gray-400">
-            منصة مشرف EPI v1.0.0
+            منصة EPI Supervisor's v1.0.0
           </p>
           <p className="text-[10px] text-gray-300 mt-1">
             وزارة الصحة العامة والسكان — برنامج التطعيم الموسع

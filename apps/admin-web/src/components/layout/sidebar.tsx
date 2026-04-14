@@ -90,8 +90,8 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="font-heading font-bold text-lg text-sidebar-primary truncate">مشرف EPI</h1>
-              <p className="text-xs text-muted-foreground">لوحة الإدارة</p>
+              <h1 className="font-heading font-bold text-lg text-sidebar-primary truncate">EPI Supervisor's</h1>
+              <p className="text-xs text-muted-foreground">المشرف — لوحة الإدارة</p>
             </div>
           </>
         )}
@@ -248,7 +248,7 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
                   <img src="/logo-epi-64.png" alt="EPI" className="w-8 h-8 object-contain"
                     onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 </div>
-                <h1 className="font-heading font-bold text-lg">مشرف EPI</h1>
+                <h1 className="font-heading font-bold text-lg">EPI Supervisor's</h1>
               </div>
               <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)}>
                 <X className="w-5 h-5" />

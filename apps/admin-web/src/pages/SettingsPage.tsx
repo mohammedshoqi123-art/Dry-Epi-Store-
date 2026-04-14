@@ -38,7 +38,7 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('general')
 
   // Form states
-  const [appName, setAppName] = useState('مشرف EPI')
+  const [appName, setAppName] = useState("EPI Supervisor's")
   const [appVersion, setAppVersion] = useState('1.0.0')
   const [language, setLanguage] = useState('ar')
   const [timezone, setTimezone] = useState('Asia/Aden')
