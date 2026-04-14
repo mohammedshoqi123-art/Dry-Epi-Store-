@@ -12,6 +12,7 @@ import AIInsightsPage from '@/pages/AIInsightsPage'
 import AuditPage from '@/pages/AuditPage'
 import ShortagesPage from '@/pages/ShortagesPage'
 import GovernoratesPage from '@/pages/GovernoratesPage'
+import PagesManagementPage from '@/pages/PagesManagementPage'
 import SettingsPage from '@/pages/SettingsPage'
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="audit" element={<AuditPage />} />
           <Route path="shortages" element={<ShortagesPage />} />
           <Route path="governorates" element={<GovernoratesPage />} />
+          <Route path="pages" element={<PagesManagementPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

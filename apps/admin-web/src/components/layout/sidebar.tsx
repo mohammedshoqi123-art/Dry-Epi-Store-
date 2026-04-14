@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, FileText, FileStack, BarChart3, ScrollText,
   MapPin, Shield, ChevronLeft, ChevronRight, Settings, LogOut,
-  AlertTriangle, Bell, Moon, Sun, Menu, X, Sparkles
+  AlertTriangle, Bell, Moon, Sun, Menu, X, Sparkles, Layout
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -40,6 +40,7 @@ const navItems: NavItem[] = [
   { icon: AlertTriangle, label: 'النواقص', href: '/shortages' },
   { icon: ScrollText, label: 'سجل التدقيق', href: '/audit', roles: ['admin', 'central'] },
   { icon: MapPin, label: 'المحافظات', href: '/governorates', roles: ['admin'] },
+  { icon: Layout, label: 'إدارة الصفحات', href: '/pages', roles: ['admin'] },
   { icon: Settings, label: 'الإعدادات', href: '/settings', roles: ['admin'] },
 ]
 
