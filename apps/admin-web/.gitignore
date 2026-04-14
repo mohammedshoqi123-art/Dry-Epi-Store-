@@ -3,3 +3,11 @@ dist/
 .env
 .env.local
 *.local
+logos.pdf
+logo_page_*.png
+logo_img_*.jpeg
+epi-logo-cropped.png
+epi-shield.png
+header-logos.png
+logos-full.png
+unicef-logo.png

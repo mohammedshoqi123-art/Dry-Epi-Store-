@@ -77,8 +77,17 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
       <div className="flex items-center gap-3 p-4 h-16">
         {!collapsed && (
           <>
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-              <Shield className="w-6 h-6 text-primary" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50">
+              <img
+                src="/logo-epi-128.png"
+                alt="EPI"
+                className="w-8 h-8 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                  const p = e.currentTarget.parentElement!
+                  p.innerHTML = '<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800"></div>'
+                }}
+              />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-heading font-bold text-lg text-sidebar-primary truncate">مشرف EPI</h1>
@@ -87,8 +96,17 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
           </>
         )}
         {collapsed && (
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 mx-auto">
-            <Shield className="w-6 h-6 text-primary" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50 mx-auto">
+            <img
+              src="/logo-epi-64.png"
+              alt="EPI"
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                const p = e.currentTarget.parentElement!
+                p.innerHTML = '<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800"></div>'
+              }}
+            />
           </div>
         )}
         <Button
@@ -226,8 +244,9 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
           <div className="fixed inset-y-0 right-0 w-[280px] bg-background shadow-2xl animate-slide-in-right">
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-                  <Shield className="w-6 h-6 text-primary" />
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50">
+                  <img src="/logo-epi-64.png" alt="EPI" className="w-8 h-8 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 </div>
                 <h1 className="font-heading font-bold text-lg">مشرف EPI</h1>
               </div>
