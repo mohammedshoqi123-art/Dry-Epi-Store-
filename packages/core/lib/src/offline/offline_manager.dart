@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../config/app_config.dart';
 import '../security/encryption_service.dart';
 import '../errors/app_exceptions.dart';
+import 'sync_models.dart';
 
 // Re-export models from sync_models.dart
 export 'sync_models.dart' show OfflineSyncStatus, OfflineSyncResult;
