@@ -15,6 +15,31 @@ import { authenticateRequest, createUserClient, createAdminClient } from '../_sh
  */
 
 const MAX_BATCH_SIZE = 50
+const SYNC_RATE_LIMIT = 20 // max sync requests per minute
+const SYNC_RATE_WINDOW = 60 // seconds
+
+// ─── Rate limiting (fail-closed) ──────────────────────────────
+async function checkSyncRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
+      p_user_id: userId,
+      p_endpoint: 'sync-offline',
+      p_window_seconds: SYNC_RATE_WINDOW,
+      p_max_requests: SYNC_RATE_LIMIT,
+    })
+    if (error) {
+      console.error('Sync rate limit RPC error (blocking):', error.message)
+      return false // fail-closed
+    }
+    return data?.[0]?.allowed ?? false
+  } catch (e) {
+    console.error('Sync rate limit check failed (blocking):', e)
+    return false // fail-closed
+  }
+}
 
 type SyncItem = {
   offline_id?: string
@@ -55,6 +80,13 @@ serve(async (req) => {
     const supabase = createUserClient(authHeader)
     const auth = await authenticateRequest(supabase, authHeader)
     if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
+
+    // Rate limiting (fail-closed)
+    if (!(await checkSyncRateLimit(supabase, auth.userId))) {
+      return jsonResponse({
+        error: 'Rate limit exceeded. Max 20 sync requests per minute.',
+      }, 429, origin)
+    }
 
     // Parse body
     const body = await req.json()

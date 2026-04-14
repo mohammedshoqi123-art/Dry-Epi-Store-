@@ -2,7 +2,7 @@ import '../auth/auth_state.dart';
 import '../errors/app_exceptions.dart';
 
 class RBACService {
-  // Role hierarchy: admin(5) > central(4) > governorate(3) > district(2) > teamLead(1)
+  // Role hierarchy: admin(5) > central(4) > governorate(3) > district(2) > data_entry(1)
 
   static bool canAccessResource(UserRole? role, {
     required String resourceOwnerId,
@@ -77,12 +77,12 @@ class RBACService {
       case UserRole.admin:
         return UserRole.values;
       case UserRole.central:
-        return [UserRole.governorate, UserRole.district, UserRole.teamLead];
+        return [UserRole.governorate, UserRole.district, UserRole.data_entry];
       case UserRole.governorate:
-        return [UserRole.district, UserRole.teamLead];
+        return [UserRole.district, UserRole.data_entry];
       case UserRole.district:
-        return [UserRole.teamLead];
-      case UserRole.teamLead:
+        return [UserRole.data_entry];
+      case UserRole.data_entry:
         return [];
     }
   }

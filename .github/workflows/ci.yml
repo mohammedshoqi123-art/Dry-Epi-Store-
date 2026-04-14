@@ -63,13 +63,24 @@ jobs:
         run: |
           dart run build_runner build --delete-conflicting-outputs || true
 
+      - name: Check formatting
+        working-directory: apps/mobile
+        run: dart format --set-exit-if-changed .
+
       - name: Analyze code
         working-directory: apps/mobile
         run: flutter analyze --no-fatal-infos
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: apps/mobile
-        run: flutter test --coverage || echo "::warning::Tests failed or no tests found"
+        run: |
+          flutter test --coverage
+          # Check minimum coverage threshold (20%)
+          COVERAGE=$(lcov --summary coverage/lcov.info 2>/dev/null | grep "lines" | sed 's/.*: \([0-9.]*\)%.*/\1/' || echo "0")
+          echo "Code coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 20" | bc -l) )); then
+            echo "::warning::Coverage ${COVERAGE}% is below 20% threshold"
+          fi
 
   # ─── Build APK ───────────────────────────────────────────
   build-apk:
@@ -223,7 +234,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: '2.91.1'
 
       - name: Deploy Edge Functions
         env:

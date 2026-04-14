@@ -171,7 +171,7 @@ class AuthRepository {
   }
 
   /// Safely parse a role string from the DB into [UserRole].
-  /// Handles both snake_case (data_entry) and camelCase (dataEntry) values.
+  /// Enum names now match SQL ENUM values directly.
   static app_auth.UserRole? _parseRole(String? role) {
     if (role == null) return null;
     const roleMap = {
@@ -179,8 +179,8 @@ class AuthRepository {
       'central': app_auth.UserRole.central,
       'governorate': app_auth.UserRole.governorate,
       'district': app_auth.UserRole.district,
-      'data_entry': app_auth.UserRole.teamLead,
-      'teamLead': app_auth.UserRole.teamLead,
+      'data_entry': app_auth.UserRole.data_entry,
+      'teamLead': app_auth.UserRole.data_entry, // backward compat
     };
     return roleMap[role];
   }

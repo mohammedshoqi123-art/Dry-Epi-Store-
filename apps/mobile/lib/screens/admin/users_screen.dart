@@ -112,7 +112,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                             return _UserTile(
                               name: user['full_name'] ?? 'بدون اسم',
                               email: user['email'] ?? '',
-                              role: user['role'] ?? 'teamLead',
+                              role: user['role'] ?? 'data_entry',
                               isActive: user['is_active'] ?? true,
                               governorate: user['governorates']?['name_ar'],
                               onTap: () => _showUserDetails(user),
@@ -140,7 +140,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
-              children: ['admin', 'central', 'governorate', 'district', 'teamLead'].map((role) {
+              children: ['admin', 'central', 'governorate', 'district', 'data_entry'].map((role) {
                 return ChoiceChip(
                   label: Text(_roleLabel(role), style: const TextStyle(fontFamily: 'Tajawal')),
                   selected: _roleFilter == role,
@@ -162,7 +162,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
-    String selectedRole = 'teamLead';
+    String selectedRole = 'data_entry';
     String? selectedGovernorateId;
     String? selectedDistrictId;
 
@@ -194,7 +194,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     EpiDropdown<String>(
                       label: 'الدور',
                       value: selectedRole,
-                      items: ['admin', 'central', 'governorate', 'district', 'teamLead']
+                      items: ['admin', 'central', 'governorate', 'district', 'data_entry']
                           .map((r) => DropdownMenuItem(value: r, child: Text(_roleLabel(r))))
                           .toList(),
                       onChanged: (v) => setSheetState(() => selectedRole = v!),
@@ -222,10 +222,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                           );
                         },
                       ),
-                    if (selectedGovernorateId != null && (selectedRole == 'district' || selectedRole == 'teamLead'))
+                    if (selectedGovernorateId != null && (selectedRole == 'district' || selectedRole == 'data_entry'))
                       const SizedBox(height: 12),
                     // District dropdown
-                    if (selectedGovernorateId != null && (selectedRole == 'district' || selectedRole == 'teamLead'))
+                    if (selectedGovernorateId != null && (selectedRole == 'district' || selectedRole == 'data_entry'))
                       FutureBuilder<List<Map<String, dynamic>>>(
                         future: ref.read(databaseServiceProvider).getDistricts(governorateId: selectedGovernorateId),
                         builder: (context, snapshot) {
@@ -283,7 +283,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   void _showUserDetails(Map<String, dynamic> user) {
     final userId = user['id'] as String?;
-    final currentRole = user['role'] as String? ?? 'teamLead';
+    final currentRole = user['role'] as String? ?? 'data_entry';
     final isActive = user['is_active'] as bool? ?? true;
 
     showModalBottomSheet(
@@ -390,7 +390,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   void _showEditUserSheet(Map<String, dynamic> user) {
-    String selectedRole = user['role'] ?? 'teamLead';
+    String selectedRole = user['role'] ?? 'data_entry';
     String? selectedGovernorateId = user['governorate_id'];
     String? selectedDistrictId = user['district_id'];
     final userId = user['id'] as String;
@@ -411,7 +411,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
               EpiDropdown<String>(
                 label: 'الدور',
                 value: selectedRole,
-                items: ['admin', 'central', 'governorate', 'district', 'teamLead']
+                items: ['admin', 'central', 'governorate', 'district', 'data_entry']
                     .map((r) => DropdownMenuItem(value: r, child: Text(_roleLabel(r))))
                     .toList(),
                 onChanged: (v) => setSheetState(() => selectedRole = v!),
@@ -439,7 +439,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                     );
                   },
                 ),
-              if (selectedGovernorateId != null && (selectedRole == 'district' || selectedRole == 'teamLead')) ...[
+              if (selectedGovernorateId != null && (selectedRole == 'district' || selectedRole == 'data_entry')) ...[
                 const SizedBox(height: 12),
                 FutureBuilder<List<Map<String, dynamic>>>(
                   future: ref.read(databaseServiceProvider).getDistricts(governorateId: selectedGovernorateId),
@@ -540,7 +540,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       case 'central': return 'مركزي';
       case 'governorate': return 'محافظة';
       case 'district': return 'قضاء';
-      case 'teamLead': return 'إدخال بيانات';
+      case 'data_entry': return 'إدخال بيانات';
       default: return role;
     }
   }
@@ -615,7 +615,7 @@ class _UserTile extends StatelessWidget {
       case 'central': return 'مركزي';
       case 'governorate': return 'محافظة';
       case 'district': return 'قضاء';
-      case 'teamLead': return 'إدخال';
+      case 'data_entry': return 'إدخال';
       default: return role;
     }
   }

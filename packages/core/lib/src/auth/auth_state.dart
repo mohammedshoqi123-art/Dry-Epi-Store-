@@ -6,7 +6,7 @@ enum UserRole {
   central,    // مشرف مركزي — sees all governorate submissions, edit own only
   governorate,// مشرف محافظة — sees own governorate submissions, edit own only
   district,   // مشرف مديرية — sees own district submissions, edit own only
-  teamLead;   // مشرف فريق — sees own submissions only, can edit them
+  data_entry; // مدخل بيانات — sees own submissions only, can edit them
 
   int get hierarchyLevel {
     switch (this) {
@@ -18,10 +18,13 @@ enum UserRole {
         return 3;
       case UserRole.district:
         return 2;
-      case UserRole.teamLead:
+      case UserRole.data_entry:
         return 1;
     }
   }
+
+  /// Database-compatible role name (matches SQL ENUM: user_role)
+  String get dbValue => name;
 
   String get nameAr {
     switch (this) {
@@ -33,8 +36,8 @@ enum UserRole {
         return 'محافظة';
       case UserRole.district:
         return 'منطقة';
-      case UserRole.teamLead:
-        return 'مشرف فريق';
+      case UserRole.data_entry:
+        return 'مدخل بيانات';
     }
   }
 
@@ -131,14 +134,14 @@ class AuthState {
 
   static UserRole? _parseRole(String? role) {
     if (role == null) return null;
-    // Map old DB values to new enum
+    // Direct mapping — enum names now match SQL ENUM values
     const roleMap = {
       'admin': UserRole.admin,
       'central': UserRole.central,
       'governorate': UserRole.governorate,
       'district': UserRole.district,
-      'data_entry': UserRole.teamLead,
-      'teamLead': UserRole.teamLead,
+      'data_entry': UserRole.data_entry,
+      'teamLead': UserRole.data_entry, // backward compat
     };
     return roleMap[role];
   }
@@ -152,5 +155,5 @@ extension AuthStateStreamX on AuthState {
   bool get isCentral => role == UserRole.central;
   bool get isGovernorate => role == UserRole.governorate;
   bool get isDistrict => role == UserRole.district;
-  bool get isTeamLead => role == UserRole.teamLead;
+  bool get isDataEntry => role == UserRole.data_entry;
 }

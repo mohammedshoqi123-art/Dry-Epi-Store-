@@ -10,7 +10,7 @@ class UserProfileModel with _$UserProfileModel {
     required String email,
     @JsonKey(name: 'full_name') required String fullName,
     String? phone,
-    @Default('teamLead') String role,
+    @Default('data_entry') String role,
     @JsonKey(name: 'governorate_id') String? governorateId,
     @JsonKey(name: 'district_id') String? districtId,
     @JsonKey(name: 'avatar_url') String? avatarUrl,
