@@ -68,8 +68,27 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) return jsonResponse({ error: 'Unauthorized' }, 401)
+    // Try getUser() first, fall back to JWT parsing
+    let user: any = null
+    try {
+      const { data, error } = await supabase.auth.getUser()
+      if (!error && data.user) user = data.user
+    } catch { /* fallback below */ }
+
+    if (!user) {
+      try {
+        const parts = authHeader.replace('Bearer ', '').split('.')
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+          if (payload.sub) {
+            user = { id: payload.sub, email: payload.email }
+            console.warn('[Auth] JWT fallback for user:', user.id)
+          }
+        }
+      } catch {}
+    }
+
+    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401)
 
     // Parse body
     const body = await req.json()

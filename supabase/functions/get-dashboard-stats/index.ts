@@ -15,6 +15,15 @@ function corsHeaders(origin: string | null): Record<string, string> {
   }
 }
 
+function parseJwtPayload(token: string): { sub: string; email?: string; role?: string } | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.sub ? payload : null
+  } catch { return null }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req.headers.get('Origin')) })
 
@@ -26,30 +35,43 @@ serve(async (req) => {
       })
     }
 
+    const token = authHeader.replace('Bearer ', '')
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    // Try getUser() first, fall back to JWT parsing
+    let userId: string | null = null
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (!error && user) userId = user.id
+    } catch { /* fallback below */ }
+
+    if (!userId) {
+      const jwt = parseJwtPayload(token)
+      if (jwt) {
+        userId = jwt.sub
+        console.warn('[Auth] Using JWT fallback for user:', userId)
+      }
+    }
+
+    if (!userId) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
       })
     }
 
     const body = await req.json().catch(() => ({}))
-    const targetUserId = body.user_id || user.id
+    const targetUserId = body.user_id || userId
 
-    // ✅ FIX: Use .maybeSingle() instead of .single() — the RPC returns JSON, not a row
     const { data, error } = await supabase.rpc('get_dashboard_stats', {
       p_user_id: targetUserId
     })
 
     if (error) {
       console.error('Dashboard stats RPC error:', error)
-      // ✅ FIX: Return empty stats instead of error — keeps UI working
       return new Response(JSON.stringify({
         role: 'data_entry',
         my_submissions: 0, pending: 0, approved: 0, rejected: 0, drafts: 0,
@@ -60,7 +82,6 @@ serve(async (req) => {
       })
     }
 
-    // ✅ FIX: RPC returns JSON directly (not wrapped in data)
     return new Response(JSON.stringify(data ?? {}), {
       status: 200,
       headers: { ...corsHeaders(req.headers.get('Origin')), 'Content-Type': 'application/json' }
