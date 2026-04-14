@@ -55,6 +55,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       route: '/admin/audit',
     ),
     AdminMenuItem(
+      icon: Icons.dashboard_customize_rounded,
+      title: 'إدارة الصفحات',
+      route: '/admin/pages',
+    ),
+    AdminMenuItem(
       icon: Icons.map_rounded,
       title: 'الخريطة',
       route: '/map',

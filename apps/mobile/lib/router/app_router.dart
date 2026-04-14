@@ -17,6 +17,7 @@ import '../screens/ai_chat_screen.dart';
 import '../screens/admin/users_screen.dart';
 import '../screens/admin/audit_screen.dart';
 import '../screens/admin/forms_management_screen.dart';
+import '../screens/admin_page_management_screen.dart';
 import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
 import '../screens/forms_status_screen.dart';
@@ -36,6 +37,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     '/admin/audit': 4,     // central+
     '/admin/forms': 4,     // central+ for form management
     '/admin/references': 5,// admin only for reference management
+    '/admin/pages': 5,    // admin only for page management
     '/analytics': 1,       // everyone
     '/ai': 1,              // everyone
     '/references': 1,      // everyone can view references
@@ -153,6 +155,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/references',
             builder: (context, state) => const AdminReferencesScreen(),
+          ),
+          GoRoute(
+            path: '/admin/pages',
+            builder: (context, state) => const AdminPageManagementScreen(),
           ),
           GoRoute(
             path: '/references',

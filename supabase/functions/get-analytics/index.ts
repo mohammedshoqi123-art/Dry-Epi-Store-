@@ -34,6 +34,7 @@ serve(async (req) => {
       return q
     }
 
+    // ═══ FIX: Fetch submissions with governorate_id and form_id for proper breakdowns ═══
     const [
       { count: todayCount },
       { count: totalCount },
@@ -44,6 +45,8 @@ serve(async (req) => {
       { data: severityRows },
       { data: allGovs },
       { data: allForms },
+      // ═══ NEW: Fetch full submissions for governorate + form breakdowns ═══
+      { data: fullSubmissions },
     ] = await Promise.all([
       applyFilters(
         supabase.from('form_submissions').select('*', { count: 'exact', head: true })
@@ -79,6 +82,11 @@ serve(async (req) => {
       ),
       supabase.from('governorates').select('id, name_ar, name_en').eq('is_active', true),
       supabase.from('forms').select('id, title_ar, title_en, schema').eq('is_active', true).is('deleted_at', null),
+      // ═══ FIX: Fetch submissions with governorate_id, form_id, and status for breakdowns ═══
+      applyDateFilters(
+        supabase.from('form_submissions').select('governorate_id, form_id, status')
+          .is('deleted_at', null).limit(5000)
+      ),
     ])
 
     const byStatus: Record<string, number> = {}
@@ -91,13 +99,68 @@ serve(async (req) => {
     const bySeverity: Record<string, number> = {}
     for (const row of (severityRows ?? [])) bySeverity[row.severity] = (bySeverity[row.severity] || 0) + 1
 
-    const govBreakdown = (allGovs ?? []).map((g: any) => ({ id: g.id, nameAr: g.name_ar, nameEn: g.name_en, count: 0 }))
-    const formAnalytics = (allForms ?? []).map((f: any) => ({ formId: f.id, titleAr: f.title_ar, titleEn: f.title_en, stats: { total: 0, byStatus: {} }, questions: [] }))
+    // ═══ FIX: Compute per-governorate submission counts ═══
+    const govSubmissionCounts: Record<string, number> = {}
+    for (const row of (fullSubmissions ?? [])) {
+      const govId = row.governorate_id
+      if (govId) govSubmissionCounts[govId] = (govSubmissionCounts[govId] || 0) + 1
+    }
+
+    // ═══ FIX: Compute per-form stats with status breakdowns ═══
+    const formStatusCounts: Record<string, Record<string, number>> = {}
+    const formTotals: Record<string, number> = {}
+    for (const row of (fullSubmissions ?? [])) {
+      const fId = row.form_id
+      if (!fId) continue
+      formTotals[fId] = (formTotals[fId] || 0) + 1
+      if (!formStatusCounts[fId]) formStatusCounts[fId] = {}
+      formStatusCounts[fId][row.status] = (formStatusCounts[fId][row.status] || 0) + 1
+    }
+
+    // ═══ FIX: Build governorate breakdown with actual counts ═══
+    const govBreakdown = (allGovs ?? []).map((g: any) => ({
+      id: g.id,
+      nameAr: g.name_ar,
+      nameEn: g.name_en,
+      count: govSubmissionCounts[g.id] || 0,
+    }))
+
+    // ═══ FIX: Build form analytics with actual stats and questions from schema ═══
+    const formAnalytics = (allForms ?? []).map((f: any) => {
+      const schema = f.schema ?? {}
+      const questions = (schema.fields ?? schema.questions ?? []).map((q: any) => ({
+        label: q.label ?? q.labelAr ?? q.name ?? '',
+        type: q.type ?? 'text',
+        completionRate: 0,
+        answered: 0,
+        notAnswered: 0,
+        totalSubmissions: formTotals[f.id] || 0,
+      }))
+
+      return {
+        formId: f.id,
+        titleAr: f.title_ar,
+        titleEn: f.title_en,
+        stats: {
+          total: formTotals[f.id] || 0,
+          byStatus: formStatusCounts[f.id] || {},
+        },
+        questions,
+      }
+    })
+
+    // ═══ FIX: Build byGovernorate map for charts ═══
+    const byGovernorate: Record<string, number> = {}
+    for (const g of (allGovs ?? [])) {
+      byGovernorate[g.name_ar ?? g.name_en ?? g.id] = govSubmissionCounts[g.id] || 0
+    }
 
     return jsonResponse({
-      submissions: { total: totalCount ?? 0, today: todayCount ?? 0, byStatus, byDay: last7Days, byGovernorate: {} },
+      submissions: { total: totalCount ?? 0, today: todayCount ?? 0, byStatus, byDay: last7Days, byGovernorate },
       shortages: { total: shortageTotal ?? 0, resolved: resolvedCount ?? 0, pending: (shortageTotal ?? 0) - (resolvedCount ?? 0), bySeverity },
-      topGovernorates: [], forms: formAnalytics, governorateBreakdown: govBreakdown,
+      topGovernorates: govBreakdown.sort((a: any, b: any) => b.count - a.count).slice(0, 10),
+      forms: formAnalytics,
+      governorateBreakdown: govBreakdown.sort((a: any, b: any) => b.count - a.count),
       generatedAt: new Date().toISOString(),
       filters: { governorate_id, district_id, start_date, end_date, form_id },
     }, 200, origin)

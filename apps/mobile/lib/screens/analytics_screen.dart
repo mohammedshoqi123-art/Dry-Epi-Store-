@@ -41,15 +41,18 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     startDate: _startDate,
   );
 
+  /// Normalize a DateTime to midnight (start of day) for consistent equality checks
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
   DateTime? get _startDate {
     final now = DateTime.now();
     switch (_selectedPeriod) {
       case '7d':
-        return now.subtract(const Duration(days: 7));
+        return _dateOnly(now.subtract(const Duration(days: 7)));
       case '30d':
-        return now.subtract(const Duration(days: 30));
+        return _dateOnly(now.subtract(const Duration(days: 30)));
       case '90d':
-        return now.subtract(const Duration(days: 90));
+        return _dateOnly(now.subtract(const Duration(days: 90)));
       default:
         return null;
     }
@@ -1089,33 +1092,51 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
   Widget _buildGovernorateChart(Map<String, dynamic> data) {
     if (data.isEmpty) return const SizedBox(height: 200, child: Center(child: Text(AppStrings.noData)));
 
-    final entries = data.entries.toList();
+    // ═══ FIX: Sort by value descending and take top 8 to prevent overflow on mobile ═══
+    final sorted = data.entries.toList()
+      ..sort((a, b) => (b.value as num).compareTo(a.value as num));
+    final entries = sorted.take(8).toList();
 
     return Container(
-      height: 250,
+      height: 280,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
       child: BarChart(
         BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: entries.isNotEmpty ? (entries.first.value as num).toDouble() * 1.2 : 10,
           barGroups: entries.asMap().entries.map((e) {
             return BarChartGroupData(x: e.key, barRods: [
-              BarChartRodData(toY: (e.value.value as num).toDouble(), color: AppTheme.primaryColor, width: 16, borderRadius: BorderRadius.circular(4)),
+              BarChartRodData(
+                toY: (e.value.value as num).toDouble(),
+                color: AppTheme.primaryColor,
+                width: 20,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  topRight: Radius.circular(4),
+                ),
+              ),
             ]);
           }).toList(),
           titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
+            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 35)),
             rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
+                reservedSize: 50,
                 getTitlesWidget: (value, meta) {
                   if (value.toInt() < entries.length) {
+                    // ═══ FIX: Use abbreviated names and avoid RotatedBox to prevent overflow ═══
+                    final name = entries[value.toInt()].key;
+                    final shortName = name.length > 6 ? '${name.substring(0, 5)}…' : name;
                     return Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: RotatedBox(
-                        quarterTurns: 1,
-                        child: Text(entries[value.toInt()].key, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 9)),
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        shortName,
+                        style: const TextStyle(fontFamily: 'Tajawal', fontSize: 9),
+                        textAlign: TextAlign.center,
                       ),
                     );
                   }
