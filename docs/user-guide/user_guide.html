@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دليل استخدام منصة مشرف EPI</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Arial', 'Tahoma', 'Segoe UI', sans-serif;
+    direction: rtl;
+    color: #1a1a2e;
+    line-height: 1.8;
+    font-size: 13px;
+    background: #fff;
+  }
+
+  /* ─── Cover Page ─── */
+  .cover {
+    page-break-after: always;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0d47a1 0%, #1565c0 40%, #1e88e5 100%);
+    color: white;
+    text-align: center;
+    padding: 40px;
+  }
+  .cover-icon {
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 30px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 30px;
+    font-size: 60px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .cover h1 { font-size: 36px; margin-bottom: 10px; font-weight: 800; }
+  .cover h2 { font-size: 20px; font-weight: 400; opacity: 0.9; margin-bottom: 30px; }
+  .cover .version {
+    background: rgba(255,255,255,0.2);
+    padding: 8px 24px; border-radius: 20px;
+    font-size: 14px; margin-bottom: 40px;
+  }
+  .cover .meta { font-size: 13px; opacity: 0.7; line-height: 2; }
+
+  /* ─── TOC ─── */
+  .toc {
+    page-break-after: always;
+    padding: 40px 20px;
+  }
+  .toc h2 {
+    font-size: 24px; color: #0d47a1;
+    border-bottom: 3px solid #0d47a1;
+    padding-bottom: 10px; margin-bottom: 25px;
+  }
+  .toc-item {
+    display: flex; justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px dotted #ddd;
+    font-size: 14px;
+  }
+  .toc-item:hover { background: #f5f7ff; }
+  .toc-item .num { color: #0d47a1; font-weight: bold; min-width: 30px; }
+  .toc-item .title { flex: 1; }
+  .toc-item .dots { flex: 1; border-bottom: 1px dotted #ccc; margin: 0 8px; }
+
+  /* ─── Section ─── */
+  .section {
+    page-break-before: always;
+    padding: 20px 0;
+  }
+  .section:first-of-type { page-break-before: avoid; }
+  h2.sec-title {
+    font-size: 22px; color: #0d47a1;
+    border-right: 5px solid #1e88e5;
+    padding-right: 15px; margin-bottom: 20px;
+  }
+  h3 {
+    font-size: 16px; color: #1565c0;
+    margin: 18px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e3f2fd;
+  }
+  p { margin-bottom: 10px; text-align: justify; }
+
+  /* ─── Illustration ─── */
+  .illustration {
+    background: #f8fafd;
+    border: 1px solid #e0e7ef;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+    text-align: center;
+  }
+  .illustration .phone-frame {
+    display: inline-block;
+    border: 3px solid #333;
+    border-radius: 24px;
+    padding: 8px;
+    background: #000;
+    width: 260px;
+    position: relative;
+  }
+  .phone-frame .notch {
+    width: 80px; height: 6px;
+    background: #333; border-radius: 3px;
+    margin: 0 auto 6px;
+  }
+  .phone-frame .screen {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    min-height: 400px;
+  }
+  .illustration .caption {
+    margin-top: 10px;
+    font-size: 12px; color: #666;
+    font-style: italic;
+  }
+
+  /* ─── Screen mockups ─── */
+  .mock-header {
+    background: linear-gradient(135deg, #0d47a1, #1565c0);
+    color: white; padding: 15px;
+    text-align: center; font-weight: bold;
+    font-size: 14px;
+  }
+  .mock-content { padding: 12px; }
+  .mock-card {
+    background: #f5f7ff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-right: 3px solid #1e88e5;
+  }
+  .mock-card .label { font-size: 10px; color: #666; }
+  .mock-card .value { font-size: 13px; font-weight: bold; color: #1a1a2e; }
+  .mock-btn {
+    background: #0d47a1; color: white;
+    border: none; border-radius: 8px;
+    padding: 10px; width: 100%;
+    font-size: 12px; text-align: center;
+    margin-top: 8px;
+  }
+  .mock-input {
+    border: 1px solid #ddd; border-radius: 6px;
+    padding: 8px 10px; margin-bottom: 8px;
+    font-size: 11px; width: 100%;
+    background: #fafafa;
+  }
+  .mock-nav {
+    display: flex; justify-content: space-around;
+    padding: 10px 0; border-top: 1px solid #eee;
+    margin-top: 8px;
+  }
+  .mock-nav span { font-size: 10px; color: #666; text-align: center; }
+  .mock-nav span.active { color: #0d47a1; font-weight: bold; }
+  .mock-stat {
+    display: inline-block;
+    background: #e3f2fd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 3px;
+    text-align: center;
+    min-width: 70px;
+  }
+  .mock-stat .num { font-size: 18px; font-weight: bold; color: #0d47a1; }
+  .mock-stat .lbl { font-size: 9px; color: #666; }
+  .mock-list-item {
+    display: flex; align-items: center;
+    padding: 8px; border-bottom: 1px solid #f0f0f0;
+    gap: 8px;
+  }
+  .mock-list-item .icon {
+    width: 32px; height: 32px;
+    border-radius: 8px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .mock-list-item .info { flex: 1; }
+  .mock-list-item .info .title { font-size: 11px; font-weight: bold; }
+  .mock-list-item .info .sub { font-size: 9px; color: #999; }
+
+  /* ─── Info boxes ─── */
+  .info-box {
+    background: #e3f2fd;
+    border-right: 4px solid #1565c0;
+    padding: 12px 15px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+  }
+  .warn-box {
+    background: #fff3e0;
+    border-right: 4px solid #e65100;
+    padding: 12px 15px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+  }
+  .success-box {
+    background: #e8f5e9;
+    border-right: 4px solid #2e7d32;
+    padding: 12px 15px;
+    border-radius: 0 8px 8px 0;
+    margin: 12px 0;
+  }
+
+  /* ─── Table ─── */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 12px;
+  }
+  th {
+    background: #0d47a1; color: white;
+    padding: 10px; text-align: right;
+  }
+  td { padding: 8px 10px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) { background: #f8fafd; }
+
+  /* ─── Steps ─── */
+  .step {
+    display: flex; gap: 12px;
+    margin: 12px 0; align-items: flex-start;
+  }
+  .step-num {
+    background: #0d47a1; color: white;
+    width: 28px; height: 28px;
+    border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    font-weight: bold; font-size: 13px;
+    flex-shrink: 0;
+  }
+  .step-content { flex: 1; }
+  .step-content strong { color: #0d47a1; }
+
+  /* ─── Footer ─── */
+  .page-footer {
+    text-align: center;
+    font-size: 10px;
+    color: #999;
+    padding: 15px 0;
+    border-top: 1px solid #eee;
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ COVER ═══════════════════ -->
+<div class="cover">
+  <div class="cover-icon">💉</div>
+  <h1>دليل استخدام منصة مشرف EPI</h1>
+  <h2>EPI Supervisor Platform — User Guide</h2>
+  <div class="version">الإصدار 1.0.0 | أبريل 2026</div>
+  <div class="meta">
+    نظام إشراف ميداني متكامل لحملات التطعيم<br>
+    Field Supervision System for Immunization Campaigns
+  </div>
+</div>
+
+<!-- ═══════════════════ TOC ═══════════════════ -->
+<div class="toc">
+  <h2>📑 فهرس المحتويات</h2>
+  <div class="toc-item"><span class="num">1</span><span class="title">نظرة عامة على المنصة</span></div>
+  <div class="toc-item"><span class="num">2</span><span class="title">تسجيل الدخول والحساب</span></div>
+  <div class="toc-item"><span class="num">3</span><span class="title">لوحة التحكم الرئيسية</span></div>
+  <div class="toc-item"><span class="num">4</span><span class="title">ملء النماذج الميدانية</span></div>
+  <div class="toc-item"><span class="num">5</span><span class="title">عرض الإرساليات</span></div>
+  <div class="toc-item"><span class="num">6</span><span class="title">لوحة التحليلات</span></div>
+  <div class="toc-item"><span class="num">7</span><span class="title">المساعد الذكي AI</span></div>
+  <div class="toc-item"><span class="num">8</span><span class="title">الخريطة التفاعلية</span></div>
+  <div class="toc-item"><span class="num">9</span><span class="title">إدارة المستخدمين (للمدير)</span></div>
+  <div class="toc-item"><span class="num">10</span><span class="title">إدارة النماذج (للمدير)</span></div>
+  <div class="toc-item"><span class="num">11</span><span class="title">العمل بدون إنترنت</span></div>
+  <div class="toc-item"><span class="num">12</span><span class="title">نظام الصلاحيات</span></div>
+  <div class="toc-item"><span class="num">13</span><span class="title">الإشعارات</span></div>
+  <div class="toc-item"><span class="num">14</span><span class="title">استكشاف الأخطاء</span></div>
+</div>
+
+<!-- ═══════════════════ SECTION 1: Overview ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">1. نظرة عامة على المنصة</h2>
+  <p>منصة <strong>مشرف EPI</strong> هي نظام متكامل لإدارة والإشراف على حملات التطعيم الميدانية. تم تصميمها خصيصاً للعمل في بيئات قد تكون فيها الاتصال بالإنترنت محدوداً أو غير متاح.</p>
+
+  <h3>المميزات الرئيسية</h3>
+  <table>
+    <tr><th>الميزة</th><th>الوصف</th></tr>
+    <tr><td>📝 نماذج ديناميكية</td><td>محرك JSON Schema قابل للتخصيص — أنشئ أي نموذج ميداني</td></tr>
+    <tr><td>📡 عمل بدون إنترنت</td><td>املأ النماذج واحفظها محلياً — تُزامن تلقائياً عند الاتصال</td></tr>
+    <tr><td>📊 تحليلات فورية</td><td>KPIs ورسوم بيانية وتقارير PDF/CSV</td></tr>
+    <tr><td>🤖 ذكاء اصطناعي</td><td>مساعد MiMo للتحليل باللغة العربية</td></tr>
+    <tr><td>🗺️ خرائط تفاعلية</td><td>تتبع المواقع مع clustering و heatmap</td></tr>
+    <tr><td>🔐 أمان متقدم</td><td>5 مستويات صلاحيات + تشفير AES-256</td></tr>
+  </table>
+
+  <h3>الفئات المستهدفة</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content"><strong>مدخلو البيانات:</strong> ملء النماذج الميدانية وإرسال التقارير من الميدان</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content"><strong>مشرفو المديريات:</strong> مراجعة الإرساليات ومراقبة أداء المديرة</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content"><strong>مشرفو المحافظات:</strong> الإشراف على جميع مديريات المحافظة والموافقة على البيانات</div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content"><strong>المشرف المركزي:</strong> مراقبة الأداء على مستوى الجمهورية</div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content"><strong>مدير النظام:</strong> إدارة المستخدمين والنماذج والإعدادات</div></div>
+</div>
+
+<!-- ═══════════════════ SECTION 2: Login ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">2. تسجيل الدخول والحساب</h2>
+
+  <h3>خطوات تسجيل الدخول</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content"><strong>افتح التطبيق</strong> — ستظهر شاشة الترحيب ثم تنتقل تلقائياً لشاشة تسجيل الدخول</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content"><strong>أدخل البريد الإلكتروني</strong> — الذي سجّل لك من قبل مدير النظام</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content"><strong>أدخل كلمة المرور</strong> — اضغط على "تسجيل الدخول"</div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content"><strong>تم!</strong> — ستنقل تلقائياً للوحة التحكم حسب صلاحياتك</div></div>
+
+  <div class="illustration">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div style="padding:30px 20px; text-align:center;">
+          <div style="font-size:40px; margin-bottom:10px;">💉</div>
+          <div style="font-size:16px; font-weight:bold; color:#0d47a1; margin-bottom:5px;">منصة مشرف EPI</div>
+          <div style="font-size:11px; color:#666; margin-bottom:25px;">تسجيل الدخول</div>
+          <div class="mock-input">📧 البريد الإلكتروني</div>
+          <div class="mock-input">🔒 كلمة المرور</div>
+          <div class="mock-btn">تسجيل الدخول</div>
+          <div style="margin-top:15px; font-size:10px; color:#1565c0;">نسيت كلمة المرور؟</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">شكل_1: شاشة تسجيل الدخول</div>
+  </div>
+
+  <div class="warn-box">
+    <strong>⚠️ ملاحظة:</strong> إذا نسيت كلمة المرور، تواصل مع مدير النظام لإعادة تعيينها. لا يوجد استعادة تلقائية حالياً.
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 3: Dashboard ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">3. لوحة التحكم الرئيسية</h2>
+  <p>بعد تسجيل الدخول، تظهر لوحة التحكم التي تعرض ملخص أداء حملات التطعيم.</p>
+
+  <h3>مكونات لوحة التحكم</h3>
+  <p><strong>البطاقات الإحصائية العلوية:</strong> تعرض أرقاماً سريعة مثل عدد الإرساليات اليوم، عدد المحافظات النشطة، ونسبة الإنجاز.</p>
+  <p><strong>الرسوم البيانية:</strong> توضح توزيع التطعيمات حسب المحافظة والمديرة مع اتجاهات زمنية.</p>
+  <p><strong>قائمة التنقل السفلية:</strong> تتيح الانتقال السريع بين أقسام التطبيق.</p>
+
+  <div class="illustration">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="mock-header">لوحة التحكم</div>
+        <div class="mock-content">
+          <div style="text-align:center; margin-bottom:10px;">
+            <div class="mock-stat"><div class="num">١٥٦</div><div class="lbl">إرسال اليوم</div></div>
+            <div class="mock-stat"><div class="num">٢٤</div><div class="lbl">قيد المراجعة</div></div>
+            <div class="mock-stat"><div class="num">٧٨٪</div><div class="lbl">الإنجاز</div></div>
+          </div>
+          <div class="mock-card">
+            <div class="label">آخر الإرساليات</div>
+            <div class="value">تطعيم الحصبة — تعز</div>
+            <div style="font-size:10px; color:#999; margin-top:3px;">منذ 5 دقائق</div>
+          </div>
+          <div class="mock-card">
+            <div class="label">إشعار</div>
+            <div class="value" style="color:#e65100;">⚠️ نقص في تجهيزات صنعاء</div>
+            <div style="font-size:10px; color:#999; margin-top:3px;">منذ 20 دقيقة</div>
+          </div>
+          <div class="mock-card">
+            <div class="label">الأداء</div>
+            <div style="height:40px; background:linear-gradient(90deg,#e3f2fd 0%,#1e88e5 60%,#e3f2fd 100%); border-radius:4px; margin-top:5px;"></div>
+          </div>
+        </div>
+        <div class="mock-nav">
+          <span class="active">🏠<br>الرئيسية</span>
+          <span>📝<br>النماذج</span>
+          <span>📊<br>التحليلات</span>
+          <span>🤖<br>AI</span>
+          <span>☰<br>القائمة</span>
+        </div>
+      </div>
+    </div>
+    <div class="caption">شكل_2: لوحة التحكم الرئيسية</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 4: Form Fill ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">4. ملء النماذج الميدانية</h2>
+  <p>هذه الوظيفة الأساسية للمنصة — ملء نماذج التطعيم الميدانية وإرسالها.</p>
+
+  <h3>خطوات ملء النموذج</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content"><strong>افتح قسم النماذج</strong> من القائمة السفلية أو الجانبية</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content"><strong>اختر النموذج المطلوب</strong> من القائمة (مثل: تقرير التطعيم اليومي)</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content"><strong>املأ الحقول</strong> — النموذج مقسم لأقسام (بيانات الطفل، نوع التطعيم، الموقع...)</div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content"><strong>أرفق الصور</strong> إن وُجدت (التقط من الكاميرا أو اختر من المعرض)</div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content"><strong>راجع البيانات</strong> وتأكد من صحتها</div></div>
+  <div class="step"><div class="step-num">6</div><div class="step-content"><strong>اضغط إرسال</strong> — يُحفظ محلياً أولاً ثم يُرسل للسيرفر</div></div>
+
+  <div class="success-box">
+    <strong>✅ ميزة مهمة:</strong> البيانات تُحفظ فوراً على الجهاز حتى بدون إنترنت. عند عودة الاتصال تُزامن تلقائياً. لن تفقد أي بيانات!
+  </div>
+
+  <div class="illustration">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="mock-header">📝 نموذج تقرير التطعيم</div>
+        <div class="mock-content">
+          <div style="font-size:11px; color:#0d47a1; font-weight:bold; margin-bottom:8px;">📋 البيانات الأساسية</div>
+          <div class="mock-input">اسم الطفل</div>
+          <div class="mock-input">تاريخ الميلاد</div>
+          <div class="mock-input">اسم ولي الأمر</div>
+          <div style="font-size:11px; color:#0d47a1; font-weight:bold; margin:10px 0 8px;">💉 نوع التطعيم</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+            <span style="background:#e3f2fd; padding:5px 10px; border-radius:15px; font-size:10px; border:2px solid #0d47a1;">✅ OPV</span>
+            <span style="background:#f5f5f5; padding:5px 10px; border-radius:15px; font-size:10px;">Penta</span>
+            <span style="background:#f5f5f5; padding:5px 10px; border-radius:15px; font-size:10px;">PCV</span>
+            <span style="background:#e3f2fd; padding:5px 10px; border-radius:15px; font-size:10px; border:2px solid #0d47a1;">✅ Measles</span>
+          </div>
+          <div style="font-size:11px; color:#0d47a1; font-weight:bold; margin:10px 0 8px;">📍 الموقع الجغرافي</div>
+          <div style="background:#e8f5e9; border-radius:8px; padding:8px; font-size:10px; text-align:center;">
+            📍 تم تحديد الموقع تلقائياً<br>
+            <span style="color:#2e7d32;">GPS: 15.3547, 44.2067</span>
+          </div>
+          <div class="mock-btn" style="margin-top:12px;">📤 إرسال النموذج</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">شكل_3: شاشة ملء النموذج الميداني</div>
+  </div>
+
+  <div class="info-box">
+    <strong>💡 نصيحة:</strong> يمكنك الضغط على "حفظ كمسودة" إذا لم تنتهِ من الملء. ستجد المسودة لاحقاً في قسم "المسودات".
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 5: Submissions ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">5. عرض الإرساليات</h2>
+  <p>يعرض هذا القسم جميع النماذج التي تم إرسالها مع حالة كل إرسالية.</p>
+
+  <h3>حالات الإرسالية</h3>
+  <table>
+    <tr><th>الحالة</th><th>الوصف</th></tr>
+    <tr><td>🟢 مُرسلة</td><td>تم إرسالها بنجاح والسيرفر استلمها</td></tr>
+    <tr><td>🟡 قيد المراجعة</td><td>بانتظار موافقة المشرف</td></tr>
+    <tr><td>✅ مُعتمدة</td><td>تمت الموافقة عليها من المشرف</td></tr>
+    <tr><td>🔴 مرفوضة</td><td>تم رفضها مع سبب الرفض</td></tr>
+    <tr><td>⏳ في الانتظار</td><td>لم تُزامن بعد (بدون إنترنت)</td></tr>
+  </table>
+
+  <div class="illustration">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="mock-header">📋 الإرساليات</div>
+        <div class="mock-content">
+          <div class="mock-input" style="font-size:10px;">🔍 بحث...</div>
+          <div class="mock-list-item">
+            <div class="icon" style="background:#e8f5e9;">✅</div>
+            <div class="info">
+              <div class="title">أحمد محمد — OPV جرعة ١</div>
+              <div class="sub">تعز — المديرية الغربية | منذ ساعة</div>
+            </div>
+          </div>
+          <div class="mock-list-item">
+            <div class="icon" style="background:#fff3e0;">🟡</div>
+            <div class="info">
+              <div class="title">فاطمة علي — Penta جرعة ٢</div>
+              <div class="sub">صنعاء — مديرية الثورة | منذ ٣ ساعات</div>
+            </div>
+          </div>
+          <div class="mock-list-item">
+            <div class="icon" style="background:#ffebee;">🔴</div>
+            <div class="info">
+              <div class="title">محمد حسن — Measles</div>
+              <div class="sub">الحديدة — بيت الفقيه | مرفوض: بيانات ناقصة</div>
+            </div>
+          </div>
+          <div class="mock-list-item">
+            <div class="icon" style="background:#e3f2fd;">⏳</div>
+            <div class="info">
+              <div class="title">نور الدين — OPV جرعة ٣</div>
+              <div class="sub">عدن — المنصورة | في الانتظار — بدون إنترنت</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">شكل_4: قائمة الإرساليات مع حالاتها</div>
+  </div>
+
+  <h3>الموافقة والرفض (للمشرفين)</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">اضغط على الإرسالية لعرض التفاصيل</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">راجع البيانات والموقع والصور المرفقة</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">اضغط <strong>"اعتماد"</strong> للقبول أو <strong>"رفض"</strong> مع كتابة السبب</div></div>
+</div>
+
+<!-- ═══════════════════ SECTION 6: Analytics ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">6. لوحة التحليلات</h2>
+  <p>توفر التحليلات نظرة شاملة على أداء حملات التطعيم مع رسوم بيانية وتصدير التقارير.</p>
+
+  <h3>المؤشرات المتاحة</h3>
+  <table>
+    <tr><th>المؤشر</th><th>الوصف</th></tr>
+    <tr><td>إجمالي التطعيمات</td><td>عدد التطعيمات حسب الفترة المحددة</td></tr>
+    <tr><td>التوزيع الجغرافي</td><td>التطعيمات حسب المحافظة والمديرة</td></tr>
+    <tr><td>نسبة الإنجاز</td><td>نسبة التطعيمات المكتملة من المستهدف</td></tr>
+    <tr><td>ᾗ نوع التطعيم</td><td>توزيع التطعيمات حسب النوع (OPV, Penta, ...)</td></tr>
+    <tr><td>ᾗ حسب العمر</td><td>توزيع الفئات العمرية المستهدفة</td></tr>
+  </table>
+
+  <h3>تصدير التقارير</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">اضغط على زر <strong>"تصدير"</strong> في أعلى شاشة التحليلات</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">اختر صيغة التصدير: <strong>PDF</strong> أو <strong>CSV</strong></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">حدد الفترة الزمنية والمحافظة (إن أردت)</div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content">سيتم تحميل الملف تلقائياً</div></div>
+</div>
+
+<!-- ═══════════════════ SECTION 7: AI ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">7. المساعد الذكي AI</h2>
+  <p>مساعد ذكي يدعم اللغة العربية للإجابة على استفساراتك حول بيانات التطعيم وتحليلها.</p>
+
+  <h3>كيفية الاستخدام</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">افتح قسم <strong>"الذكاء الاصطناعي"</strong> من القائمة</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">اكتب سؤالك باللغة العربية — مثلاً: <em>"كم عدد التطعيمات في تعز هذا الأسبوع؟"</em></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">المساعد سيرد بالأرقام والتحليل مع روابط للبيانات التفصيلية</div></div>
+
+  <div class="illustration">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="mock-header">🤖 المساعد الذكي</div>
+        <div class="mock-content" style="min-height:350px;">
+          <div style="background:#e3f2fd; border-radius:12px 12px 0 12px; padding:10px; margin-bottom:10px; font-size:11px;">
+            مرحباً! كيف يمكنني مساعدتك في تحليل بيانات التطعيم اليوم؟
+          </div>
+          <div style="background:#f5f5f5; border-radius:12px 12px 12px 0; padding:10px; margin-bottom:10px; font-size:11px; text-align:left;">
+            كم عدد التطعيمات في تعز هذا الأسبوع؟
+          </div>
+          <div style="background:#e3f2fd; border-radius:12px 12px 0 12px; padding:10px; font-size:11px;">
+            📊 <strong>تطعيمات تعز هذا الأسبوع:</strong><br><br>
+            • إجمالي: <strong>١,٢٤٧</strong> تطعيم<br>
+            • OPV: ٥٢٣ | Penta: ٤١٢ | Measles: ٣١٢<br>
+            • أعلى مديرية: المديرية الغربية (٢٨٧)<br>
+            • نسبة الإنجاز: <strong>٧٨٪</strong> من المستهدف
+          </div>
+        </div>
+        <div style="padding:8px; border-top:1px solid #eee; display:flex; gap:6px;">
+          <div style="flex:1; border:1px solid #ddd; border-radius:20px; padding:8px 12px; font-size:10px; color:#999;">اكتب رسالتك...</div>
+          <div style="width:35px; height:35px; background:#0d47a1; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:14px;">➤</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">شكل_5: المحادثة مع المساعد الذكي</div>
+  </div>
+
+  <div class="info-box">
+    <strong>💡 أمثلة على الأسئلة:</strong><br>
+    • "ما نسبة الإنجاز في كل المحافظات؟"<br>
+    • "أي المديريات تحتاج دعماً إضافياً؟"<br>
+    • "قارن بين أداء هذا الشهر والشهر الماضي"<br>
+    • "ما أكثر التطعيمات طلباً في الحديدة؟"
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 8: Map ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">8. الخريطة التفاعلية</h2>
+  <p> تعرض الخريطة مواقع الإرساليات الجغرافية مع إمكانية التكبير والتصغير والتصفية.</p>
+
+  <h3>ميزات الخريطة</h3>
+  <table>
+    <tr><th>الميزة</th><th>الوصف</th></tr>
+    <tr><td>📍 علامات المواقع</td><td>نقطة زرقاء لكل إرسالية بناءً على GPS</td></tr>
+    <tr><td>🔢 التجميع (Clustering)</td><td>تجمع النقاط القريبة عند التصغير — تظهر كرقم</td></tr>
+    <tr><td>🌡️ خريطة الحرارة</td><td>ألوان توضح كثافة التطعيمات في كل منطقة</td></tr>
+    <tr><td>🔍 التصفية</td><td>تصفية حسب المحافظة، نوع التطعيم، الفترة الزمنية</td></tr>
+    <tr><td>📋 تفاصيل النقطة</td><td>اضغط على أي نقطة لعرض تفاصيل الإرسالية</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════ SECTION 9: Users Management ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">9. إدارة المستخدمين (للمدير)</h2>
+  <p>متاح فقط لدور <strong>admin</strong> و <strong>central</strong>. يمكنك إدارة حسابات المستخدمين وأدوارهم.</p>
+
+  <h3>إضافة مستخدم جديد</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">اذهب إلى <strong>القائمة ← إدارة المستخدمين</strong></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">اضغط على <strong>"إضافة مستخدم"</strong> (+)</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">املأ البيانات: الاسم، البريد، كلمة المرور، الدور</div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content">اختر المحافظة/المديرة حسب الدور</div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content">اضغط <strong>"حفظ"</strong></div></div>
+
+  <div class="illustration">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="mock-header">👥 إدارة المستخدمين</div>
+        <div class="mock-content">
+          <div class="mock-input">👤 الاسم الكامل</div>
+          <div class="mock-input">📧 البريد الإلكتروني</div>
+          <div class="mock-input">🔒 كلمة المرور</div>
+          <div style="font-size:11px; color:#0d47a1; font-weight:bold; margin:8px 0;">الدور الوظيفي</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+            <span style="background:#e3f2fd; padding:5px 10px; border-radius:15px; font-size:10px; border:2px solid #0d47a1;">مدخل بيانات</span>
+            <span style="background:#f5f5f5; padding:5px 10px; border-radius:15px; font-size:10px;">مشرف مديرية</span>
+            <span style="background:#f5f5f5; padding:5px 10px; border-radius:15px; font-size:10px;">مشرف محافظة</span>
+          </div>
+          <div class="mock-input">📍 المحافظة</div>
+          <div class="mock-input">📍 المديرية</div>
+          <div class="mock-btn">➕ إضافة المستخدم</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">شكل_6: شاشة إضافة مستخدم جديد</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 10: Forms Management ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">10. إدارة النماذج (للمدير)</h2>
+  <p>يمكن لمدير النظام إنشاء وتعديل النماذج الديناميكية التي يستخدمها مدخلو البيانات في الميدان.</p>
+
+  <h3>إنشاء نموذج جديد</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">اذهب إلى <strong>القائمة ← إدارة النماذج</strong></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">اضغط <strong>"إنشاء نموذج جديد"</strong></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">أدخل اسم النموذج ووصفه</div></div>
+  <div class="step"><div class="step-num">4</div><div class="step_content">أضف الحقول: نص، رقم، تاريخ، قائمة منسدلة، صورة، موقع GPS...</div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content">اضغط <strong>"حفظ ونشر"</strong></div></div>
+
+  <div class="info-box">
+    <strong>💡 أنواع الحقول المتاحة:</strong> نص قصير، نص طويل، رقم، تاريخ، قائمة منسدلة، اختيار متعدد، صورة، موقع GPS، توقيع، ملف مرفق
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 11: Offline ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">11. العمل بدون إنترنت</h2>
+  <p>المنصة مصممة بالكامل للعمل Offline-First — أي أن العمل بدون إنترنت هو الحالة الطبيعية، والاتصال ميزة إضافية.</p>
+
+  <h3>كيف يعمل النظام؟</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content"><strong>الحفظ المحلي أولاً:</strong> كل نموذج تملؤه يُحفظ فوراً على جهازك — قبل أي محاولة إرسال</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content"><strong>طابور المزامنة:</strong> النماذج تنتظر في طابور ذكي بأولويات (التطعيمات أولاً)</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content"><strong>المزامنة التلقائية:</strong> عند عودة الإنترنت، تُرسل تلقائياً كل 5 دقائق</div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content"><strong>إعادة المحاولة:</strong> إذا فشل الإرسال → يُعاد تلقائياً (10 ثواني ← 30 ثانية ← 90 ثانية ← 5 دقائق ← 15 دقيقة)</div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content"><strong>حل التعارضات:</strong> إذا عُدّل نفس السجل على جهازين → يُدمج تلقائياً</div></div>
+
+  <h3>مؤشر حالة الاتصال</h3>
+  <table>
+    <tr><th>الرمز</th><th>الحالة</th><th>الوصف</th></tr>
+    <tr><td>🟢</td><td>متصل</td><td>كل شيء متزامن — لا توجد مشاكل</td></tr>
+    <tr><td>🟡</td><td>متصل مع تأخير</td><td>متصل لكن هناك سجلات في الانتظار</td></tr>
+    <tr><td>🔴</td><td>غير متصل</td><td>لا يوجد إنترنت — البيانات محفوظة محلياً</td></tr>
+  </table>
+
+  <div class="success-box">
+    <strong>✅ ضمان عدم فقدان البيانات:</strong> حتى لو انطفأ الجهاز أو تعطل التطبيق فجأة — بياناتك آمنة. النموذج يُحفظ قبل أي عملية إرسال.
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 12: RBAC ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">12. نظام الصلاحيات (RBAC)</h2>
+  <p>المنصة تستخدم نظام صلاحيات هرمي بـ 5 مستويات. كل دور يرى ويفعل فقط ما يُسمح له.</p>
+
+  <table>
+    <tr><th>الدور</th><th>المستوى</th><th>الصلاحيات</th></tr>
+    <tr>
+      <td><strong>مدير النظام</strong><br>(admin)</td>
+      <td>5</td>
+      <td>كل شيء: إدارة المستخدمين، النماذج، المحافظات، الإعدادات، السجلات</td>
+    </tr>
+    <tr>
+      <td><strong>مشرف مركزي</strong><br>(central)</td>
+      <td>4</td>
+      <td>رؤية كل البيانات، إدارة النماذج، الموافقة/الرفض، التقارير</td>
+    </tr>
+    <tr>
+      <td><strong>مشرف محافظة</strong><br>(governorate)</td>
+      <td>3</td>
+      <td>رؤية بيانات محافظته، الموافقة/الرفض، التصدير، AI</td>
+    </tr>
+    <tr>
+      <td><strong>مشرف مديرية</strong><br>(district)</td>
+      <td>2</td>
+      <td>رؤية بيانات مديريته فقط</td>
+    </tr>
+    <tr>
+      <td><strong>مدخل بيانات</strong><br>(data_entry)</td>
+      <td>1</td>
+      <td>ملء النماذج وإرسالها، رؤية بياناته فقط</td>
+    </tr>
+  </table>
+
+  <div class="warn-box">
+    <strong>⚠️ ملاحظة:</strong> مدخل البيانات لا يستطيع رؤية إرساليات الآخرين أو الموافقة/الرفض. هذه الصلاحيات للمشرفين فقط.
+  </div>
+</div>
+
+<!-- ═══════════════════ SECTION 13: Notifications ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">13. الإشعارات</h2>
+  <p>تستلم إشعارات عن الأحداث المهمة في المنصة.</p>
+
+  <h3>أنواع الإشعارات</h3>
+  <table>
+    <tr><th>النوع</th><th>الوصف</th></tr>
+    <tr><td>📤 تأكيد الإرسال</td><td>تم استلام نموذجك بنجاح</td></tr>
+    <tr><td>✅ اعتماد</td><td>تمت الموافقة على إرساليتك</td></tr>
+    <tr><td>❌ رفض</td><td>تم رفض إرساليتك — اضغط لرؤية السبب</td></tr>
+    <tr><td>⚠️ نقص تجهيزات</td><td>تم الإبلاغ عن نقص في تجهيزات منطقة قريبة</td></tr>
+    <tr><td>📢 إشعار من النظام</td><td>تحديثات وإرشادات من الإدارة</td></tr>
+  </table>
+
+  <h3>الوصول للإشعارات</h3>
+  <p>اضغط على رمز الجرس 🔔 في أعلى الشاشة لعرض جميع الإشعارات. الإشعارات غير المقروءة تظهر بخلفية مختلفة.</p>
+</div>
+
+<!-- ═══════════════════ SECTION 14: Troubleshooting ═══════════════════ -->
+<div class="section">
+  <h2 class="sec-title">14. استكشاف الأخطاء وحلها</h2>
+
+  <h3>لا أستطيع تسجيل الدخول</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">تأكد من صحة البريد الإلكتروني وكلمة المرور</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">تأكد من اتصالك بالإنترنت (تسجيل الدخول يتطلب إنترنت)</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">تواصل مع مدير النظام إذا استمرت المشكلة</div></div>
+
+  <h3>النماذج لا تُرسل</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">تحقق من مؤشر الاتصال — إذا 🔴 فالبيانات محفوظة وستُرسل عند عودة الإنترنت</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">تأكد من ملء جميع الحقول المطلوبة (الحقل المطلوب يظهر بـ *)</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">تحقق من تفعيل GPS إذا كان مطلوباً</div></div>
+
+  <h3>التطبيق بطيء</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">أغلق التطبيق وأعد فتحه</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">امسح ذاكرة التخزين المؤقت من إعدادات الجهاز</div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content">تأكد من وجود مساحة كافية على جهازك</div></div>
+
+  <h3>التحليلات لا تعمل</h3>
+  <div class="step"><div class="step-num">1</div><div class="step-content">التحليلات تحتاج إنترنت — تحقق من اتصالك</div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content">تأكد من أن لديك صلاحية عرض التحليلات (governorate وأعلى)</div></div>
+
+  <div class="info-box">
+    <strong>📞 الدعم الفني:</strong> إذا لم تجد حلّاً لمشكلتك، تواصل مع الدعم الفني عبر البريد: support@epi-supervisor.com أو مع مدير النظام في مؤسستك.
+  </div>
+</div>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<div class="page-footer">
+  منصة مشرف EPI — الإصدار 1.0.0 | أبريل 2026<br>
+  © جميع الحقوق محفوظة
+</div>
+
+</body>
+</html>
