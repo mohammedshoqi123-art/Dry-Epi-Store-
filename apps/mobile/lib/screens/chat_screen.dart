@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -204,7 +204,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final createdAt = DateTime.tryParse(msg['created_at'] ?? '') ?? DateTime.now();
     final timeStr = DateFormat('HH:mm').format(createdAt);
     final senderName = msg['sender_name'] ?? 'مستخدم';
-    final initials = senderName.split(' ').map((n) => n.isNotEmpty ? n[0] : '').join().toUpperCase().substring(0, senderName.split(' ').length.clamp(0, 2));
 
     return Align(
       alignment: isMe ? Alignment.centerLeft : Alignment.centerRight,
