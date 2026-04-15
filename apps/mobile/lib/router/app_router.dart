@@ -253,11 +253,62 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 }
 
-class AppDrawer extends ConsumerWidget {
+class AppDrawer extends ConsumerStatefulWidget {
   const AppDrawer({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends ConsumerState<AppDrawer> {
+  bool _isSyncingConfig = false;
+
+  Future<void> _syncConfig() async {
+    if (_isSyncingConfig) return;
+    setState(() => _isSyncingConfig = true);
+
+    try {
+      // 1. Clear all cached data
+      final syncService = await ref.read(syncServiceProvider.future);
+      await syncService.forceRefreshAll();
+
+      // 2. Invalidate all providers so they re-fetch from server
+      ref.invalidate(formsProvider);
+      ref.invalidate(governoratesProvider);
+      ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter()));
+
+      // 3. Also trigger submission sync
+      final result = await syncService.sync();
+
+      if (mounted) {
+        final msg = result.synced > 0
+            ? 'تمت المزامنة والتحديث ✅ (${result.synced} إرسالية)'
+            : 'تم تحديث البيانات من السيرفر ✅';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg, style: const TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشلت المزامنة: $e', style: const TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSyncingConfig = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authAsync = ref.watch(authStateProvider);
     final authState = authAsync.valueOrNull;
     return EpiDrawer(
@@ -269,6 +320,8 @@ class AppDrawer extends ConsumerWidget {
       onLogout: () async {
         await ref.read(authRepositoryProvider).signOut();
       },
+      onSyncConfig: _syncConfig,
+      isSyncingConfig: _isSyncingConfig,
     );
   }
 }

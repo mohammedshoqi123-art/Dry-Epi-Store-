@@ -11,7 +11,7 @@ import '../offline/offline_data_cache.dart';
 class SyncService {
   final ApiClient _api;
   final OfflineManager _offline;
-  OfflineDataCache? _dataCache; // Optional — set via setDataCache()
+  OfflineDataCache? _dataCache;
   Timer? _syncTimer;
   DateTime? _syncLockTime;
   bool _isSyncing = false;
@@ -36,37 +36,28 @@ class SyncService {
       if (isOnline && _offline.pendingCount > 0) {
         _attemptSync('reconnect');
       }
-      // ═══ CRITICAL: When internet returns, invalidate ALL caches ═══
-      // This ensures we fetch fresh data from server after being offline
-      if (isOnline && _wasOffline) {
-        _invalidateCacheOnReconnect();
-        _wasOffline = false;
-      }
-      if (!isOnline) {
-        _wasOffline = true;
-      }
     });
   }
 
-  bool _wasOffline = false;
-
-  /// Set the data cache for invalidation on reconnect.
-  /// Must be called after SyncService is created.
+  /// Set the data cache for manual refresh operations.
   void setDataCache(OfflineDataCache cache) {
     _dataCache = cache;
   }
 
-  /// Invalidate all cached data when internet returns.
-  /// This forces fresh data to be fetched from the server.
-  Future<void> _invalidateCacheOnReconnect() async {
+  /// ═══ MANUAL: Force refresh all data from server ═══
+  /// Called when user taps "مزامنة تكوين" in the drawer.
+  /// Clears all cached data so next provider fetch gets fresh data from server.
+  /// Submissions in the sync queue are NOT affected.
+  Future<void> forceRefreshAll() async {
     try {
       final cache = _dataCache;
       if (cache != null) {
-        await cache.invalidateOnReconnect();
-        if (kDebugMode) print('[SyncService] Cache invalidated on reconnect');
+        await cache.invalidateAll();
+        if (kDebugMode) print('[SyncService] All caches cleared — next fetch will get fresh data');
       }
     } catch (e) {
-      if (kDebugMode) print('[SyncService] Cache invalidation failed: $e');
+      if (kDebugMode) print('[SyncService] forceRefreshAll error: $e');
+      rethrow;
     }
   }
 

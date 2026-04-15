@@ -9,6 +9,8 @@ class EpiDrawer extends StatelessWidget {
   final int userRoleLevel;
   final ValueChanged<String>? onNavigate;
   final VoidCallback? onLogout;
+  final VoidCallback? onSyncConfig;
+  final bool isSyncingConfig;
 
   const EpiDrawer({
     super.key,
@@ -19,6 +21,8 @@ class EpiDrawer extends StatelessWidget {
     this.userRoleLevel = 1,
     this.onNavigate,
     this.onLogout,
+    this.onSyncConfig,
+    this.isSyncingConfig = false,
   });
 
   @override
@@ -123,8 +127,46 @@ class EpiDrawer extends StatelessWidget {
               ),
             ),
 
-            // Logout
+            // Sync Config + Logout
             const Divider(height: 1),
+            // ═══ مزامنة تكوين — clear cache and reload fresh data from server ═══
+            if (onSyncConfig != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.infoColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: isSyncingConfig
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.infoColor),
+                          )
+                        : const Icon(Icons.sync_rounded, color: AppTheme.infoColor, size: 20),
+                  ),
+                  title: Text(
+                    isSyncingConfig ? 'جاري المزامنة...' : 'مزامنة تكوين',
+                    style: const TextStyle(
+                      fontFamily: 'Tajawal',
+                      color: AppTheme.infoColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    'مسح الكاش وجلب أحدث البيانات',
+                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint),
+                  ),
+                  onTap: isSyncingConfig ? null : () {
+                    Navigator.pop(context);
+                    onSyncConfig?.call();
+                  },
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: ListTile(
