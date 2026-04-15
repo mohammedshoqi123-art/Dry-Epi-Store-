@@ -21,7 +21,7 @@ export function AppLayout() {
           <div className="relative">
             <div className="w-20 h-20 rounded-2xl bg-white shadow-xl shadow-blue-500/10 flex items-center justify-center animate-pulse border border-blue-100/50">
               <img
-                src="/logo-epi-256.png"
+                src={`${import.meta.env.BASE_URL}logo-epi-256.png`.replace(/\/+/g, '/')}
                 alt="EPI"
                 className="w-14 h-14 object-contain"
                 onError={(e) => {
@@ -71,7 +71,7 @@ export function AppLayout() {
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-white shadow-sm overflow-hidden border border-blue-100/50 flex items-center justify-center">
               <img
-                src="/logo-epi-64.png"
+                src={`${import.meta.env.BASE_URL}logo-epi-64.png`.replace(/\/+/g, '/')}
                 alt="EPI"
                 className="w-6 h-6 object-contain"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}

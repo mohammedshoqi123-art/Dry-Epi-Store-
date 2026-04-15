@@ -48,7 +48,7 @@ export default function LoginPage() {
           <div className="relative inline-block mb-6">
             <div className="w-32 h-32 rounded-3xl bg-white shadow-2xl shadow-blue-500/10 flex items-center justify-center overflow-hidden border border-blue-100/50 mx-auto relative">
               <img
-                src="./logo-epi-256.png"
+                src={`${import.meta.env.BASE_URL}logo-epi-256.png`.replace(/\/+/g, '/')}
                 alt="شعار برنامج التطعيم الموسع"
                 className="w-24 h-24 object-contain relative z-10"
                 onError={(e) => {
