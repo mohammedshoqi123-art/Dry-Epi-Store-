@@ -56,17 +56,18 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      const [usersRes, submissionsRes, formsRes, shortagesRes] = await Promise.all([
+      // Use Promise.allSettled to handle individual failures gracefully
+      const [usersRes, submissionsRes, formsRes, shortagesRes] = await Promise.allSettled([
         supabase.from('profiles').select('id, is_active, role, created_at', { count: 'exact' }),
         supabase.from('form_submissions').select('id, status, created_at', { count: 'exact' }),
         supabase.from('forms').select('id, is_active', { count: 'exact' }),
         supabase.from('supply_shortages').select('id, severity, is_resolved', { count: 'exact' }),
       ])
 
-      const users = usersRes.data || []
-      const submissions = submissionsRes.data || []
-      const forms = formsRes.data || []
-      const shortages = shortagesRes.data || []
+      const users = usersRes.status === 'fulfilled' ? (usersRes.value.data || []) : []
+      const submissions = submissionsRes.status === 'fulfilled' ? (submissionsRes.value.data || []) : []
+      const forms = formsRes.status === 'fulfilled' ? (formsRes.value.data || []) : []
+      const shortages = shortagesRes.status === 'fulfilled' ? (shortagesRes.value.data || []) : []
 
       const now = new Date()
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -97,7 +98,8 @@ export function useDashboardStats() {
       }
     },
     refetchInterval: 30000,
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 15000,
   })
 }
@@ -190,7 +192,8 @@ export function useUsers(filters?: { role?: UserRole; search?: string }) {
       if (error) throw error
       return data
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
   })
 }
@@ -280,7 +283,8 @@ export function useForms(filters?: { search?: string; page?: number; pageSize?: 
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
   })
 }
@@ -405,7 +409,8 @@ export function useSubmissions(filters?: {
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
   })
 }
@@ -453,7 +458,8 @@ export function useGovernorates() {
       if (error) throw error
       return data
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 60000,
   })
 }
@@ -469,7 +475,8 @@ export function useDistricts(governorateId?: string) {
       return data
     },
     enabled: !!governorateId,
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   })
 }
 
@@ -495,7 +502,8 @@ export function useAuditLogs(filters?: { userId?: string; action?: string; page?
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
   })
 }
@@ -514,7 +522,8 @@ export function useShortages() {
       if (error) throw error
       return data
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
   })
 }
@@ -604,7 +613,8 @@ export function useNotifications() {
       if (error) throw error
       return data
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
   })
 }
