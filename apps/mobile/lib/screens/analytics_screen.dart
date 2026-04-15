@@ -68,6 +68,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
         showBackButton: false,
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              if (!ConnectivityUtils.isOnline) return;
+              ref.read(forceRefreshProvider)(_currentFilter.cacheKey);
+              ref.invalidate(dashboardAnalyticsProvider(_currentFilter));
+            },
+            tooltip: 'تحديث',
+          ),
+          IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             onPressed: _exportPDF,
             tooltip: 'تقرير PDF',
@@ -95,26 +104,19 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
           ],
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          if (!ConnectivityUtils.isOnline) return;
-          await ref.read(forceRefreshProvider)(_currentFilter.cacheKey);
-          ref.invalidate(dashboardAnalyticsProvider(_currentFilter));
-        },
-        child: analytics.when(
-          loading: () => const EpiLoading.shimmer(),
-          error: (e, _) => EpiErrorWidget(
-            message: e.toString(),
-            onRetry: () => ref.invalidate(dashboardAnalyticsProvider(_currentFilter)),
-          ),
-          data: (data) => TabBarView(
-            controller: _tabController,
-            children: [
-              _buildOverviewTab(data),
-              _buildFormAnalysisTab(data),
-              _buildFilterTab(data),
-            ],
-          ),
+      body: analytics.when(
+        loading: () => const EpiLoading.shimmer(),
+        error: (e, _) => EpiErrorWidget(
+          message: e.toString(),
+          onRetry: () => ref.invalidate(dashboardAnalyticsProvider(_currentFilter)),
+        ),
+        data: (data) => TabBarView(
+          controller: _tabController,
+          children: [
+            _buildOverviewTab(data),
+            _buildFormAnalysisTab(data),
+            _buildFilterTab(data),
+          ],
         ),
       ),
     );
