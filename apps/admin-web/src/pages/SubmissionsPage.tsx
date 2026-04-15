@@ -82,7 +82,8 @@ export default function SubmissionsPage() {
     pageSize: 20,
   })
 
-  const { data: forms } = useForms()
+  const { data: formsResult } = useForms()
+  const forms = formsResult?.data
   const submissions = data?.data || []
   const totalCount = data?.count || 0
   const totalPages = Math.ceil(totalCount / 20)

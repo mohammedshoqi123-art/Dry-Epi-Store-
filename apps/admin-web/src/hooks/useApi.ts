@@ -252,18 +252,55 @@ export function useDeleteUser() {
 
 // ==================== FORMS ====================
 
-export function useForms() {
+export function useForms(filters?: { search?: string; page?: number; pageSize?: number }) {
   return useQuery({
-    queryKey: ['forms'],
+    queryKey: ['forms', filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const page = filters?.page || 1
+      const pageSize = filters?.pageSize || 50
+
+      let query = supabase
         .from('forms')
-        .select('*')
+        .select('*', { count: 'exact' })
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1)
+
+      if (filters?.search) {
+        query = query.or(`title_ar.ilike.%${filters.search}%,title_en.ilike.%${filters.search}%`)
+      }
+
+      const { data, error, count } = await query
       if (error) throw error
-      return data
+      return { data: data || [], count: count || 0 }
     },
+  })
+}
+
+export function useFormSubmissionCounts() {
+  return useQuery({
+    queryKey: ['form-submission-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .select('form_id, status')
+        .is('deleted_at', null)
+
+      if (error) throw error
+
+      const counts: Record<string, { total: number; approved: number; pending: number; rejected: number }> = {}
+      for (const row of data || []) {
+        if (!counts[row.form_id]) {
+          counts[row.form_id] = { total: 0, approved: 0, pending: 0, rejected: 0 }
+        }
+        counts[row.form_id].total++
+        if (row.status === 'approved') counts[row.form_id].approved++
+        else if (row.status === 'rejected') counts[row.form_id].rejected++
+        else if (row.status === 'submitted' || row.status === 'reviewed') counts[row.form_id].pending++
+      }
+      return counts
+    },
+    staleTime: 30000,
   })
 }
 
@@ -271,9 +308,9 @@ export function useCreateForm() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (form: {
-      title_ar: string; title_en: string; description_ar?: string
+      title_ar: string; title_en: string; description_ar?: string; description_en?: string
       schema: Record<string, unknown>; requires_gps?: boolean; requires_photo?: boolean
-      allowed_roles?: UserRole[]
+      max_photos?: number; allowed_roles?: UserRole[]
     }) => {
       const { data: { session } } = await supabase.auth.getSession()
       const { data, error } = await supabase
@@ -284,7 +321,10 @@ export function useCreateForm() {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['forms'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forms'] })
+      queryClient.invalidateQueries({ queryKey: ['form-submission-counts'] })
+    },
   })
 }
 
@@ -292,9 +332,10 @@ export function useUpdateForm() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<{
-      title_ar: string; title_en: string; description_ar: string
+      title_ar: string; title_en: string; description_ar: string; description_en: string
       schema: Record<string, unknown>; is_active: boolean
-      requires_gps: boolean; requires_photo: boolean; allowed_roles: UserRole[]
+      requires_gps: boolean; requires_photo: boolean; max_photos: number
+      allowed_roles: UserRole[]
     }>) => {
       const { data, error } = await supabase
         .from('forms')
@@ -305,7 +346,27 @@ export function useUpdateForm() {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['forms'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forms'] })
+      queryClient.invalidateQueries({ queryKey: ['form-submission-counts'] })
+    },
+  })
+}
+
+export function useDeleteForm() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (formId: string) => {
+      const { error } = await supabase
+        .from('forms')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', formId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forms'] })
+      queryClient.invalidateQueries({ queryKey: ['form-submission-counts'] })
+    },
   })
 }
 
