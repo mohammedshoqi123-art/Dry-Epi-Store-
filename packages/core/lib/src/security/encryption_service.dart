@@ -44,6 +44,12 @@ class EncryptionService {
         'The key must be at least 32 characters for AES-256.',
       );
     }
+    if (_activeKey.length < 32) {
+      throw StateError(
+        'ENCRYPTION_KEY is too short (${_activeKey.length} chars, minimum 32). '
+        'Generate a secure key: openssl rand -base64 32',
+      );
+    }
     final keyBytes = utf8.encode(_activeKey);
     // Generate a cryptographically secure random salt per instance
     _salt = _generateSecureRandom(_saltLength);
