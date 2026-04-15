@@ -210,8 +210,8 @@ class EpiSupervisorApp extends ConsumerWidget {
             // Allow accessibility text scaling up to 1.3x for readability
             data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(
-                MediaQuery.of(context).textScaler.scale(1.0) > 1.3
-                  ? 1.3
+                MediaQuery.of(context).textScaler.scale(1.0) > 2.0
+                  ? 2.0
                   : MediaQuery.of(context).textScaler.scale(1.0)
               ),
             ),
