@@ -107,7 +107,7 @@ serve(async (req) => {
               .eq('is_active', true).is('deleted_at', null),
             db.from('profiles').select('*', { count: 'exact', head: true })
               .eq('governorate_id', gov.id).eq('is_active', true).is('deleted_at', null),
-          ]))
+          ])
 
           const totalCount = total.count ?? 0
           const approvedCount = approved.count ?? 0
