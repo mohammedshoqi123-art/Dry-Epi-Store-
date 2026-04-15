@@ -63,7 +63,11 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter))),
+              onRefresh: () async {
+                final filter = SubmissionsFilter(status: _statusFilter);
+                await ref.read(forceRefreshProvider)(filter.cacheKey);
+                ref.invalidate(submissionsProvider(filter));
+              },
               child: submissions.when(
                 loading: () => const EpiLoading.shimmer(),
                 error: (e, _) => EpiErrorWidget(

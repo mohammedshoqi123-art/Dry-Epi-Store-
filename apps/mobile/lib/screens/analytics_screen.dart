@@ -96,7 +96,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(dashboardAnalyticsProvider(_currentFilter)),
+        onRefresh: () async {
+          await ref.read(forceRefreshProvider)(_currentFilter.cacheKey);
+          ref.invalidate(dashboardAnalyticsProvider(_currentFilter));
+        },
         child: analytics.when(
           loading: () => const EpiLoading.shimmer(),
           error: (e, _) => EpiErrorWidget(

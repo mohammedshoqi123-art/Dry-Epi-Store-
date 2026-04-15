@@ -307,6 +307,14 @@ class OfflineDataCache {
     return false;
   }
 
+  /// Force-clear a specific cache key so next fetch is fresh from server.
+  /// Use this for pull-to-refresh: clear the cache, then fetch.
+  Future<void> forceInvalidate(String key) async {
+    _memoryCache.remove(key);
+    await _offline.removeCacheKey(key);
+    if (kDebugMode) print('[OfflineDataCache] Force invalidated: $key');
+  }
+
   /// Get cached data as a raw value (for stats, counts, etc.).
   /// Uses offline override to always return data when offline.
   dynamic getCachedData(String key) {

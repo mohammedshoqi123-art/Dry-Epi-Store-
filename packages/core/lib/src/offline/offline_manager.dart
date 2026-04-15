@@ -503,6 +503,17 @@ class OfflineManager {
     await _safeBox.delete(_cacheKey);
   }
 
+  /// Remove a specific key from the persistent cache.
+  /// Used for force-refresh on pull-to-refresh.
+  Future<void> removeCacheKey(String key) async {
+    return _withWriteLock(() async {
+      final cache = _getCache();
+      cache.remove(key);
+      final encrypted = _encryption.encrypt(jsonEncode(cache));
+      await _safeBox.put(_cacheKey, encrypted);
+    });
+  }
+
   void dispose() {
     _connectivityController.close();
   }

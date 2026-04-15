@@ -104,6 +104,19 @@ final manualSyncProvider = Provider<Future<SyncCycleResult> Function()>((ref) {
   };
 });
 
+/// ═══ Force-refresh helper: clears specific cache key then invalidates provider ═══
+/// Use for pull-to-refresh to ensure fresh data from server.
+final forceRefreshProvider = Provider<Future<void> Function(String cacheKey)>((ref) {
+  return (String cacheKey) async {
+    try {
+      final cache = await ref.read(offlineDataCacheProvider.future);
+      await cache.forceInvalidate(cacheKey);
+    } catch (e) {
+      debugPrint('[forceRefreshProvider] Error clearing cache for $cacheKey: $e');
+    }
+  };
+});
+
 /// Pending items count for UI badges and banners.
 /// ═══ FIX: Use stream-based polling with longer interval to reduce PBKDF2 overhead ═══
 final syncPendingCountProvider = StreamProvider<int>((ref) async* {

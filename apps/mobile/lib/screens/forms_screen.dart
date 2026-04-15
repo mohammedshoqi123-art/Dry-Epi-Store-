@@ -24,7 +24,11 @@ class FormsScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(formsProvider),
+        onRefresh: () async {
+          // Clear cache first to force fresh fetch from server
+          await ref.read(forceRefreshProvider)('forms');
+          ref.invalidate(formsProvider);
+        },
         child: forms.when(
           loading: () => const EpiLoading.shimmer(),
           error: (e, _) => EpiErrorWidget(
