@@ -172,6 +172,28 @@ export interface AuditLog {
   profiles?: { full_name: string; email: string }
 }
 
+export interface ChatMessage {
+  id: string
+  sender_id: string
+  sender_name: string
+  content: string
+  room: string
+  created_at: string
+}
+
+export interface Notification {
+  id: string
+  recipient_id: string
+  title: string
+  body: string
+  type: string
+  category: string
+  data: Record<string, unknown>
+  is_read: boolean
+  read_at?: string
+  created_at: string
+}
+
 export interface SupplyShortage {
   id: string
   submission_id?: string
@@ -231,6 +253,16 @@ export interface Database {
         Row: AuditLog
         Insert: Partial<AuditLog>
         Update: Partial<AuditLog>
+      }
+      chat_messages: {
+        Row: ChatMessage
+        Insert: Partial<ChatMessage>
+        Update: Partial<ChatMessage>
+      }
+      notifications: {
+        Row: Notification
+        Insert: Partial<Notification>
+        Update: Partial<Notification>
       }
     }
   }

@@ -441,6 +441,127 @@ export function useShortages() {
   })
 }
 
+// ==================== CHAT ====================
+
+export function useChatMessages(room = 'general') {
+  return useQuery({
+    queryKey: ['chat-messages', room],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('room', room)
+        .order('created_at', { ascending: true })
+        .limit(100)
+      if (error) throw error
+      return data
+    },
+    refetchInterval: 5000,
+  })
+}
+
+export function useSendChatMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ message, room = 'general' }: { message: string; room?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session?.user.id).single()
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          sender_id: session?.user.id,
+          sender_name: profile?.full_name || 'مستخدم',
+          content: message,
+          room,
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['chat-messages'] }),
+  })
+}
+
+// ==================== SHORTAGES (resolve) ====================
+
+export function useResolveShortage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (shortageId: string) => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data, error } = await supabase
+        .from('supply_shortages')
+        .update({
+          is_resolved: true,
+          resolved_at: new Date().toISOString(),
+          resolved_by: session?.user.id,
+        })
+        .eq('id', shortageId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['shortages'] })
+      qc.invalidateQueries({ queryKey: ['dashboard-stats'] })
+    },
+  })
+}
+
+// ==================== NOTIFICATIONS ====================
+
+export function useNotifications() {
+  return useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient_id', session?.user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('id', notificationId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useMarkAllNotificationsRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('recipient_id', session?.user.id)
+        .eq('is_read', false)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
 // ==================== ROLE DISTRIBUTION ====================
 
 export function useRoleDistribution() {

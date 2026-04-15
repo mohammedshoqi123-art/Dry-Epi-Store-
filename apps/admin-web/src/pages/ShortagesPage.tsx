@@ -6,14 +6,17 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Header } from '@/components/layout/header'
-import { useShortages } from '@/hooks/useApi'
+import { useShortages, useResolveShortage } from '@/hooks/useApi'
 import { SEVERITY_LABELS, SEVERITY_COLORS, type ShortageSeverity } from '@/types/database'
 import { formatRelativeTime, cn } from '@/lib/utils'
+import { useToast } from '@/hooks/useToast'
 
 export default function ShortagesPage() {
   const [severityFilter, setSeverityFilter] = useState<string>('')
   const [resolvedFilter, setResolvedFilter] = useState<string>('')
   const { data: shortages, isLoading, refetch } = useShortages()
+  const resolveShortage = useResolveShortage()
+  const { toast } = useToast()
 
   const filtered = shortages?.filter(s => {
     if (severityFilter && s.severity !== severityFilter) return false
@@ -125,7 +128,17 @@ export default function ShortagesPage() {
                           <CheckCircle2 className="w-3 h-3" /> تم الحل
                         </Badge>
                       ) : (
-                        <Button variant="outline" size="sm" className="text-xs h-7">تحديد كمحلول</Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => resolveShortage.mutate(shortage.id, {
+                            onSuccess: () => toast({ title: 'تم تحديد النقص كمحلول', variant: 'success' }),
+                          })}
+                          disabled={resolveShortage.isPending}
+                        >
+                          تحديد كمحلول
+                        </Button>
                       )}
                     </div>
                   </CardContent>

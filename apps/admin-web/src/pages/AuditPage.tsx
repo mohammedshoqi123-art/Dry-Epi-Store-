@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Header } from '@/components/layout/header'
 import { useAuditLogs } from '@/hooks/useApi'
+import { supabase } from '@/lib/supabase'
 import { formatDateTime, formatRelativeTime, cn } from '@/lib/utils'
 
 const ACTION_LABELS: Record<string, string> = {
@@ -27,6 +28,40 @@ const ACTION_COLORS: Record<string, string> = {
   approve: 'bg-emerald-100 text-emerald-700',
   reject: 'bg-red-100 text-red-700',
   export: 'bg-indigo-100 text-indigo-700',
+}
+
+async function exportAuditLogs() {
+  const { data } = await supabase
+    .from('audit_logs')
+    .select('*, profiles(full_name, email)')
+    .order('created_at', { ascending: false })
+    .limit(5000)
+
+  if (!data || data.length === 0) return
+
+  const headers = ['الإجراء', 'الجدول', 'المستخدم', 'البريد', 'التاريخ', 'العنوان IP']
+  const rows = data.map((log) => ({
+    'الإجراء': ACTION_LABELS[log.action] || log.action,
+    'الجدول': log.table_name,
+    'المستخدم': log.profiles?.full_name || '',
+    'البريد': log.profiles?.email || '',
+    'التاريخ': log.created_at,
+    'العنوان IP': log.ip_address || '',
+  }))
+
+  const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => {
+    const val = String(r[h as keyof typeof r] || '')
+    if (val.includes(',') || val.includes('"')) return `"${val.replace(/"/g, '""')}"`
+    return val
+  }).join(','))].join('\n')
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function AuditPage() {
@@ -59,7 +94,7 @@ export default function AuditPage() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="gap-2 mr-auto">
+          <Button variant="outline" className="gap-2 mr-auto" onClick={() => exportAuditLogs()}>
             <Activity className="w-4 h-4" />
             تصدير السجل
           </Button>

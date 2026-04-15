@@ -14,9 +14,60 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Header } from '@/components/layout/header'
 import { useSubmissions, useUpdateSubmissionStatus, useForms, useGovernorates } from '@/hooks/useApi'
+import { supabase } from '@/lib/supabase'
 import { STATUS_LABELS, STATUS_COLORS, type SubmissionStatus, type FormSubmission } from '@/types/database'
 import { formatDateTime, formatRelativeTime, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
+
+function convertToCSV(data: Record<string, unknown>[], headers: string[]): string {
+  const headerRow = headers.join(',')
+  const rows = data.map((row) =>
+    headers.map((h) => {
+      const val = row[h]
+      const str = val === null || val === undefined ? '' : String(val)
+      // Escape quotes and wrap in quotes if contains comma/quote/newline
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }).join(',')
+  )
+  return [headerRow, ...rows].join('\n')
+}
+
+function downloadCSV(content: string, filename: string) {
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+async function exportSubmissions() {
+  const { data } = await supabase
+    .from('form_submissions')
+    .select('*, forms(title_ar), profiles(full_name, email)')
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(5000)
+
+  if (!data || data.length === 0) return
+
+  const headers = ['الرقم', 'النموذج', 'المُرسل', 'البريد', 'الحالة', 'التاريخ']
+  const rows = data.map((s, i) => ({
+    'الرقم': i + 1,
+    'النموذج': s.forms?.title_ar || '',
+    'المُرسل': s.profiles?.full_name || '',
+    'البريد': s.profiles?.email || '',
+    'الحالة': s.status,
+    'التاريخ': s.created_at,
+  }))
+
+  const csv = convertToCSV(rows, headers)
+  downloadCSV(csv, `submissions_${new Date().toISOString().split('T')[0]}.csv`)
+}
 
 export default function SubmissionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
@@ -63,7 +114,7 @@ export default function SubmissionsPage() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="gap-2 mr-auto">
+          <Button variant="outline" className="gap-2 mr-auto" onClick={() => exportSubmissions()}>
             <Download className="w-4 h-4" />
             تصدير CSV
           </Button>

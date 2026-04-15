@@ -16,6 +16,8 @@ const ShortagesPage = lazy(() => import('@/pages/ShortagesPage'))
 const GovernoratesPage = lazy(() => import('@/pages/GovernoratesPage'))
 const PagesManagementPage = lazy(() => import('@/pages/PagesManagementPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+const ChatPage = lazy(() => import('@/pages/ChatPage'))
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
 
 function PageLoader() {
   return (
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="governorates" element={<Suspense fallback={<PageLoader />}><GovernoratesPage /></Suspense>} />
           <Route path="pages" element={<Suspense fallback={<PageLoader />}><PagesManagementPage /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
+          <Route path="chat" element={<Suspense fallback={<PageLoader />}><ChatPage /></Suspense>} />
+          <Route path="notifications" element={<Suspense fallback={<PageLoader />}><NotificationsPage /></Suspense>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

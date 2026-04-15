@@ -20,6 +20,7 @@ import '../screens/forms_status_screen.dart';
 import '../screens/notifications_screen.dart';
 import 'package:epi_features/epi_features.dart';
 import '../screens/references_screen.dart';
+import '../screens/chat_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
@@ -166,6 +167,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/notifications',
             builder: (context, state) => const NotificationsScreen(),
+          ),
+          GoRoute(
+            path: '/chat',
+            builder: (context, state) => const ChatScreen(),
           ),
         ],
       ),

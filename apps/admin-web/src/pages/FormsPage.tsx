@@ -9,15 +9,19 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Header } from '@/components/layout/header'
-import { useForms, useUpdateForm } from '@/hooks/useApi'
-import { ROLE_LABELS, type Form } from '@/types/database'
+import { useForms, useCreateForm, useUpdateForm } from '@/hooks/useApi'
+import { ROLE_LABELS, ROLE_HIERARCHY, type Form, type UserRole } from '@/types/database'
 import { formatDate, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 
 export default function FormsPage() {
   const [search, setSearch] = useState('')
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editForm, setEditForm] = useState<Form | null>(null)
   const { data: forms, isLoading, refetch } = useForms()
   const { toast } = useToast()
 
@@ -36,7 +40,7 @@ export default function FormsPage() {
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="بحث في النماذج..." value={search} onChange={(e) => setSearch(e.target.value)} className="pr-10" />
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setShowCreateDialog(true)}>
             <Plus className="w-4 h-4" />
             نموذج جديد
           </Button>
@@ -48,15 +52,32 @@ export default function FormsPage() {
             ? Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i}><CardContent className="p-5"><Skeleton className="w-full h-40" /></CardContent></Card>
               ))
-            : filteredForms?.map((form) => <FormCard key={form.id} form={form} />)
+            : filteredForms?.map((form) => <FormCard key={form.id} form={form} onEdit={() => setEditForm(form)} />)
           }
         </div>
       </div>
+
+      {/* Create Dialog */}
+      <FormDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={() => { setShowCreateDialog(false); refetch() }}
+      />
+
+      {/* Edit Dialog */}
+      {editForm && (
+        <FormDialog
+          open={!!editForm}
+          onOpenChange={(open) => { if (!open) setEditForm(null) }}
+          form={editForm}
+          onSuccess={() => { setEditForm(null); refetch() }}
+        />
+      )}
     </div>
   )
 }
 
-function FormCard({ form }: { form: Form }) {
+function FormCard({ form, onEdit }: { form: Form; onEdit: () => void }) {
   const updateForm = useUpdateForm()
   const { toast } = useToast()
 
@@ -90,7 +111,7 @@ function FormCard({ form }: { form: Form }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem><Eye className="w-4 h-4 ml-2" />عرض</DropdownMenuItem>
-              <DropdownMenuItem><Edit className="w-4 h-4 ml-2" />تعديل</DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}><Edit className="w-4 h-4 ml-2" />تعديل</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -147,5 +168,177 @@ function FormCard({ form }: { form: Form }) {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ==================== Form Dialog (Create / Edit) ====================
+
+interface FormDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  form?: Form
+  onSuccess: () => void
+}
+
+function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
+  const isEdit = !!form
+  const [titleAr, setTitleAr] = useState(form?.title_ar || '')
+  const [titleEn, setTitleEn] = useState(form?.title_en || '')
+  const [descriptionAr, setDescriptionAr] = useState(form?.description_ar || '')
+  const [requiresGps, setRequiresGps] = useState(form?.requires_gps || false)
+  const [requiresPhoto, setRequiresPhoto] = useState(form?.requires_photo || false)
+  const [allowedRoles, setAllowedRoles] = useState<UserRole[]>(form?.allowed_roles || ['data_entry'])
+  const { toast } = useToast()
+
+  const createForm = useCreateForm()
+  const updateForm = useUpdateForm()
+
+  const allRoles: UserRole[] = ['admin', 'central', 'governorate', 'district', 'data_entry']
+
+  const toggleRole = (role: UserRole) => {
+    setAllowedRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+    )
+  }
+
+  const handleSubmit = () => {
+    if (!titleAr.trim() || !titleEn.trim()) {
+      toast({ title: 'الرجاء إدخال العنوان بالعربية والإنجليزية', variant: 'destructive' })
+      return
+    }
+
+    if (isEdit) {
+      updateForm.mutate({
+        id: form.id,
+        title_ar: titleAr,
+        title_en: titleEn,
+        description_ar: descriptionAr || undefined,
+        requires_gps: requiresGps,
+        requires_photo: requiresPhoto,
+        allowed_roles: allowedRoles,
+      }, {
+        onSuccess: () => {
+          toast({ title: 'تم تحديث النموذج', variant: 'success' })
+          onSuccess()
+        },
+      })
+    } else {
+      createForm.mutate({
+        title_ar: titleAr,
+        title_en: titleEn,
+        description_ar: descriptionAr || undefined,
+        schema: {},
+        requires_gps: requiresGps,
+        requires_photo: requiresPhoto,
+        allowed_roles: allowedRoles,
+      }, {
+        onSuccess: () => {
+          toast({ title: 'تم إنشاء النموذج', variant: 'success' })
+          onSuccess()
+        },
+      })
+    }
+  }
+
+  // Reset fields when dialog opens with different form
+  const [prevFormId, setPrevFormId] = useState<string | undefined>(undefined)
+  if (form?.id !== prevFormId) {
+    setPrevFormId(form?.id)
+    if (form) {
+      setTitleAr(form.title_ar)
+      setTitleEn(form.title_en)
+      setDescriptionAr(form.description_ar || '')
+      setRequiresGps(form.requires_gps)
+      setRequiresPhoto(form.requires_photo)
+      setAllowedRoles(form.allowed_roles)
+    } else if (!prevFormId) {
+      setTitleAr('')
+      setTitleEn('')
+      setDescriptionAr('')
+      setRequiresGps(false)
+      setRequiresPhoto(false)
+      setAllowedRoles(['data_entry'])
+    }
+  }
+
+  const isPending = createForm.isPending || updateForm.isPending
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'تعديل النموذج' : 'نموذج جديد'}</DialogTitle>
+          <DialogDescription>
+            {isEdit ? 'قم بتعديل بيانات النموذج' : 'أدخل بيانات النموذج الجديد'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="title_ar">العنوان بالعربية</Label>
+            <Input
+              id="title_ar"
+              value={titleAr}
+              onChange={(e) => setTitleAr(e.target.value)}
+              placeholder="مثال: تقرير التطعيم الشهري"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="title_en">العنوان بالإنجليزية</Label>
+            <Input
+              id="title_en"
+              value={titleEn}
+              onChange={(e) => setTitleEn(e.target.value)}
+              placeholder="e.g. Monthly Vaccination Report"
+              dir="ltr"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="desc_ar">الوصف (اختياري)</Label>
+            <Input
+              id="desc_ar"
+              value={descriptionAr}
+              onChange={(e) => setDescriptionAr(e.target.value)}
+              placeholder="وصف النموذج..."
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="gps">يتطلب GPS</Label>
+            <Switch id="gps" checked={requiresGps} onCheckedChange={setRequiresGps} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="photo">يتطلب صور</Label>
+            <Switch id="photo" checked={requiresPhoto} onCheckedChange={setRequiresPhoto} />
+          </div>
+
+          <div>
+            <Label>الأدوار المسموحة</Label>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {allRoles.map((role) => (
+                <Badge
+                  key={role}
+                  variant={allowedRoles.includes(role) ? 'default' : 'outline'}
+                  className="cursor-pointer"
+                  onClick={() => toggleRole(role)}
+                >
+                  {ROLE_LABELS[role]}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button onClick={handleSubmit} disabled={isPending}>
+            {isPending ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديلات' : 'إنشاء'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
