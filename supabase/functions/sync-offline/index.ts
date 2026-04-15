@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'npm:@supabase/supabase-js'
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { authenticateRequest, createUserClient, createAdminClient } from '../_shared/auth.ts'
 
