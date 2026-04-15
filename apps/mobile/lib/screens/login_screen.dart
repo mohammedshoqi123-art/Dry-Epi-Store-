@@ -104,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       ),
                       const SizedBox(height: 20),
                       const Text(
-                        "EPI Supervisor's",
+                        "EPI Supervisors",
                         style: TextStyle(
                           fontFamily: 'Cairo',
                           fontSize: 26,

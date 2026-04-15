@@ -94,7 +94,7 @@ ${subs.take(200).map((s) {
     }).join('\n')}
 </table>
 
-<div class="footer">تم إنشاء هذا التقرير تلقائياً بواسطة "EPI Supervisor's"</div>
+<div class="footer">تم إنشاء هذا التقرير تلقائياً بواسطة "EPI Supervisors"</div>
 </body>
 </html>''';
   }

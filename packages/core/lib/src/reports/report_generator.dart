@@ -76,7 +76,7 @@ class ReportGenerator {
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
-                    'تم إنشاء هذا التقرير تلقائياً بواسطة "EPI Supervisor's",',
+                    'تم إنشاء هذا التقرير تلقائياً بواسطة "EPI Supervisors",',
                     textDirection: pw.TextDirection.rtl,
                     style: pw.TextStyle(font: arabicFont, fontSize: 12),
                   ),
