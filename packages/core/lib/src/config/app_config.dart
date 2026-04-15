@@ -15,14 +15,19 @@ class AppConfig {
   static const int maxPageSize = 100;
 
   // ─── Cache ───────────────────────────────────────────────────────────────
-  static const Duration cacheExpiry = Duration(hours: 1);
-  static const Duration shortCacheExpiry = Duration(minutes: 15);
+  /// Default cache expiry for online freshness checks.
+  /// When offline, cached data is ALWAYS returned regardless of this value.
+  static const Duration cacheExpiry = Duration(hours: 24);
+  static const Duration shortCacheExpiry = Duration(hours: 6);
+  /// Maximum offline retention — how long to keep cached data before purging.
+  /// Set to 30 days for field work in areas with poor connectivity.
+  static const Duration maxOfflineRetention = Duration(days: 30);
 
   // ─── Sync Configuration ──────────────────────────────────────────────────
   static const Duration syncInterval = Duration(minutes: 5);
-  static const int maxRetries = 3;
+  static const int maxRetries = 5; // More retries for unreliable connections
   static const Duration retryDelay = Duration(seconds: 30);
-  static const int maxQueueSize = 500;
+  static const int maxQueueSize = 1000; // Larger queue for offline-heavy usage
 
   // ─── File Upload ─────────────────────────────────────────────────────────
   static const int maxPhotoSizeMb = 5;

@@ -198,7 +198,7 @@ final formsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   return cache.getList(
     'forms',
     () => ref.read(databaseServiceProvider).getForms(),
-    maxAge: const Duration(hours: 1),
+    maxAge: const Duration(hours: 24), // Forms change rarely — cache 24h
   );
 });
 
@@ -216,7 +216,7 @@ final submissionsProvider =
             limit: filter.limit,
             offset: filter.offset,
           ),
-      maxAge: const Duration(minutes: 15),
+      maxAge: const Duration(hours: 2), // Submissions cached 2h for offline access
     );
   },
 );
@@ -275,7 +275,7 @@ final dashboardAnalyticsProvider =
             startDate: filter.startDate,
             endDate: filter.endDate,
           ),
-      maxAge: const Duration(minutes: 30),
+      maxAge: const Duration(hours: 2), // Analytics cached 2h for offline
     );
   },
 );
@@ -285,7 +285,7 @@ final shortagesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async
   return cache.getList(
     'shortages',
     () => ref.read(databaseServiceProvider).getShortages(),
-    maxAge: const Duration(minutes: 30),
+    maxAge: const Duration(hours: 2),
   );
 });
 

@@ -33,60 +33,80 @@ class OfflineDataCache {
   // ═══════════════════════════════════════════════════════════════════════
 
   /// Get data using offline-first strategy:
-  /// 1. Return memory cache immediately (if available)
-  /// 2. Fetch from network in background
+  /// 1. Return memory cache immediately (if available and fresh)
+  /// 2. Fetch from network in background if stale
   /// 3. Update cache when network data arrives
+  /// 4. If offline: return ANY cached data (even days-old stale data)
+  /// 5. If nothing cached at all: rethrow
   ///
   /// [cacheKey] - unique key for this data (e.g., 'forms', 'submissions_all')
   /// [fetchFn] - function to fetch fresh data from Supabase
-  /// [maxAge] - maximum age before cache is considered stale (default: 1 hour)
+  /// [maxAge] - maximum age before cache is considered stale (default: 24 hours)
   /// [forceRefresh] - skip cache and always fetch fresh
   Future<List<Map<String, dynamic>>> getList(
     String cacheKey,
     Future<List<Map<String, dynamic>>> Function() fetchFn, {
-    Duration maxAge = const Duration(hours: 1),
+    Duration maxAge = const Duration(hours: 24),
     bool forceRefresh = false,
   }) async {
-    // 1. Check memory cache first (fastest)
+    // 1. Check memory cache first (fastest) — only when fresh
     if (!forceRefresh) {
       final cached = _getFromMemory<List>(cacheKey, maxAge);
       if (cached != null) {
-        // Refresh in background if stale
+        // Refresh in background if stale (but still return cached data now)
         if (_isStale(cacheKey, maxAge)) {
           _refreshInBackground(cacheKey, fetchFn);
         }
         return List<Map<String, dynamic>>.from(cached);
       }
 
-      // 2. Check persistent cache
+      // 2. Check persistent cache (fresh)
       final persistentCached = _getFromPersistent<List>(cacheKey, maxAge);
       if (persistentCached != null) {
-        // Load into memory cache for next time
         _putToMemory(cacheKey, persistentCached);
-        // Refresh in background if stale
         if (_isStale(cacheKey, maxAge)) {
           _refreshInBackground(cacheKey, fetchFn);
         }
         return List<Map<String, dynamic>>.from(persistentCached);
       }
+
+      // ═══ 3. OFFLINE FALLBACK: Return stale data if we're offline ═══
+      // This is the CRITICAL fix — without this, data disappears after cache expiry
+      if (_offline.isOnline == false) {
+        final staleCache = _getFromMemory<List>(cacheKey, Duration(days: 365));
+        if (staleCache != null) {
+          if (kDebugMode) print('[OfflineDataCache] Returning stale memory cache for $cacheKey (offline mode)');
+          return List<Map<String, dynamic>>.from(staleCache);
+        }
+
+        final stalePersistent = _getFromPersistent<List>(cacheKey, Duration(days: 365), offlineOverride: true);
+        if (stalePersistent != null) {
+          _putToMemory(cacheKey, stalePersistent);
+          if (kDebugMode) print('[OfflineDataCache] Returning stale persistent cache for $cacheKey (offline mode)');
+          return List<Map<String, dynamic>>.from(stalePersistent);
+        }
+      }
     }
 
-    // 3. No cache available — fetch from network
+    // 4. No cache available — fetch from network
     try {
       final data = await fetchFn();
       await _saveToCache(cacheKey, data);
       return data;
     } catch (e) {
-      // Network failed — try returning stale cache as fallback
+      // 5. Network failed — try returning stale cache as fallback (up to 30 days)
+      if (kDebugMode) print('[OfflineDataCache] Network failed for $cacheKey, trying stale cache: $e');
+
       final staleCache = _getFromMemory<List>(cacheKey, Duration(days: 365));
       if (staleCache != null) {
-        if (kDebugMode) print('[OfflineDataCache] Network failed, returning stale cache for $cacheKey');
+        if (kDebugMode) print('[OfflineDataCache] Returning stale memory cache for $cacheKey');
         return List<Map<String, dynamic>>.from(staleCache);
       }
 
-      final stalePersistent = _getFromPersistent<List>(cacheKey, Duration(days: 365));
+      final stalePersistent = _getFromPersistent<List>(cacheKey, Duration(days: 365), offlineOverride: true);
       if (stalePersistent != null) {
-        if (kDebugMode) print('[OfflineDataCache] Network failed, returning stale persistent cache for $cacheKey');
+        _putToMemory(cacheKey, stalePersistent);
+        if (kDebugMode) print('[OfflineDataCache] Returning stale persistent cache for $cacheKey');
         return List<Map<String, dynamic>>.from(stalePersistent);
       }
 
@@ -95,11 +115,11 @@ class OfflineDataCache {
     }
   }
 
-  /// Same as getList but for single map results
+  /// Same as getList but for single map results — with offline fallback
   Future<Map<String, dynamic>> getMap(
     String cacheKey,
     Future<Map<String, dynamic>> Function() fetchFn, {
-    Duration maxAge = const Duration(hours: 1),
+    Duration maxAge = const Duration(hours: 24),
     bool forceRefresh = false,
   }) async {
     if (!forceRefresh) {
@@ -119,6 +139,16 @@ class OfflineDataCache {
         }
         return Map<String, dynamic>.from(persistentCached);
       }
+
+      // Offline fallback — return stale data
+      if (_offline.isOnline == false) {
+        final stalePersistent = _getFromPersistent<Map>(cacheKey, Duration(days: 365), offlineOverride: true);
+        if (stalePersistent != null) {
+          _putToMemory(cacheKey, stalePersistent);
+          if (kDebugMode) print('[OfflineDataCache] Returning stale map for $cacheKey (offline)');
+          return Map<String, dynamic>.from(stalePersistent);
+        }
+      }
     }
 
     try {
@@ -126,11 +156,15 @@ class OfflineDataCache {
       await _saveToCache(cacheKey, data);
       return data;
     } catch (e) {
+      // Network failed — stale fallback
       final staleCache = _getFromMemory<Map>(cacheKey, Duration(days: 365));
       if (staleCache != null) return Map<String, dynamic>.from(staleCache);
 
-      final stalePersistent = _getFromPersistent<Map>(cacheKey, Duration(days: 365));
-      if (stalePersistent != null) return Map<String, dynamic>.from(stalePersistent);
+      final stalePersistent = _getFromPersistent<Map>(cacheKey, Duration(days: 365), offlineOverride: true);
+      if (stalePersistent != null) {
+        _putToMemory(cacheKey, stalePersistent);
+        return Map<String, dynamic>.from(stalePersistent);
+      }
 
       rethrow;
     }
@@ -165,9 +199,11 @@ class OfflineDataCache {
     return null;
   }
 
-  /// Get from persistent cache if not expired
-  dynamic _getFromPersistent<T>(String key, Duration maxAge) {
-    final cached = _offline.getCachedData(key);
+  /// Get from persistent cache if not expired.
+  /// [offlineOverride] — if true, bypasses normal cacheExpiry and returns stale data
+  /// up to 30 days old. Used when network fails and we need ANY cached data.
+  dynamic _getFromPersistent<T>(String key, Duration maxAge, {bool offlineOverride = false}) {
+    final cached = _offline.getCachedData(key, offlineOverride: offlineOverride);
     if (cached == null) return null;
 
     // Handle list wrapper
@@ -239,15 +275,25 @@ class OfflineDataCache {
     if (kDebugMode) print('[OfflineDataCache] All caches cleared');
   }
 
-  /// Check if we have any cached data for a key
+  /// Check if we have any cached data for a key (including stale when offline).
   bool hasCachedData(String key) {
     if (_memoryCache.containsKey(key)) return true;
-    return _offline.getCachedData(key) != null;
+    if (_offline.getCachedData(key) != null) return true;
+    // Offline fallback: check for stale data
+    if (!_offline.isOnline) {
+      return _offline.getCachedData(key, offlineOverride: true) != null;
+    }
+    return false;
   }
 
-  /// Get cached data as a raw value (for stats, counts, etc.)
+  /// Get cached data as a raw value (for stats, counts, etc.).
+  /// Uses offline override to always return data when offline.
   dynamic getCachedData(String key) {
-    return _offline.getCachedData(key);
+    var data = _offline.getCachedData(key);
+    if (data == null && !_offline.isOnline) {
+      data = _offline.getCachedData(key, offlineOverride: true);
+    }
+    return data;
   }
 
   /// Cache a single form's data for offline access
@@ -268,9 +314,14 @@ class OfflineDataCache {
     await _saveToCache('forms', cachedForms);
   }
 
-  /// Get cached data as a list (handles the list wrapper format)
+  /// Get cached data as a list (handles the list wrapper format).
+  /// Uses offline override to return data even when cache is "stale" —
+  /// because offline users need their data regardless of age.
   List<Map<String, dynamic>>? getCachedDataList(String key) {
-    final dynamic cached = _offline.getCachedData(key);
+    // Try fresh first, then fallback to stale (offline override)
+    dynamic cached = _offline.getCachedData(key);
+    cached ??= _offline.getCachedData(key, offlineOverride: true);
+
     if (cached == null) return null;
 
     // Handle list wrapper: { _type: 'list', _list: [...] }
