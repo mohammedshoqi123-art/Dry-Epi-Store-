@@ -103,10 +103,13 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
     <aside
       className={cn(
         'flex flex-col h-screen border-l transition-all duration-300 relative',
-        'bg-gradient-to-b from-blue-700 via-blue-600 to-blue-800',
         collapsed ? 'w-[72px]' : 'w-[280px]'
       )}
-      style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+      style={{
+        background: 'linear-gradient(180deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%)',
+        borderColor: 'rgba(255,255,255,0.15)',
+        backdropFilter: 'none',
+      }}
     >
       {/* Header */}
       <div className="flex items-center gap-3 p-4 h-16">
@@ -281,20 +284,23 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="fixed inset-y-0 right-0 w-[280px] bg-background shadow-2xl animate-slide-in-right">
+          <div
+            className="fixed inset-y-0 right-0 w-[280px] shadow-2xl animate-slide-in-right"
+            style={{ background: 'linear-gradient(180deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%)' }}
+          >
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50">
                   <img src={getLogoUrl('64')} alt="EPI" className="w-8 h-8 object-contain"
                     onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 </div>
-                <h1 className="font-heading font-bold text-lg">EPI Supervisor's</h1>
+                <h1 className="font-heading font-bold text-lg text-white">EPI Supervisor's</h1>
               </div>
-              <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)}>
+              <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10">
                 <X className="w-5 h-5" />
               </Button>
             </div>
-            <Separator />
+            <Separator className="bg-white/10" />
             <nav className="px-3 py-4 space-y-1">
               {filteredItems.map((item) => {
                 const isActive = location.pathname === item.href
@@ -306,7 +312,7 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
                     onClick={() => setOpen(false)}
                     className={cn(
                       'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                      isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                      isActive ? 'bg-white/20 text-white shadow-md' : 'text-blue-100 hover:bg-white/10 hover:text-white'
                     )}
                   >
                     <Icon className="w-5 h-5" />

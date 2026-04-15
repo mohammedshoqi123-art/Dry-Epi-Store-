@@ -5,18 +5,25 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog'
 import { Header } from '@/components/layout/header'
 import {
   useDashboardStats, useSubmissionsChart, useGovernorateStats,
   useRoleDistribution, useForms, useSubmissions, useUsers, useGovernorates,
 } from '@/hooks/useApi'
 import { formatNumber, cn, generateColor } from '@/lib/utils'
+import { useToast } from '@/hooks/useToast'
 import type { Form, FormSubmission } from '@/types/database'
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
@@ -28,7 +35,7 @@ import {
   Download, FileSpreadsheet, TrendingUp, TrendingDown, Minus,
   Users, FileText, MapPin, CheckCircle2, XCircle, Clock, BarChart3,
   PieChartIcon, Activity, Target, AlertTriangle, Award, Filter,
-  Calendar, Hash, Type, ListChecks, Image,
+  Calendar, Hash, Type, ListChecks, Image, Save, Settings, Edit, Eye,
 } from 'lucide-react'
 
 // ──────────────────────────────────────────────
@@ -250,6 +257,7 @@ export default function AnalyticsPage() {
   // Local state
   const [selectedFormId, setSelectedFormId] = useState<string>('')
   const [timeGranularity, setTimeGranularity] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [editAnalysisOpen, setEditAnalysisOpen] = useState(false)
 
   // Refs for chart export
   const timeChartRef = useRef<HTMLDivElement>(null)
@@ -723,21 +731,29 @@ export default function AnalyticsPage() {
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
-                <CardTitle className="font-heading">تحليل النماذج</CardTitle>
-                <CardDescription>تحليل تفصيلي لكل حقل في النموذج المحدد</CardDescription>
+                <CardTitle className="font-heading">تحليل النماذج الشامل</CardTitle>
+                <CardDescription>تحليل تفصيلي لكل حقل في النموذج المحدد مع إمكانية التعديل</CardDescription>
               </div>
-              <Select value={selectedFormId} onValueChange={setSelectedFormId}>
-                <SelectTrigger className="w-[280px]">
-                  <SelectValue placeholder="اختر نموذجاً للتحليل..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {forms?.map(form => (
-                    <SelectItem key={form.id} value={form.id}>
-                      {form.title_ar}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Select value={selectedFormId} onValueChange={setSelectedFormId}>
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue placeholder="اختر نموذجاً للتحليل..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {forms?.map(form => (
+                      <SelectItem key={form.id} value={form.id}>
+                        {form.title_ar}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedFormId && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEditAnalysisOpen(true)}>
+                    <Edit className="w-3.5 h-3.5" />
+                    تعديل التحليل
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -1119,6 +1135,297 @@ export default function AnalyticsPage() {
         </div>
 
       </div>
+
+      {/* Edit Analysis Dialog */}
+      {selectedForm && (
+        <EditAnalysisDialog
+          open={editAnalysisOpen}
+          onOpenChange={setEditAnalysisOpen}
+          form={selectedForm}
+          fields={formFields}
+          submissions={formSubmissions}
+        />
+      )}
     </div>
+  )
+}
+
+// ──────────────────────────────────────────────
+// Edit Analysis Dialog
+// ──────────────────────────────────────────────
+
+interface EditAnalysisDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  form: Form
+  fields: FormFieldSchema[]
+  submissions: FormSubmission[]
+}
+
+interface FieldAnalysisConfig {
+  fieldLabel: string
+  fieldType: string
+  enabled: boolean
+  showChart: boolean
+  showStats: boolean
+  customLabel: string
+  chartType: 'auto' | 'bar' | 'pie' | 'line' | 'table'
+}
+
+function EditAnalysisDialog({ open, onOpenChange, form, fields, submissions }: EditAnalysisDialogProps) {
+  const { toast } = useToast()
+
+  const [configs, setConfigs] = useState<FieldAnalysisConfig[]>([])
+  const [activeTab, setActiveTab] = useState('fields')
+
+  // Initialize configs when dialog opens
+  useMemo(() => {
+    if (open && fields.length > 0) {
+      setConfigs(fields.map(field => ({
+        fieldLabel: getFieldLabel(field),
+        fieldType: field.type,
+        enabled: true,
+        showChart: true,
+        showStats: true,
+        customLabel: getFieldLabel(field),
+        chartType: 'auto',
+      })))
+    }
+  }, [open, fields])
+
+  const updateConfig = (index: number, updates: Partial<FieldAnalysisConfig>) => {
+    setConfigs(prev => prev.map((c, i) => i === index ? { ...c, ...updates } : c))
+  }
+
+  const handleSave = () => {
+    toast({ title: 'تم حفظ إعدادات التحليل', variant: 'success' })
+    onOpenChange(false)
+  }
+
+  // Generate summary stats for each field
+  const fieldSummaries = useMemo(() => {
+    return configs.map((config, idx) => {
+      const field = fields[idx]
+      if (!field) return null
+      const values = submissions
+        .map(s => (s.data as Record<string, unknown>)?.[field.label || field.label_ar || field.label_en || ''])
+        .filter(v => v !== undefined && v !== null && v !== '')
+      const completeness = submissions.length > 0 ? (values.length / submissions.length) * 100 : 0
+      const uniqueValues = new Set(values.map(String)).size
+      return { completeness, uniqueValues, totalValues: values.length }
+    }).filter(Boolean)
+  }, [configs, fields, submissions])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="font-heading flex items-center gap-2">
+            <Settings className="w-5 h-5 text-primary" />
+            تعديل إعدادات التحليل
+          </DialogTitle>
+          <DialogDescription>
+            تخصيص تحليل نموذج "{form.title_ar}" — {fields.length} حقل — {submissions.length} إرسالية
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full max-w-md grid-cols-3 mb-4">
+            <TabsTrigger value="fields" className="text-xs gap-1">
+              <ListChecks className="w-3.5 h-3.5" /> الحقول
+            </TabsTrigger>
+            <TabsTrigger value="charts" className="text-xs gap-1">
+              <BarChart3 className="w-3.5 h-3.5" /> الرسوم البيانية
+            </TabsTrigger>
+            <TabsTrigger value="export" className="text-xs gap-1">
+              <Download className="w-3.5 h-3.5" /> التصدير
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1 overflow-y-auto">
+            <TabsContent value="fields" className="mt-0 space-y-3">
+              {/* Enable/Disable All */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                <span className="text-sm font-medium">تفعيل/تعطيل الكل</span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setConfigs(prev => prev.map(c => ({ ...c, enabled: true })))}>
+                    تفعيل الكل
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setConfigs(prev => prev.map(c => ({ ...c, enabled: false })))}>
+                    تعطيل الكل
+                  </Button>
+                </div>
+              </div>
+
+              {configs.map((config, idx) => {
+                const summary = fieldSummaries[idx]
+                return (
+                  <Card key={idx} className={cn('transition-all', !config.enabled && 'opacity-50')}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Switch
+                          checked={config.enabled}
+                          onCheckedChange={(checked) => updateConfig(idx, { enabled: checked })}
+                        />
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium">{config.fieldLabel}</p>
+                              <p className="text-xs text-muted-foreground">{getFieldTypeLabel(config.fieldType)}</p>
+                            </div>
+                            {summary && (
+                              <div className="flex gap-3 text-xs text-muted-foreground">
+                                <span>{summary.totalValues} قيمة</span>
+                                <span>{summary.uniqueValues} فريد</span>
+                                <span className={cn('font-medium', (summary.completeness as number) > 80 ? 'text-emerald-600' : 'text-amber-600')}>
+                                  {(summary.completeness as number).toFixed(0)}% اكتمال
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs">تسمية مخصصة</Label>
+                              <Input
+                                value={config.customLabel}
+                                onChange={(e) => updateConfig(idx, { customLabel: e.target.value })}
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">نوع الرسم البياني</Label>
+                              <Select value={config.chartType} onValueChange={(v) => updateConfig(idx, { chartType: v as FieldAnalysisConfig['chartType'] })}>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="auto">تلقائي</SelectItem>
+                                  <SelectItem value="bar">ಊಊعمودي</SelectItem>
+                                  <SelectItem value="pie">دائري</SelectItem>
+                                  <SelectItem value="line">خطي</SelectItem>
+                                  <SelectItem value="table">جدول</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex items-end gap-3">
+                              <div className="flex items-center gap-1.5">
+                                <Switch
+                                  checked={config.showChart}
+                                  onCheckedChange={(checked) => updateConfig(idx, { showChart: checked })}
+                                />
+                                <Label className="text-xs">رسم</Label>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Switch
+                                  checked={config.showStats}
+                                  onCheckedChange={(checked) => updateConfig(idx, { showStats: checked })}
+                                />
+                                <Label className="text-xs">إحصائيات</Label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </TabsContent>
+
+            <TabsContent value="charts" className="mt-0 space-y-4">
+              <Card>
+                <CardContent className="p-4">
+                  <h4 className="text-sm font-medium mb-3">إعدادات الرسوم البيانية العامة</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="text-sm font-medium">ألوان موحدة</p>
+                        <p className="text-xs text-muted-foreground">استخدام نفس الألوان للرسوم</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="text-sm font-medium">تسميات تلقائية</p>
+                        <p className="text-xs text-muted-foreground">توليد تسميات بالعربية</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="text-sm font-medium">عرض القيم الفارغة</p>
+                        <p className="text-xs text-muted-foreground">إظهار البيانات الناقصة</p>
+                      </div>
+                      <Switch />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="text-sm font-medium">نسبة مئوية</p>
+                        <p className="text-xs text-muted-foreground">عرض النسب في الرسوم الدائرية</p>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="export" className="mt-0 space-y-4">
+              <Card>
+                <CardContent className="p-4 space-y-3">
+                  <h4 className="text-sm font-medium">تصدير التحليل</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Button variant="outline" className="justify-start gap-2 h-auto py-3" onClick={() => {
+                      const enabledFields = configs.filter(c => c.enabled)
+                      const headers = ['الحقل', 'النوع', 'القيم الفريدة', 'نسبة الاكتمال']
+                      const rows = enabledFields.map((c, i) => {
+                        const summary = fieldSummaries[configs.indexOf(c)]
+                        return [c.customLabel, c.fieldType, String(summary?.uniqueValues || 0), `${(summary?.completeness || 0).toFixed(1)}%`]
+                      })
+                      exportToCSV(headers, rows, `form_analysis_${form.title_ar}`)
+                      toast({ title: 'تم تصدير التحليل', variant: 'success' })
+                    }}>
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                      <div className="text-right flex-1">
+                        <p className="text-sm font-medium">تحليل الحقول (CSV)</p>
+                        <p className="text-xs text-muted-foreground">{configs.filter(c => c.enabled).length} حقل مفعّل</p>
+                      </div>
+                    </Button>
+                    <Button variant="outline" className="justify-start gap-2 h-auto py-3" onClick={() => {
+                      const headers = ['الإرسالية', 'الحالة', 'التاريخ', ...fields.map(f => getFieldLabel(f))]
+                      const rows = submissions.slice(0, 1000).map(s => [
+                        s.id.slice(0, 8),
+                        s.status,
+                        s.created_at,
+                        ...fields.map(f => {
+                          const val = (s.data as Record<string, unknown>)?.[f.label || f.label_ar || f.label_en || '']
+                          return String(val ?? '')
+                        })
+                      ])
+                      exportToCSV(headers, rows, `submissions_data_${form.title_ar}`)
+                      toast({ title: 'تم تصدير البيانات', variant: 'success' })
+                    }}>
+                      <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                      <div className="text-right flex-1">
+                        <p className="text-sm font-medium">بيانات الإرساليات (CSV)</p>
+                        <p className="text-xs text-muted-foreground">{submissions.length} إرسالية</p>
+                      </div>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        <DialogFooter className="border-t pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
+          <Button onClick={handleSave} className="gap-2">
+            <Save className="w-4 h-4" />
+            حفظ الإعدادات
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

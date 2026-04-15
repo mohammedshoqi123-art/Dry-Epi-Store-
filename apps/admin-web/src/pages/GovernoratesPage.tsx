@@ -160,7 +160,7 @@ export default function GovernoratesPage() {
     formId: selectedForm !== 'all' ? selectedForm : undefined,
     status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
     governorateId: selectedGov || undefined,
-    pageSize: 100,
+    pageSize: 500,
   })
 
   // ── Compute active filters count ──
@@ -173,18 +173,36 @@ export default function GovernoratesPage() {
     return count
   }, [selectedForm, statusFilter, dateFrom, dateTo, quickFilter])
 
-  // ── Enrich governorates with mock/computed stats ──
+  // ── Enrich governorates with computed stats ──
   const enrichedGovs: EnrichedGov[] = useMemo(() => {
+    // Filter submissions based on active filters
+    const filteredSubs = (submissionsData?.data || []).filter(s => {
+      if (selectedForm !== 'all' && s.form_id !== selectedForm) return false
+      if (statusFilter !== 'all' && s.status !== statusFilter) return false
+      if (dateFrom) {
+        const subDate = new Date(s.created_at).toISOString().split('T')[0]
+        if (subDate < dateFrom) return false
+      }
+      if (dateTo) {
+        const subDate = new Date(s.created_at).toISOString().split('T')[0]
+        if (subDate > dateTo) return false
+      }
+      return true
+    })
+
     return (governorates || []).map(gov => {
-      const statEntry = govStats?.find(s => s.name === gov.name_ar)
-      const submissions = statEntry?.submissions || 0
-      // Derive pseudo-stats from available data
-      const maxSub = Math.max(...(govStats || []).map(s => s.submissions), 1)
+      const govSubs = filteredSubs.filter(s => s.governorate_id === gov.id)
+      const submissions = govSubs.length
+      const maxSub = Math.max(...(governorates || []).map(g =>
+        filteredSubs.filter(s => s.governorate_id === g.id).length
+      ), 1)
       const completion_rate = maxSub > 0 ? Math.round((submissions / maxSub) * 100) : 0
-      const active_users = Math.max(1, Math.round(submissions * 0.15 + Math.random() * 3))
-      const trend = submissions > 0 ? Math.round((Math.random() - 0.3) * 30) : 0
-      const last_submission = submissions > 0
-        ? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+      const uniqueUsers = new Set(govSubs.map(s => s.submitted_by).filter(Boolean))
+      const active_users = uniqueUsers.size || (submissions > 0 ? 1 : 0)
+      const approvedCount = govSubs.filter(s => s.status === 'approved').length
+      const trend = submissions > 0 ? Math.round(((approvedCount / submissions) - 0.5) * 40) : 0
+      const lastSub = govSubs.length > 0
+        ? govSubs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
         : null
 
       return {
@@ -192,11 +210,11 @@ export default function GovernoratesPage() {
         submissions,
         completion_rate,
         active_users,
-        last_submission,
+        last_submission: lastSub,
         trend,
       }
     })
-  }, [governorates, govStats])
+  }, [governorates, submissionsData, selectedForm, statusFilter, dateFrom, dateTo])
 
   // ── Compute max submissions for ratio calculations ──
   const maxSubmissions = useMemo(

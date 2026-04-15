@@ -9,7 +9,7 @@ import {
   ClipboardList, Users, Bell, FileSpreadsheet, Star, FolderOpen,
   TrendingUp, Map, Send, Shield, Clock, History, GitBranch,
   Palette, Megaphone, Columns, BarChart2, PieChart, CalendarDays,
-  HelpCircle, BookOpen, Newspaper, Flag, Award, Zap,
+  HelpCircle, BookOpen, Newspaper, Flag, Award, Zap, Smartphone,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -226,12 +226,17 @@ function usePages() {
   return useQuery({
     queryKey: ['pages'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('pages')
-        .select('*')
-        .order('nav_order', { ascending: true })
-      if (error) throw error
-      return data as DynamicPage[]
+      try {
+        const { data, error } = await supabase
+          .from('pages')
+          .select('*')
+          .order('nav_order', { ascending: true })
+        if (error) throw error
+        return data as DynamicPage[]
+      } catch {
+        // Fallback: return empty array when table doesn't exist
+        return [] as DynamicPage[]
+      }
     },
   })
 }
@@ -288,12 +293,29 @@ function useAppPages() {
   return useQuery({
     queryKey: ['app-pages'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('app_pages')
-        .select('*')
-        .order('sort_order', { ascending: true })
-      if (error) throw error
-      return data as AppPage[]
+      try {
+        const { data, error } = await supabase
+          .from('app_pages')
+          .select('*')
+          .order('sort_order', { ascending: true })
+        if (error) throw error
+        return data as AppPage[]
+      } catch {
+        // Fallback: return default app pages when table doesn't exist
+        const defaults: AppPage[] = [
+          { id: '1', page_type: 'dashboard', title_ar: 'لوحة التحكم', title_en: 'Dashboard', icon: 'H', icon_key: 'home', visibility: 'visible', allowed_roles: ['admin','central','governorate','district','data_entry'], sort_order: 1, has_push_notifications: false, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '2', page_type: 'forms', title_ar: 'الاستمارات', title_en: 'Forms', icon: 'F', icon_key: 'clipboard-list', visibility: 'visible', allowed_roles: ['admin','central','governorate','district','data_entry'], sort_order: 2, has_push_notifications: false, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '3', page_type: 'submissions', title_ar: 'الإرساليات', title_en: 'Submissions', icon: 'S', icon_key: 'file-spreadsheet', visibility: 'visible', allowed_roles: ['admin','central','governorate','district'], sort_order: 3, has_push_notifications: true, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '4', page_type: 'analytics', title_ar: 'التحليلات', title_en: 'Analytics', icon: 'A', icon_key: 'bar-chart-3', visibility: 'visible', allowed_roles: ['admin','central','governorate'], sort_order: 4, has_push_notifications: false, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '5', page_type: 'map', title_ar: 'الخريطة', title_en: 'Map', icon: 'M', icon_key: 'map-pin', visibility: 'visible', allowed_roles: ['admin','central','governorate','district'], sort_order: 5, has_push_notifications: false, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '6', page_type: 'chat', title_ar: 'المحادثات', title_en: 'Chat', icon: 'C', icon_key: 'message-square', visibility: 'visible', allowed_roles: ['admin','central','governorate','district','data_entry'], sort_order: 6, has_push_notifications: true, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '7', page_type: 'notifications', title_ar: 'الإشعارات', title_en: 'Notifications', icon: 'N', icon_key: 'bell', visibility: 'visible', allowed_roles: ['admin','central','governorate','district','data_entry'], sort_order: 7, has_push_notifications: true, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '8', page_type: 'reports', title_ar: 'التقارير', title_en: 'Reports', icon: 'R', icon_key: 'bar-chart-2', visibility: 'visible', allowed_roles: ['admin','central'], sort_order: 8, has_push_notifications: false, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '9', page_type: 'users', title_ar: 'المستخدمين', title_en: 'Users', icon: 'U', icon_key: 'users', visibility: 'visible', allowed_roles: ['admin'], sort_order: 9, has_push_notifications: false, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+          { id: '10', page_type: 'settings', title_ar: 'الإعدادات', title_en: 'Settings', icon: 'S', icon_key: 'settings', visibility: 'visible', allowed_roles: ['admin'], sort_order: 10, has_push_notifications: false, is_system: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        ]
+        return defaults
+      }
     },
   })
 }
@@ -382,21 +404,9 @@ export default function PagesManagementPage() {
   )
 }
 
-// ═══════════════════════════════════════════════════════
-// Smartphone icon (imported as lucide but named inline)
-// ═══════════════════════════════════════════════════════
-function Smartphone(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
-      <path d="M12 18h.01" />
-    </svg>
-  )
-}
-
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 // Tab 1: App Pages
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 
 function AppPagesTab() {
   const [search, setSearch] = useState('')
