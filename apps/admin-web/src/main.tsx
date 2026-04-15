@@ -17,14 +17,12 @@ const queryClient = new QueryClient({
   },
 })
 
-// Dynamic basename for GitHub Pages deployment
+// Use Vite base URL for GitHub Pages deployment
 const getBasename = () => {
-  const path = window.location.pathname
-  if (path.includes('/EPI-Supervisor/')) {
-    const match = path.match(/^(\/EPI-Supervisor)/)
-    return match ? match[1] : ''
-  }
-  return ''
+  // import.meta.env.BASE_URL is '/' in dev, '/EPI-Supervisor/' in prod
+  const base = import.meta.env.BASE_URL
+  // Remove trailing slash for react-router
+  return base === '/' ? '' : base.replace(/\/$/, '')
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
