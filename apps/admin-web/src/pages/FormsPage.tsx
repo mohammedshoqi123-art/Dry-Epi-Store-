@@ -232,6 +232,7 @@ export default function FormsPage() {
 
       {/* Create Dialog */}
       <FormDialog
+        key="create"
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSuccess={() => { setShowCreateDialog(false); refetch() }}
@@ -240,6 +241,7 @@ export default function FormsPage() {
       {/* Edit Dialog */}
       {editForm && (
         <FormDialog
+          key={editForm.id}
           open={!!editForm}
           onOpenChange={(open) => { if (!open) setEditForm(null) }}
           form={editForm}
@@ -459,32 +461,35 @@ function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
   const createForm = useCreateForm()
   const updateForm = useUpdateForm()
 
-  // Basic info
-  const [titleAr, setTitleAr] = useState('')
-  const [titleEn, setTitleEn] = useState('')
-  const [descriptionAr, setDescriptionAr] = useState('')
-  const [descriptionEn, setDescriptionEn] = useState('')
-  const [category, setCategory] = useState<FormCategory>('other')
-  const [isActive, setIsActive] = useState(true)
+  // Parse schema once
+  const initialSchema = form ? parseFormSchema(form.schema) : { fields: [] }
+
+  // Basic info — initialized from form prop (key= forces remount)
+  const [titleAr, setTitleAr] = useState(form?.title_ar || '')
+  const [titleEn, setTitleEn] = useState(form?.title_en || '')
+  const [descriptionAr, setDescriptionAr] = useState(form?.description_ar || '')
+  const [descriptionEn, setDescriptionEn] = useState(form?.description_en || '')
+  const [category, setCategory] = useState<FormCategory>((initialSchema.category as FormCategory) || 'other')
+  const [isActive, setIsActive] = useState(form?.is_active ?? true)
 
   // GPS & Photo
-  const [requiresGps, setRequiresGps] = useState(false)
-  const [gpsAccuracy, setGpsAccuracy] = useState<string>('medium')
-  const [requiresPhoto, setRequiresPhoto] = useState(false)
-  const [maxPhotos, setMaxPhotos] = useState(5)
+  const [requiresGps, setRequiresGps] = useState(form?.requires_gps || false)
+  const [gpsAccuracy, setGpsAccuracy] = useState<string>(initialSchema.gps_accuracy || 'medium')
+  const [requiresPhoto, setRequiresPhoto] = useState(form?.requires_photo || false)
+  const [maxPhotos, setMaxPhotos] = useState(form?.max_photos || 5)
 
   // Roles
-  const [allowedRoles, setAllowedRoles] = useState<UserRole[]>(['data_entry'])
+  const [allowedRoles, setAllowedRoles] = useState<UserRole[]>(form?.allowed_roles || ['data_entry'])
 
   // Schema fields
-  const [fields, setFields] = useState<FormField[]>([])
+  const [fields, setFields] = useState<FormField[]>(initialSchema.fields || [])
 
   // Settings
-  const [submissionDeadline, setSubmissionDeadline] = useState('')
-  const [isRecurring, setIsRecurring] = useState(false)
-  const [recurringSchedule, setRecurringSchedule] = useState('monthly')
-  const [notifyOnSubmit, setNotifyOnSubmit] = useState(true)
-  const [notifyOnReview, setNotifyOnReview] = useState(true)
+  const [submissionDeadline, setSubmissionDeadline] = useState(initialSchema.submission_deadline || '')
+  const [isRecurring, setIsRecurring] = useState(initialSchema.is_recurring || false)
+  const [recurringSchedule, setRecurringSchedule] = useState(initialSchema.recurring_schedule || 'monthly')
+  const [notifyOnSubmit, setNotifyOnSubmit] = useState(initialSchema.notify_on_submit !== false)
+  const [notifyOnReview, setNotifyOnReview] = useState(initialSchema.notify_on_review !== false)
 
   // Active tab
   const [activeTab, setActiveTab] = useState('basic')
@@ -493,69 +498,6 @@ function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
 
   const allRoles: UserRole[] = ['admin', 'central', 'governorate', 'district', 'data_entry']
-
-  const resetToForm = useCallback((f: Form) => {
-    setTitleAr(f.title_ar)
-    setTitleEn(f.title_en)
-    setDescriptionAr(f.description_ar || '')
-    setDescriptionEn(f.description_en || '')
-    setIsActive(f.is_active)
-    setRequiresGps(f.requires_gps)
-    setRequiresPhoto(f.requires_photo)
-    setMaxPhotos(f.max_photos || 5)
-    setAllowedRoles(f.allowed_roles)
-
-    const schema = parseFormSchema(f.schema)
-    setFields(schema.fields || [])
-    setCategory((schema.category as FormCategory) || 'other')
-    setSubmissionDeadline(schema.submission_deadline || '')
-    setIsRecurring(schema.is_recurring || false)
-    setRecurringSchedule(schema.recurring_schedule || 'monthly')
-    setNotifyOnSubmit(schema.notify_on_submit !== false)
-    setNotifyOnReview(schema.notify_on_review !== false)
-    setGpsAccuracy(schema.gps_accuracy || 'medium')
-  }, [])
-
-  const resetToEmpty = useCallback(() => {
-    setTitleAr('')
-    setTitleEn('')
-    setDescriptionAr('')
-    setDescriptionEn('')
-    setCategory('other')
-    setIsActive(true)
-    setRequiresGps(false)
-    setGpsAccuracy('medium')
-    setRequiresPhoto(false)
-    setMaxPhotos(5)
-    setAllowedRoles(['data_entry'])
-    setFields([])
-    setSubmissionDeadline('')
-    setIsRecurring(false)
-    setRecurringSchedule('monthly')
-    setNotifyOnSubmit(true)
-    setNotifyOnReview(true)
-    setActiveTab('basic')
-    setEditingFieldId(null)
-  }, [])
-
-  // Sync form data into local state whenever dialog opens or form changes
-  const prevFormIdRef = useRef<string | undefined | null>(null)
-
-  useEffect(() => {
-    if (open) {
-      const currentId = form?.id ?? null
-      if (prevFormIdRef.current !== currentId) {
-        prevFormIdRef.current = currentId
-        if (form) {
-          resetToForm(form)
-        } else {
-          resetToEmpty()
-        }
-      }
-    } else {
-      prevFormIdRef.current = null
-    }
-  }, [open, form, resetToForm, resetToEmpty])
 
   const toggleRole = (role: UserRole) => {
     setAllowedRoles((prev) =>

@@ -108,6 +108,7 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
       )}
       style={{
         background: 'linear-gradient(180deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%)',
+        color: '#fff',
         borderColor: 'rgba(255,255,255,0.15)',
         backdropFilter: 'none',
       }}
@@ -297,7 +298,7 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" style={{ zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div
             className="fixed inset-y-0 right-0 w-[280px] shadow-2xl animate-slide-in-right"
-            style={{ background: 'linear-gradient(180deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%)', zIndex: 9999 }}
+            style={{ background: 'linear-gradient(180deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%)', color: '#fff', zIndex: 9999 }}
           >
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
