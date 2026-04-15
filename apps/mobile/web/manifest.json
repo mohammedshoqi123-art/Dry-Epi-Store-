@@ -1,6 +1,6 @@
 {
-  "name": "منصة مشرف EPI",
-  "short_name": "مشرف EPI",
+  "name": "EPI Supervisor's",
+  "short_name": "EPI Supervisor's",
   "description": "نظام إشراف ميداني لحملات التطعيم",
   "start_url": ".",
   "display": "standalone",

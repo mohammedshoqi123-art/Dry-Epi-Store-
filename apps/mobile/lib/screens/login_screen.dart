@@ -92,19 +92,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Logo with glassmorphism
+                      // Logo image
                       Container(
-                        padding: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(8),
                         decoration: AppTheme.glassmorphism,
-                        child: const Icon(
-                          Icons.assignment_outlined,
-                          size: 56,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 100,
+                            height: 100,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.assignment_outlined,
+                              size: 56,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       const Text(
-                        "EPI Supervisors",
+                        "EPI Supervisor's",
                         style: TextStyle(
                           fontFamily: 'Cairo',
                           fontSize: 26,
@@ -115,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'نظام إدارة التطعيمات المتكامل',
+                        'منصة الإشراف على التطعيم',
                         style: TextStyle(
                           fontFamily: 'Tajawal',
                           fontSize: 14,
@@ -291,7 +299,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       const SizedBox(height: 32),
                       // Footer
                       Text(
-                        'الإصدار 2.1.0',
+                        'الإصدار ${AppConfig.appVersion}',
                         style: TextStyle(
                           fontFamily: 'Tajawal',
                           fontSize: 11,

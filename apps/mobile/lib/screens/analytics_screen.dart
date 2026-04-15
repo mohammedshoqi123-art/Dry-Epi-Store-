@@ -1223,7 +1223,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       final bySeverity = shortages['bySeverity'] as Map<String, dynamic>? ?? {};
 
       final buffer = StringBuffer();
-      buffer.writeln("📊 تقرير تحليلات EPI Supervisors");
+      buffer.writeln("📊 تقرير تحليلات EPI Supervisor's");
       buffer.writeln('═══════════════════════════════════');
       buffer.writeln('');
       buffer.writeln('📈 الإرساليات:');
@@ -1282,7 +1282,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
         if (mounted) context.showInfo('جارٍ إنشاء التقرير...');
 
         final file = await ReportGenerator.generatePDFReport(
-          title: "تقرير تحليلات EPI Supervisors",
+          title: "تقرير تحليلات EPI Supervisor's",
           period: periodLabel,
           submissions: [],
           stats: {

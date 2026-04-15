@@ -172,7 +172,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        "EPI Supervisors",
+                        "EPI Supervisor's",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,

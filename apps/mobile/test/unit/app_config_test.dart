@@ -4,8 +4,8 @@ import 'package:epi_core/src/config/app_config.dart';
 void main() {
   group('AppConfig', () {
     test('app metadata is set', () {
-      expect(AppConfig.appName, equals('EPI Supervisors'));
-      expect(AppConfig.appNameAr, equals('EPI Supervisors'));
+      expect(AppConfig.appName, equals("EPI Supervisor's"));
+      expect(AppConfig.appNameAr, equals("EPI Supervisor's"));
       expect(AppConfig.appVersion, equals('1.0.0'));
     });
 

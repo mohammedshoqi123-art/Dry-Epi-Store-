@@ -3,7 +3,7 @@ class AppStrings {
   AppStrings._();
 
   // ─── App ──────────────────────────────────────────────────────────────────
-  static const String appName = "EPI Supervisors";
+  static const String appName = "EPI Supervisor's";
   static const String appTagline = 'نظام الإشراف الميداني لحملات التطعيم';
 
   // ─── Auth ─────────────────────────────────────────────────────────────────

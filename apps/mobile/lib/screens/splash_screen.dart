@@ -95,16 +95,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.assignment_outlined,
-                  size: 64,
-                  color: Colors.white,
+              // Logo image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 120,
+                  height: 120,
+                  errorBuilder: (_, __, ___) => Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.assignment_outlined,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -119,7 +128,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'EPI Supervisor Platform',
+                'منصة الإشراف على التطعيم',
                 style: TextStyle(
                   fontFamily: 'Tajawal',
                   fontSize: 14,
