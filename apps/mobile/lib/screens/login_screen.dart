@@ -123,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'منصة الإشراف على التطعيم',
+                        'نظام الاشراف الالكتروني لبرنامج التحصين الصحي الموسع',
                         style: TextStyle(
                           fontFamily: 'Tajawal',
                           fontSize: 14,

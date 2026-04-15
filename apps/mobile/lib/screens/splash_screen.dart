@@ -128,7 +128,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'منصة الإشراف على التطعيم',
+                'نظام الاشراف الالكتروني لبرنامج التحصين الصحي الموسع',
                 style: TextStyle(
                   fontFamily: 'Tajawal',
                   fontSize: 14,
