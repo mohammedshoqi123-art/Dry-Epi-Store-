@@ -29,7 +29,7 @@ class SyncService {
   DateTime? _lastSyncAttempt;
   static const _debounceWindow = Duration(seconds: 10);
 
-  SyncService(this._api, _offline) {
+  SyncService(this._api, this._offline) {
     _offline.connectivityStream.listen((isOnline) {
       if (isOnline && _offline.pendingCount > 0) {
         _attemptSync('reconnect');

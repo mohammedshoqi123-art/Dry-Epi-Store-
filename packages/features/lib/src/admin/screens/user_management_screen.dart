@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:epi_shared/epi_shared.dart';
 import 'package:csv/csv.dart';
-import 'shared_providers.dart';
+import '../shared_providers.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // إدارة المستخدمين — User Management Screen

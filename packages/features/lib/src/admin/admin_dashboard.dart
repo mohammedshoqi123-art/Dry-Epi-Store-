@@ -180,7 +180,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                           fontFamily: 'Cairo',
                         ),
                       ),
-                      const Text(
+                      Text(
                         'لوحة التحكم الرئيسية',
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
