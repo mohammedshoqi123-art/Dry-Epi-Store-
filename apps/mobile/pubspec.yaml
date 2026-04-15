@@ -16,8 +16,6 @@ dependencies:
     path: ../../packages/core
   epi_shared:
     path: ../../packages/shared
-  epi_features:
-    path: ../../packages/features
 
   # State Management
   flutter_riverpod: ^2.5.1
