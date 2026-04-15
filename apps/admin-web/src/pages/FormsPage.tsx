@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import {
-  Search, Plus, MoreVertical, Edit, Eye,
+  Search, Plus, MoreVertical, Edit, Eye, EyeOff,
   FileText, MapPin, Globe, Smartphone, Shield, Trash2,
   ChevronUp, ChevronDown, Copy, Calendar, Clock,
   Hash, ListChecks, Camera, QrCode, PenTool, Type, ArrowUpDown,
@@ -322,6 +322,14 @@ function FormCard({ form, submissionCount, onEdit, onPreview, onDelete }: FormCa
               <DropdownMenuItem onClick={onEdit}>
                 <Edit className="w-4 h-4 ml-2" />تعديل
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                updateForm.mutate({ id: form.id, is_active: !form.is_active }, {
+                  onSuccess: () => toast({ title: form.is_active ? 'تم إخفاء النموذج' : 'تم إظهار النموذج', variant: 'success' })
+                })
+              }}>
+                {form.is_active ? <EyeOff className="w-4 h-4 ml-2" /> : <Eye className="w-4 h-4 ml-2" />}
+                {form.is_active ? 'إخفاء النموذج' : 'إظهار النموذج'}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
                 <Trash2 className="w-4 h-4 ml-2" />حذف
               </DropdownMenuItem>
@@ -530,23 +538,24 @@ function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
     setEditingFieldId(null)
   }, [])
 
-  // Initialize state when dialog opens — use ref to track previous form id safely
+  // Sync form data into local state whenever dialog opens or form changes
   const prevFormIdRef = useRef<string | undefined | null>(null)
 
-  // Sync form data into local state whenever dialog opens or form changes
-  if (open && prevFormIdRef.current !== form?.id) {
-    prevFormIdRef.current = form?.id ?? null
-    if (form) {
-      resetToForm(form)
+  useEffect(() => {
+    if (open) {
+      const currentId = form?.id ?? null
+      if (prevFormIdRef.current !== currentId) {
+        prevFormIdRef.current = currentId
+        if (form) {
+          resetToForm(form)
+        } else {
+          resetToEmpty()
+        }
+      }
     } else {
-      resetToEmpty()
+      prevFormIdRef.current = null
     }
-  }
-
-  // Reset tracking when dialog closes
-  if (!open && prevFormIdRef.current !== null) {
-    prevFormIdRef.current = null
-  }
+  }, [open, form, resetToForm, resetToEmpty])
 
   const toggleRole = (role: UserRole) => {
     setAllowedRoles((prev) =>

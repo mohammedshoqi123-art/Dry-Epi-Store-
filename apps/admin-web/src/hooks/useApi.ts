@@ -528,7 +528,7 @@ export function useShortages() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('supply_shortages')
-        .select('*, governorates(name_ar), districts(name_ar), profiles(full_name)')
+        .select('*, governorates(name_ar), districts(name_ar), profiles(full_name), form_submissions(form_id, forms(title_ar))')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
       if (error) throw error

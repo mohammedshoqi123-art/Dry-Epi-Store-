@@ -14,7 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Header } from '@/components/layout/header'
-import { useShortages, useResolveShortage, useGovernorates } from '@/hooks/useApi'
+import { useShortages, useResolveShortage, useGovernorates, useForms } from '@/hooks/useApi'
 import { SEVERITY_LABELS, SEVERITY_COLORS, type ShortageSeverity, type SupplyShortage } from '@/types/database'
 import { formatRelativeTime, formatDateTime, cn, formatNumber } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
@@ -24,10 +24,13 @@ export default function ShortagesPage() {
   const [resolvedFilter, setResolvedFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [govFilter, setGovFilter] = useState<string>('all')
+  const [formFilter, setFormFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [selectedShortage, setSelectedShortage] = useState<SupplyShortage | null>(null)
   const { data: shortages, isLoading, isError, error, refetch } = useShortages()
   const { data: governorates } = useGovernorates()
+  const { data: formsResult } = useForms()
+  const forms = formsResult?.data
   const resolveShortage = useResolveShortage()
   const { toast } = useToast()
 
@@ -38,6 +41,10 @@ export default function ShortagesPage() {
       if (resolvedFilter === 'pending' && s.is_resolved) return false
       if (categoryFilter !== 'all' && s.item_category !== categoryFilter) return false
       if (govFilter !== 'all' && s.governorate_id !== govFilter) return false
+      if (formFilter !== 'all') {
+        const submissionFormId = (s as Record<string, unknown>).form_submissions as { form_id?: string } | undefined
+        if (!submissionFormId?.form_id || submissionFormId.form_id !== formFilter) return false
+      }
       if (search) {
         const searchLower = search.toLowerCase()
         const name = s.item_name?.toLowerCase() || ''
@@ -47,7 +54,7 @@ export default function ShortagesPage() {
       }
       return true
     })
-  }, [shortages, severityFilter, resolvedFilter, categoryFilter, govFilter, search])
+  }, [shortages, severityFilter, resolvedFilter, categoryFilter, govFilter, formFilter, search])
 
   // Stats
   const criticalCount = shortages?.filter(s => s.severity === 'critical' && !s.is_resolved).length || 0
@@ -207,6 +214,18 @@ export default function ShortagesPage() {
               <SelectItem value="all">كل المحافظات</SelectItem>
               {governorates?.map(g => (
                 <SelectItem key={g.id} value={g.id}>{g.name_ar}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={formFilter} onValueChange={setFormFilter}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="النموذج" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل النماذج</SelectItem>
+              {forms?.map(f => (
+                <SelectItem key={f.id} value={f.id}>{f.title_ar}</SelectItem>
               ))}
             </SelectContent>
           </Select>
