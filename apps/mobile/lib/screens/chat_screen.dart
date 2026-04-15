@@ -108,13 +108,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('الشات الداخلي', style: TextStyle(fontFamily: 'Cairo')),
-        ),
-        body: Column(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('الشات الداخلي', style: TextStyle(fontFamily: 'Cairo')),
+      ),
+      body: Column(
           children: [
             // Messages list
             Expanded(
@@ -199,7 +197,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 
