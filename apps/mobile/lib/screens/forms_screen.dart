@@ -25,7 +25,7 @@ class FormsScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // Clear cache first to force fresh fetch from server
+          if (!ConnectivityUtils.isOnline) return;
           await ref.read(forceRefreshProvider)('forms');
           ref.invalidate(formsProvider);
         },

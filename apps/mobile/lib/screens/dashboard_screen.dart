@@ -61,6 +61,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         color: AppTheme.primaryColor,
         onRefresh: () async {
           HapticFeedback.mediumImpact();
+          if (!ConnectivityUtils.isOnline) return;
           await ref.read(forceRefreshProvider)('dashboard_analytics');
           ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter()));
         },

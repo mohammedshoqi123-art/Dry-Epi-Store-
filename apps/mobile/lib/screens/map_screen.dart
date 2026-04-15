@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -28,6 +29,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         title: AppStrings.map,
         showBackButton: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              if (!ConnectivityUtils.isOnline) return;
+              ref.invalidate(submissionsProvider(const SubmissionsFilter()));
+              ref.invalidate(shortagesProvider);
+              ref.invalidate(governoratesProvider);
+            },
+            tooltip: 'تحديث البيانات',
+          ),
           IconButton(
             icon: Icon(_showHeatmap ? Icons.scatter_plot : Icons.grid_on),
             onPressed: () => setState(() => _showHeatmap = !_showHeatmap),

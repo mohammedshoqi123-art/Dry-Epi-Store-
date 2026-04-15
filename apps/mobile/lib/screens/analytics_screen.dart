@@ -97,6 +97,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          if (!ConnectivityUtils.isOnline) return;
           await ref.read(forceRefreshProvider)(_currentFilter.cacheKey);
           ref.invalidate(dashboardAnalyticsProvider(_currentFilter));
         },

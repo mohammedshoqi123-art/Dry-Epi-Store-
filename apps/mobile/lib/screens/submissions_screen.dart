@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:epi_shared/epi_shared.dart';
+import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 class SubmissionsScreen extends ConsumerStatefulWidget {
@@ -64,6 +65,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
+                if (!ConnectivityUtils.isOnline) return;
                 final filter = SubmissionsFilter(status: _statusFilter);
                 await ref.read(forceRefreshProvider)(filter.cacheKey);
                 ref.invalidate(submissionsProvider(filter));
