@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -16,16 +17,115 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
   String? _statusFilter;
   String _searchQuery = '';
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  // Pagination state
+  final List<Map<String, dynamic>> _items = [];
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _offset = 0;
+  static const _pageSize = 20;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _loadInitial();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Detect when user scrolls near the bottom → load more
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  /// Load first batch
+  Future<void> _loadInitial() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _items.clear();
+      _offset = 0;
+      _hasMore = true;
+    });
+
+    await _fetchPage();
+  }
+
+  /// Load next page (triggered by scroll)
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+    await _fetchPage();
+  }
+
+  /// Fetch a single page from provider/cache
+  Future<void> _fetchPage() async {
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final filter = SubmissionsFilter(
+        status: _statusFilter,
+        limit: _pageSize,
+        offset: _offset,
+      );
+
+      final data = await ref.read(submissionsProvider(filter).future);
+
+      setState(() {
+        _items.addAll(data);
+        _offset += data.length;
+        _hasMore = data.length >= _pageSize;
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  /// Pull-to-refresh: clear cache and reload
+  Future<void> _refresh() async {
+    if (!ConnectivityUtils.isOnline) return;
+    final filter = SubmissionsFilter(status: _statusFilter);
+    await ref.read(forceRefreshProvider)(filter.cacheKey);
+    ref.invalidate(submissionsProvider(filter));
+    await _loadInitial();
+  }
+
+  /// Filter changed — reload from scratch
+  void _onFilterChanged(String? status) {
+    setState(() => _statusFilter = status);
+    _loadInitial();
   }
 
   @override
   Widget build(BuildContext context) {
-    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(status: _statusFilter)));
+    // Apply local search filter on loaded items
+    final filtered = _searchQuery.isEmpty
+        ? _items
+        : _items.where((sub) {
+            final formTitle = (sub['forms']?['title_ar'] ?? '').toString().toLowerCase();
+            final userName = (sub['profiles']?['full_name'] ?? '').toString().toLowerCase();
+            final status = (sub['status'] ?? '').toString().toLowerCase();
+            return formTitle.contains(_searchQuery) ||
+                userName.contains(_searchQuery) ||
+                status.contains(_searchQuery);
+          }).toList();
 
     return Scaffold(
       appBar: EpiAppBar(
@@ -56,7 +156,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
                   EpiStatusChip(status: _statusFilter!),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => setState(() => _statusFilter = null),
+                    onTap: () => _onFilterChanged(null),
                     child: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
                   ),
                 ],
@@ -64,58 +164,65 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async {
-                if (!ConnectivityUtils.isOnline) return;
-                final filter = SubmissionsFilter(status: _statusFilter);
-                await ref.read(forceRefreshProvider)(filter.cacheKey);
-                ref.invalidate(submissionsProvider(filter));
-              },
-              child: submissions.when(
-                loading: () => const EpiLoading.shimmer(),
-                error: (e, _) => EpiErrorWidget(
-                  message: e.toString(),
-                  onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter))),
-                ),
-                data: (data) {
-                  // Apply search filter
-                  final filtered = _searchQuery.isEmpty
-                      ? data
-                      : data.where((sub) {
-                          final formTitle = (sub['forms']?['title_ar'] ?? '').toString().toLowerCase();
-                          final userName = (sub['profiles']?['full_name'] ?? '').toString().toLowerCase();
-                          final status = (sub['status'] ?? '').toString().toLowerCase();
-                          return formTitle.contains(_searchQuery) ||
-                              userName.contains(_searchQuery) ||
-                              status.contains(_searchQuery);
-                        }).toList();
-
-                  if (filtered.isEmpty) {
-                    return EpiEmptyState(
-                      icon: Icons.upload_file,
-                      title: _searchQuery.isNotEmpty ? 'لا توجد نتائج للبحث' : 'لا توجد إرساليات',
-                      subtitle: _searchQuery.isNotEmpty ? 'جرّب كلمات بحث مختلفة' : 'لم يتم إرسال أي نماذج بعد',
-                    );
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final sub = filtered[index];
-                      return _SubmissionTile(
-                        title: sub['forms']?['title_ar'] ?? 'نموذج',
-                        status: sub['status'] ?? 'draft',
-                        date: sub['created_at'],
-                        userName: sub['profiles']?['full_name'],
-                        onTap: () => context.go('/submissions/${sub['id']}'),
-                      );
-                    },
-                  );
-                },
-              ),
+              onRefresh: _refresh,
+              child: _buildBody(filtered),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody(List<Map<String, dynamic>> filtered) {
+    // Initial loading
+    if (_isLoading) {
+      return const EpiLoading.shimmer();
+    }
+
+    // Error state
+    if (_error != null && _items.isEmpty) {
+      return EpiErrorWidget(
+        message: _error!,
+        onRetry: _loadInitial,
+      );
+    }
+
+    // Empty state
+    if (filtered.isEmpty && !_isLoadingMore) {
+      return EpiEmptyState(
+        icon: Icons.upload_file,
+        title: _searchQuery.isNotEmpty ? 'لا توجد نتائج للبحث' : 'لا توجد إرساليات',
+        subtitle: _searchQuery.isNotEmpty ? 'جرّب كلمات بحث مختلفة' : 'لم يتم إرسال أي نماذج بعد',
+      );
+    }
+
+    // List with lazy loading
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length + (_hasMore || _isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        // Bottom loading indicator
+        if (index >= filtered.length) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: _isLoadingMore
+                  ? const CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor)
+                  : const SizedBox.shrink(),
+            ),
+          );
+        }
+
+        final sub = filtered[index];
+        return _SubmissionTile(
+          title: sub['forms']?['title_ar'] ?? 'نموذج',
+          status: sub['status'] ?? 'draft',
+          date: sub['created_at'],
+          userName: sub['profiles']?['full_name'],
+          onTap: () => context.go('/submissions/${sub['id']}'),
+        );
+      },
     );
   }
 
@@ -142,7 +249,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
                   label: EpiStatusChip(status: s, small: true),
                   selected: _statusFilter == s,
                   onSelected: (selected) {
-                    setState(() => _statusFilter = selected ? s : null);
+                    _onFilterChanged(selected ? s : null);
                     Navigator.pop(context);
                   },
                 );
