@@ -8,7 +8,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
 import '../../providers/app_providers.dart';
-import 'form_fill_widgets.dart';
+import 'governorate_dropdown.dart';
+import 'district_dropdown.dart';
+import 'photo_picker_field.dart';
 
 class FormFillScreen extends ConsumerStatefulWidget {
   final String formId;
@@ -35,7 +37,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
   double? _gpsLat;
   double? _gpsLng;
   final List<XFile> _pickedPhotos = [];
-  String? _signatureData;
 
   // Auto-save timer
   Timer? _autoSaveTimer;
@@ -126,6 +127,28 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             _textControllers[entry.key]!.text = entry.value?.toString() ?? '';
           }
         }
+
+        // ═══ FIX: Restore GPS coordinates from draft data ═══
+        // GPS fields store "lat, lng" as a string in _formData
+        // We must restore _gpsLat/_gpsLng so the UI shows "تم تحديد الموقع ✓"
+        for (final field in _allFields) {
+          if (field['type'] == 'gps') {
+            final key = field['key'] as String;
+            final gpsStr = _formData[key] as String?;
+            if (gpsStr != null && gpsStr.contains(',')) {
+              final parts = gpsStr.split(',').map((s) => s.trim()).toList();
+              if (parts.length == 2) {
+                final lat = double.tryParse(parts[0]);
+                final lng = double.tryParse(parts[1]);
+                if (lat != null && lng != null) {
+                  _gpsLat = lat;
+                  _gpsLng = lng;
+                }
+              }
+            }
+          }
+        }
+
         if (mounted) {
           context.showInfo('تم استعادة المسودة السابقة');
         }
@@ -247,9 +270,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           break;
         case 'photo':
           if (_pickedPhotos.isEmpty) missingFields.add(label);
-          break;
-        case 'signature':
-          if (_signatureData == null || _signatureData?.isEmpty == true) missingFields.add(label);
           break;
         case 'governorate':
           if (_formData[key] == null) missingFields.add(label);
@@ -834,20 +854,6 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               _pickedPhotos.clear();
               _pickedPhotos.addAll(photos);
               _formData[key] = photos.map((p) => p.path).toList();
-              _markChanged();
-            });
-          },
-          isRequired: isRequired,
-        );
-
-      case 'signature':
-        return SignatureField(
-          key: ValueKey('sig_$key'),
-          signatureData: _signatureData,
-          onSignatureChanged: (data) {
-            setState(() {
-              _signatureData = data;
-              _formData[key] = data;
               _markChanged();
             });
           },

@@ -17,7 +17,6 @@ enum FormFieldType {
   multiSelect,
   file,
   image,
-  signature,
   location,
   section,
   divider,
@@ -54,8 +53,6 @@ extension FormFieldTypeExt on FormFieldType {
         return 'ملف';
       case FormFieldType.image:
         return 'صورة';
-      case FormFieldType.signature:
-        return 'توقيع';
       case FormFieldType.location:
         return 'موقع';
       case FormFieldType.section:
@@ -95,8 +92,6 @@ extension FormFieldTypeExt on FormFieldType {
         return Icons.attach_file;
       case FormFieldType.image:
         return Icons.image;
-      case FormFieldType.signature:
-        return Icons.draw;
       case FormFieldType.location:
         return Icons.location_on;
       case FormFieldType.section:
