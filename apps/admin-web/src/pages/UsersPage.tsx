@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Search, Plus, Filter, MoreVertical, UserCheck, UserX, Trash2,
-  Edit, Eye, Download, ChevronDown, Mail, MapPin
+  Edit, Eye, Download, ChevronDown, Mail, MapPin, AlertTriangle, RefreshCw
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,7 +27,7 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState<UserProfile | null>(null)
   const [deleteUser, setDeleteUser] = useState<UserProfile | null>(null)
 
-  const { data: users, isLoading, refetch } = useUsers({
+  const { data: users, isLoading, isError, error, refetch } = useUsers({
     role: roleFilter as UserRole || undefined,
     search: search || undefined,
   })
@@ -37,6 +37,19 @@ export default function UsersPage() {
       <Header title="إدارة المستخدمين" subtitle={`${users?.length || 0} مستخدم`} onRefresh={() => refetch()} />
 
       <div className="p-6 space-y-6">
+        {/* Error State */}
+        {isError && (
+          <Card className="border-red-200 bg-red-50/50">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+              <h3 className="font-bold text-red-700 mb-1">حدث خطأ في تحميل المستخدمين</h3>
+              <p className="text-sm text-red-600 mb-3">{(error as Error)?.message || 'تعذر الاتصال بالخادم'}</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" /> إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">

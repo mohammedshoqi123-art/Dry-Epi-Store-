@@ -47,7 +47,7 @@ export default function NotificationsPage() {
   const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null)
   const [composeOpen, setComposeOpen] = useState(false)
 
-  const { data: notifications, isLoading, refetch } = useNotifications()
+  const { data: notifications, isLoading, isError, error, refetch } = useNotifications()
   const markRead = useMarkNotificationRead()
   const markAllRead = useMarkAllNotificationsRead()
   const { toast } = useToast()
@@ -79,6 +79,20 @@ export default function NotificationsPage() {
       />
 
       <div className="p-6 space-y-6">
+        {/* Error State */}
+        {isError && (
+          <Card className="border-red-200 bg-red-50/50">
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+              <h3 className="font-bold text-red-700 mb-1">حدث خطأ في تحميل الإشعارات</h3>
+              <p className="text-sm text-red-600 mb-3">{(error as Error)?.message || 'تعذر الاتصال بالخادم'}</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" /> إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className={cn(unreadCount > 0 && 'border-primary/30 bg-primary/5')}>

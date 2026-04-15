@@ -530,23 +530,22 @@ function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
     setEditingFieldId(null)
   }, [])
 
-  // Initialize state when dialog opens
-  const [prevFormId, setPrevFormId] = useState<string | undefined>(undefined)
-  if (open) {
-    if (form?.id !== prevFormId) {
-      setPrevFormId(form?.id)
-      if (form) {
-        resetToForm(form)
-      } else if (prevFormId !== undefined || titleAr !== '') {
-        // Only reset if not already fresh
-      }
+  // Initialize state when dialog opens — use ref to track previous form id safely
+  const prevFormIdRef = useRef<string | undefined | null>(null)
+
+  // Sync form data into local state whenever dialog opens or form changes
+  if (open && prevFormIdRef.current !== form?.id) {
+    prevFormIdRef.current = form?.id ?? null
+    if (form) {
+      resetToForm(form)
+    } else {
+      resetToEmpty()
     }
   }
 
-  // Reset when opening create dialog (no form)
-  if (open && !form && prevFormId !== undefined) {
-    setPrevFormId(undefined)
-    resetToEmpty()
+  // Reset tracking when dialog closes
+  if (!open && prevFormIdRef.current !== null) {
+    prevFormIdRef.current = null
   }
 
   const toggleRole = (role: UserRole) => {

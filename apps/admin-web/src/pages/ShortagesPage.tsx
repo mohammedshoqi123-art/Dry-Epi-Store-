@@ -26,7 +26,7 @@ export default function ShortagesPage() {
   const [govFilter, setGovFilter] = useState<string>('')
   const [search, setSearch] = useState('')
   const [selectedShortage, setSelectedShortage] = useState<SupplyShortage | null>(null)
-  const { data: shortages, isLoading, refetch } = useShortages()
+  const { data: shortages, isLoading, isError, error, refetch } = useShortages()
   const { data: governorates } = useGovernorates()
   const resolveShortage = useResolveShortage()
   const { toast } = useToast()
@@ -73,6 +73,20 @@ export default function ShortagesPage() {
       />
 
       <div className="p-6 space-y-6">
+        {/* Error State */}
+        {isError && (
+          <Card className="border-red-200 bg-red-50/50">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+              <h3 className="font-bold text-red-700 mb-1">حدث خطأ في تحميل النواقص</h3>
+              <p className="text-sm text-red-600 mb-3">{(error as Error)?.message || 'تعذر الاتصال بالخادم'}</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" /> إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>

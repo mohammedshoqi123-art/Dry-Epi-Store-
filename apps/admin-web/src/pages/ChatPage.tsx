@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, MessageSquare, Hash, Users, Smile, Paperclip, MoreVertical, Trash2, Reply, Check, CheckCheck } from 'lucide-react'
+import { Send, MessageSquare, Hash, Users, Smile, Paperclip, MoreVertical, Trash2, Reply, Check, CheckCheck, RefreshCw } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,7 +38,7 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const { data: messages, isLoading, refetch } = useChatMessages(room)
+  const { data: messages, isLoading, isError, error, refetch } = useChatMessages(room)
   const sendMutation = useSendChatMessage()
   const { toast } = useToast()
 
@@ -139,6 +139,20 @@ export default function ChatPage() {
       />
 
       <div className="flex-1 p-4 lg:p-6 flex flex-col min-h-0">
+        {/* Error State */}
+        {isError && (
+          <Card className="border-red-200 bg-red-50/50 mb-4">
+            <CardContent className="p-4 text-center">
+              <MessageSquare className="w-8 h-8 text-red-500 mx-auto mb-2" />
+              <h3 className="font-bold text-red-700 text-sm mb-1">حدث خطأ في تحميل المحادثات</h3>
+              <p className="text-xs text-red-600 mb-2">{(error as Error)?.message || 'تعذر الاتصال بالخادم'}</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2 text-xs h-7">
+                <RefreshCw className="w-3 h-3" /> إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Room selector */}
         <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-none">
           {chatRooms.map((r) => (

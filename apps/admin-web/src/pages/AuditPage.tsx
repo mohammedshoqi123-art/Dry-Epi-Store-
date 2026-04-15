@@ -117,7 +117,7 @@ export default function AuditPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null)
-  const { data, isLoading, refetch } = useAuditLogs({
+  const { data, isLoading, isError, error, refetch } = useAuditLogs({
     action: actionFilter || undefined,
     page,
   })
@@ -156,6 +156,20 @@ export default function AuditPage() {
       <Header title="سجل التدقيق" subtitle={`${totalCount} سجل`} onRefresh={() => refetch()} />
 
       <div className="p-6 space-y-6">
+        {/* Error State */}
+        {isError && (
+          <Card className="border-red-200 bg-red-50/50">
+            <CardContent className="p-6 text-center">
+              <Shield className="w-10 h-10 text-red-500 mx-auto mb-3" />
+              <h3 className="font-bold text-red-700 mb-1">حدث خطأ في تحميل سجل التدقيق</h3>
+              <p className="text-sm text-red-600 mb-3">{(error as Error)?.message || 'تعذر الاتصال بالخادم'}</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" /> إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {Object.entries(ACTION_LABELS).slice(0, 5).map(([key, label]) => {
