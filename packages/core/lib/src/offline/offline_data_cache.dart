@@ -275,6 +275,27 @@ class OfflineDataCache {
     if (kDebugMode) print('[OfflineDataCache] All caches cleared');
   }
 
+  /// ═══ CRITICAL: Force-invalidate all data caches on reconnect ═══
+  /// When internet returns after being offline, we MUST refresh cached data
+  /// because the server may have updates (form changes, status changes,
+  /// new submissions from other users, etc.)
+  ///
+  /// Call this once when connectivity is restored.
+  Future<void> invalidateOnReconnect() async {
+    _memoryCache.clear();
+    await _offline.clearCache();
+    _lastReconnectInvalidation = DateTime.now();
+    if (kDebugMode) print('[OfflineDataCache] Cache invalidated on reconnect — next fetch will get fresh data');
+  }
+
+  DateTime? _lastReconnectInvalidation;
+
+  /// Whether we recently reconnected (within last 60 seconds)
+  bool get recentlyReconnected {
+    if (_lastReconnectInvalidation == null) return false;
+    return DateTime.now().difference(_lastReconnectInvalidation!).inSeconds < 60;
+  }
+
   /// Check if we have any cached data for a key (including stale when offline).
   bool hasCachedData(String key) {
     if (_memoryCache.containsKey(key)) return true;

@@ -4,12 +4,14 @@ import 'package:flutter/foundation.dart';
 import '../api/api_client.dart';
 import '../config/supabase_config.dart';
 import '../offline/offline_manager.dart';
+import '../offline/offline_data_cache.dart';
 
 /// Manages background synchronization of offline data.
 /// Handles batch syncing, conflict resolution, retry with backoff, and dedup.
 class SyncService {
   final ApiClient _api;
   final OfflineManager _offline;
+  OfflineDataCache? _dataCache; // Optional — set via setDataCache()
   Timer? _syncTimer;
   DateTime? _syncLockTime;
   bool _isSyncing = false;
@@ -34,7 +36,38 @@ class SyncService {
       if (isOnline && _offline.pendingCount > 0) {
         _attemptSync('reconnect');
       }
+      // ═══ CRITICAL: When internet returns, invalidate ALL caches ═══
+      // This ensures we fetch fresh data from server after being offline
+      if (isOnline && _wasOffline) {
+        _invalidateCacheOnReconnect();
+        _wasOffline = false;
+      }
+      if (!isOnline) {
+        _wasOffline = true;
+      }
     });
+  }
+
+  bool _wasOffline = false;
+
+  /// Set the data cache for invalidation on reconnect.
+  /// Must be called after SyncService is created.
+  void setDataCache(OfflineDataCache cache) {
+    _dataCache = cache;
+  }
+
+  /// Invalidate all cached data when internet returns.
+  /// This forces fresh data to be fetched from the server.
+  Future<void> _invalidateCacheOnReconnect() async {
+    try {
+      final cache = _dataCache;
+      if (cache != null) {
+        await cache.invalidateOnReconnect();
+        if (kDebugMode) print('[SyncService] Cache invalidated on reconnect');
+      }
+    } catch (e) {
+      if (kDebugMode) print('[SyncService] Cache invalidation failed: $e');
+    }
   }
 
   /// بدء المزامنة التلقائية

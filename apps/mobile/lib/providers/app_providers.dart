@@ -79,6 +79,16 @@ final syncServiceProvider = FutureProvider<SyncService>((ref) async {
   final offline = await ref.watch(offlineManagerProvider.future);
   final service = SyncService(ref.read(apiClientProvider), offline);
 
+  // ═══ Connect data cache for reconnect invalidation ═══
+  // When internet returns, SyncService will clear all caches
+  // so fresh data is fetched from server
+  try {
+    final cache = await ref.watch(offlineDataCacheProvider.future);
+    service.setDataCache(cache);
+  } catch (e) {
+    debugPrint('[syncServiceProvider] Could not set data cache: $e');
+  }
+
   // ═══ Start auto-sync immediately ═══
   service.startAutoSync();
 
