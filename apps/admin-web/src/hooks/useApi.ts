@@ -19,6 +19,8 @@ export function useAuth() {
 
       return { session, profile }
     },
+    retry: 1,
+    staleTime: 30000,
   })
 }
 
@@ -95,6 +97,8 @@ export function useDashboardStats() {
       }
     },
     refetchInterval: 30000,
+    retry: 2,
+    staleTime: 15000,
   })
 }
 
@@ -186,6 +190,8 @@ export function useUsers(filters?: { role?: UserRole; search?: string }) {
       if (error) throw error
       return data
     },
+    retry: 2,
+    staleTime: 10000,
   })
 }
 
@@ -274,6 +280,8 @@ export function useForms(filters?: { search?: string; page?: number; pageSize?: 
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
+    retry: 2,
+    staleTime: 10000,
   })
 }
 
@@ -397,6 +405,8 @@ export function useSubmissions(filters?: {
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
+    retry: 2,
+    staleTime: 10000,
   })
 }
 
@@ -443,6 +453,8 @@ export function useGovernorates() {
       if (error) throw error
       return data
     },
+    retry: 2,
+    staleTime: 60000,
   })
 }
 
@@ -457,6 +469,7 @@ export function useDistricts(governorateId?: string) {
       return data
     },
     enabled: !!governorateId,
+    retry: 2,
   })
 }
 
@@ -482,6 +495,8 @@ export function useAuditLogs(filters?: { userId?: string; action?: string; page?
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
+    retry: 2,
+    staleTime: 10000,
   })
 }
 
@@ -499,6 +514,8 @@ export function useShortages() {
       if (error) throw error
       return data
     },
+    retry: 2,
+    staleTime: 10000,
   })
 }
 
@@ -581,12 +598,14 @@ export function useNotifications() {
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('recipient_id', session?.user.id)
+        .eq('recipient_id', session?.user?.id || '00000000-0000-0000-0000-000000000000')
         .order('created_at', { ascending: false })
         .limit(50)
       if (error) throw error
       return data
     },
+    retry: 2,
+    staleTime: 10000,
   })
 }
 

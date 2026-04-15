@@ -5,10 +5,12 @@ import { useAuth } from '@/hooks/useApi'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isConfigured } from '@/lib/supabase'
 import { AIChatWidget } from '@/components/ai/AIChatWidget'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const { data: authData, isLoading } = useAuth()
+  const { data: authData, isLoading, isError, error, refetch } = useAuth()
 
   if (!isConfigured) {
     return <Navigate to="/login" replace />
@@ -46,8 +48,92 @@ export function AppLayout() {
     )
   }
 
+  // Auth error - show error screen with retry
+  if (isError) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center p-8">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-heading font-bold text-gray-800">خطأ في الاتصال</h2>
+          <p className="text-sm text-muted-foreground">
+            تعذر الاتصال بخادم Supabase. تأكد من اتصالك بالإنترنت أو حاول مرة أخرى.
+          </p>
+          <p className="text-xs text-red-500 font-mono" dir="ltr">
+            {(error as Error)?.message || 'Connection failed'}
+          </p>
+          <div className="flex gap-3">
+            <Button onClick={() => refetch()} className="gap-2">
+              <RefreshCw className="w-4 h-4" /> إعادة المحاولة
+            </Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              تحديث الصفحة
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // No session - show demo mode or redirect
   if (!authData?.session) {
-    return <Navigate to="/login" replace />
+    // Instead of redirecting to login (which may also fail),
+    // show the dashboard in guest/demo mode
+    return (
+      <div className="flex h-screen overflow-hidden bg-background">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block relative z-30">
+          <Sidebar
+            user={null}
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Mobile Header */}
+          <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b bg-background/80 backdrop-blur-md sticky top-0 z-40">
+            <MobileSidebar user={null} />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-white shadow-sm overflow-hidden border border-blue-100/50 flex items-center justify-center">
+                <img
+                  src={`${import.meta.env.BASE_URL}logo-epi-64.png`.replace(/\/+/g, '/')}
+                  alt="EPI"
+                  className="w-6 h-6 object-contain"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              </div>
+              <h1 className="font-heading font-bold text-lg">
+                <span className="text-blue-600">EPI</span> Supervisor's
+              </h1>
+            </div>
+          </div>
+
+          {/* Page Content with login prompt */}
+          <main className="flex-1 overflow-auto scroll-smooth">
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center p-8 max-w-md">
+                <div className="w-20 h-20 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-10 h-10 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-heading font-bold mb-2">مرحباً بك في لوحة إدارة EPI</h2>
+                <p className="text-muted-foreground mb-6">قم بتسجيل الدخول للوصول إلى جميع الميزات</p>
+                <a
+                  href={`${window.location.origin}${window.location.pathname}#/login`}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-white font-medium hover:bg-blue-700 transition-colors"
+                >
+                  تسجيل الدخول
+                </a>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
   }
 
   const user = authData.profile
@@ -55,7 +141,7 @@ export function AppLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block relative z-30">
         <Sidebar
           user={user}
           collapsed={sidebarCollapsed}

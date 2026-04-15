@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import {
   Search, Filter, CheckCircle2, XCircle, Clock, Eye, MessageSquare,
-  ChevronLeft, ChevronRight, MapPin, Calendar, User, FileText, Download
+  ChevronLeft, ChevronRight, MapPin, Calendar, User, FileText, Download,
+  AlertTriangle, RefreshCw
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -75,7 +76,7 @@ export default function SubmissionsPage() {
   const [page, setPage] = useState(1)
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null)
 
-  const { data, isLoading, refetch } = useSubmissions({
+  const { data, isLoading, isError, error, refetch } = useSubmissions({
     status: statusFilter as SubmissionStatus || undefined,
     formId: formFilter || undefined,
     page,
@@ -93,6 +94,20 @@ export default function SubmissionsPage() {
       <Header title="الإرساليات" subtitle={`${totalCount} إرسالية`} onRefresh={() => refetch()} />
 
       <div className="p-6 space-y-6">
+        {/* Error State */}
+        {isError && (
+          <Card className="border-red-200 bg-red-50/50">
+            <CardContent className="p-6 text-center">
+              <AlertTriangle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+              <h3 className="font-bold text-red-700 mb-1">حدث خطأ في تحميل الإرساليات</h3>
+              <p className="text-sm text-red-600 mb-3">{(error as Error)?.message || 'تعذر الاتصال بالخادم'}</p>
+              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+                <RefreshCw className="w-4 h-4" /> إعادة المحاولة
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <Tabs value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1) }}>
