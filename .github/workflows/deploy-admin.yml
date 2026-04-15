@@ -43,13 +43,29 @@ jobs:
         working-directory: apps/admin-web/dist
         run: touch .nojekyll
 
+      - name: Add cache-busting headers
+        working-directory: apps/admin-web/dist
+        run: |
+          # Create _headers file for better cache control
+          cat > _headers << 'EOF'
+          /*
+            Cache-Control: no-cache, no-store, must-revalidate
+            Pragma: no-cache
+            Expires: 0
+          /assets/*
+            Cache-Control: public, max-age=31536000, immutable
+          EOF
+          echo "Cache headers created"
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./apps/admin-web/dist
           publish_branch: gh-pages
-          force_orphan: true
+          force_orphan: false
+          keep_files: false
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'deploy: ${{ github.sha }}'
+          full_commit_message: 'deploy: ${{ github.sha }} - ${{ github.run_id }}'
