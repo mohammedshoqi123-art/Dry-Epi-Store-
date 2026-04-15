@@ -37,9 +37,10 @@ export default function App() {
   return (
     <TooltipProvider>
       <Routes>
+        {/* Login is the first page */}
         <Route path="/login" element={<LoginPage />} />
         <Route element={<AppLayout />}>
-          <Route index element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
+          <Route path="dashboard" element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
           <Route path="users" element={<Suspense fallback={<PageLoader />}><UsersPage /></Suspense>} />
           <Route path="forms" element={<Suspense fallback={<PageLoader />}><FormsPage /></Suspense>} />
           <Route path="submissions" element={<Suspense fallback={<PageLoader />}><SubmissionsPage /></Suspense>} />
@@ -54,7 +55,9 @@ export default function App() {
           <Route path="chat" element={<Suspense fallback={<PageLoader />}><ChatPage /></Suspense>} />
           <Route path="notifications" element={<Suspense fallback={<PageLoader />}><NotificationsPage /></Suspense>} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Root redirects to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </TooltipProvider>
   )

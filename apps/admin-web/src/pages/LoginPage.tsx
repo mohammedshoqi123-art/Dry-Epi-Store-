@@ -16,7 +16,7 @@ export default function LoginPage() {
   const { data: authData } = useAuth()
 
   if (authData?.session) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

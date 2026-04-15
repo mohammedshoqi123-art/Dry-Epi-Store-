@@ -38,7 +38,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'لوحة التحكم', href: '/' },
+  { icon: LayoutDashboard, label: 'لوحة التحكم', href: '/dashboard' },
   { icon: Sparkles, label: 'الرؤى الذكية AI', href: '/insights' },
   { icon: Brain, label: 'إعدادات الذكاء الاصطناعي', href: '/ai-settings', roles: ['admin'] },
   { icon: Users, label: 'المستخدمون', href: '/users' },
@@ -276,9 +276,9 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
   const location = useLocation()
 
   // Close on route change
-  useState(() => {
+  useEffect(() => {
     setOpen(false)
-  })
+  }, [location.pathname])
 
   const filteredItems = navItems.filter(item => {
     if (!item.roles) return true
@@ -292,11 +292,11 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+        <div className="mobile-sidebar-overlay lg:hidden">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" style={{ zIndex: 9998 }} onClick={() => setOpen(false)} />
           <div
             className="fixed inset-y-0 right-0 w-[280px] shadow-2xl animate-slide-in-right"
-            style={{ background: 'linear-gradient(180deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%)' }}
+            style={{ background: 'linear-gradient(180deg, #1d4ed8 0%, #2563eb 40%, #1e40af 100%)', zIndex: 9999 }}
           >
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">

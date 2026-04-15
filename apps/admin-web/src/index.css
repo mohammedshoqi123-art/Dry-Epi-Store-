@@ -367,3 +367,52 @@ button {
 .stagger-fade > *:nth-child(4) { animation-delay: 0.2s; }
 .stagger-fade > *:nth-child(5) { animation-delay: 0.25s; }
 .stagger-fade > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* ═══════════════════════════════════════
+   Mobile Sidebar Slide Animation
+═══════════════════════════════════════ */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ═══════════════════════════════════════
+   Mobile Sidebar Overlay Fix
+   Ensures sidebar is always above page content on mobile
+═══════════════════════════════════════ */
+.mobile-sidebar-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+}
+
+.mobile-sidebar-overlay > div:first-child {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9998 !important;
+}
+
+.mobile-sidebar-overlay > div:last-child {
+  position: fixed !important;
+  inset-y: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+}
+
+/* Ensure main content never covers sidebar */
+@media (max-width: 1023px) {
+  main {
+    position: relative;
+    z-index: 1;
+  }
+}

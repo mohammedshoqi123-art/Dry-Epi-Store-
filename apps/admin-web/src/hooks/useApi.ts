@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
+import { supabase, isConfigured } from '@/lib/supabase'
 import type { UserRole, SubmissionStatus } from '@/types/database'
 
 // ==================== AUTH ====================
@@ -8,6 +8,7 @@ export function useAuth() {
   return useQuery({
     queryKey: ['auth'],
     queryFn: async () => {
+      if (!isConfigured) return null
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return null
 
@@ -19,8 +20,9 @@ export function useAuth() {
 
       return { session, profile }
     },
-    retry: 1,
+    retry: 0,
     staleTime: 30000,
+    enabled: isConfigured,
   })
 }
 
@@ -56,6 +58,7 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
+      if (!isConfigured) return null
       // Use Promise.allSettled to handle individual failures gracefully
       const [usersRes, submissionsRes, formsRes, shortagesRes] = await Promise.allSettled([
         supabase.from('profiles').select('id, is_active, role, created_at', { count: 'exact' }),
@@ -97,7 +100,8 @@ export function useDashboardStats() {
         unread_notifications: 0,
       }
     },
-    refetchInterval: 30000,
+    refetchInterval: isConfigured ? 30000 : false,
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 15000,
@@ -135,6 +139,7 @@ export function useSubmissionsChart() {
 
       return Object.values(grouped)
     },
+    enabled: isConfigured,
   })
 }
 
@@ -166,6 +171,7 @@ export function useGovernorateStats() {
 
       return stats.sort((a, b) => b.submissions - a.submissions)
     },
+    enabled: isConfigured,
   })
 }
 
@@ -192,6 +198,7 @@ export function useUsers(filters?: { role?: UserRole; search?: string }) {
       if (error) throw error
       return data
     },
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
@@ -283,6 +290,7 @@ export function useForms(filters?: { search?: string; page?: number; pageSize?: 
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
@@ -312,6 +320,7 @@ export function useFormSubmissionCounts() {
       }
       return counts
     },
+    enabled: isConfigured,
     staleTime: 30000,
   })
 }
@@ -409,6 +418,7 @@ export function useSubmissions(filters?: {
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
@@ -458,6 +468,7 @@ export function useGovernorates() {
       if (error) throw error
       return data
     },
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 60000,
@@ -502,6 +513,7 @@ export function useAuditLogs(filters?: { userId?: string; action?: string; page?
       if (error) throw error
       return { data: data || [], count: count || 0 }
     },
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
@@ -522,6 +534,7 @@ export function useShortages() {
       if (error) throw error
       return data
     },
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
@@ -543,7 +556,8 @@ export function useChatMessages(room = 'general') {
       if (error) throw error
       return data
     },
-    refetchInterval: 5000,
+    enabled: isConfigured,
+    refetchInterval: isConfigured ? 5000 : false,
   })
 }
 
@@ -613,6 +627,7 @@ export function useNotifications() {
       if (error) throw error
       return data
     },
+    enabled: isConfigured,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     staleTime: 10000,
@@ -684,5 +699,6 @@ export function useRoleDistribution() {
         role,
       }))
     },
+    enabled: isConfigured,
   })
 }
