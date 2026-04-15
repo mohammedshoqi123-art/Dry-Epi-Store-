@@ -265,25 +265,39 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
 
   Future<void> _syncConfig() async {
     if (_isSyncingConfig) return;
+
+    // ═══ SAFETY: Don't clear cache if offline — user will lose all data ═══
+    if (!ConnectivityUtils.isOnline) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('لا يمكن المزامنة بدون إنترنت. اتصلك حالياً غير متاح.', style: TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isSyncingConfig = true);
 
     try {
-      // 1. Clear all cached data
-      final syncService = await ref.read(syncServiceProvider.future);
-      await syncService.forceRefreshAll();
+      // 1. مسح كاش النماذج والاستمارات فقط
+      final cache = await ref.read(offlineDataCacheProvider.future);
+      await cache.forceInvalidate('forms');
 
-      // 2. Invalidate all providers so they re-fetch from server
+      // 2. طلب بيانات جديدة من السيرفر
       ref.invalidate(formsProvider);
-      ref.invalidate(governoratesProvider);
-      ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter()));
 
-      // 3. Also trigger submission sync
+      // 3. رفع الإرساليات المحفوظة محلياً
+      final syncService = await ref.read(syncServiceProvider.future);
       final result = await syncService.sync();
 
       if (mounted) {
         final msg = result.synced > 0
-            ? 'تمت المزامنة والتحديث ✅ (${result.synced} إرسالية)'
-            : 'تم تحديث البيانات من السيرفر ✅';
+            ? 'تم تحديث النماذج ومزامنة ${result.synced} إرسالية ✅'
+            : 'تم جلب أحدث النماذج من السيرفر ✅';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg, style: const TextStyle(fontFamily: 'Tajawal')),

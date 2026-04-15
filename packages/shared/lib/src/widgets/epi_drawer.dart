@@ -157,7 +157,7 @@ class EpiDrawer extends StatelessWidget {
                     ),
                   ),
                   subtitle: const Text(
-                    'مسح الكاش وجلب أحدث البيانات',
+                    'جلب أحدث النماذج والاستمارات',
                     style: TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint),
                   ),
                   onTap: isSyncingConfig ? null : () {
