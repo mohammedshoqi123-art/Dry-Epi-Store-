@@ -21,7 +21,7 @@ if (flutterSdkPath == null) {
 }
 apply from: "$flutterSdkPath/packages/flutter_tools/gradle/flutter.gradle"
 
-// Load env variables for build
+// Load env variables for build (env vars take priority, then local.properties)
 def supabaseUrl = System.getenv('SUPABASE_URL') ?: localProperties.getProperty('SUPABASE_URL') ?: ''
 def supabaseAnonKey = System.getenv('SUPABASE_ANON_KEY') ?: localProperties.getProperty('SUPABASE_ANON_KEY') ?: ''
 def geminiApiKey = System.getenv('GEMINI_API_KEY') ?: localProperties.getProperty('GEMINI_API_KEY') ?: ''
@@ -63,9 +63,61 @@ android {
         resValue "string", "supabase_anon_key", supabaseAnonKey
     }
 
+    // ═══════════════════════════════════════════════════════════════════
+    // RELEASE SIGNING CONFIG
+    // Priority: env vars (CI/CD) → local.properties (local dev)
+    //
+    // For LOCAL builds, add to local.properties:
+    //   storeFile=/path/to/keystore.jks
+    //   storePassword=your-store-password
+    //   keyAlias=your-key-alias
+    //   keyPassword=your-key-password
+    //
+    // For CI/CD (GitHub Actions), add these secrets:
+    //   KEYSTORE_BASE64 — base64 of the .jks file
+    //   KEYSTORE_PASSWORD
+    //   KEY_ALIAS
+    //   KEY_PASSWORD
+    // ═══════════════════════════════════════════════════════════════════
+    signingConfigs {
+        release {
+            // CI/CD: decode keystore from base64 secret
+            if (System.getenv('KEYSTORE_BASE64')) {
+                def keystoreDir = new File(project.buildDir, 'keystore')
+                keystoreDir.mkdirs()
+                def keystoreFile = new File(keystoreDir, 'release-keystore.jks')
+                // Decode base64 to file
+                keystoreFile.bytes = System.getenv('KEYSTORE_BASE64').decodeBase64()
+
+                storeFile keystoreFile
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+            // Local dev: read from local.properties
+            else if (localProperties.getProperty('storeFile')) {
+                storeFile new File(localProperties.getProperty('storeFile'))
+                storePassword localProperties.getProperty('storePassword')
+                keyAlias localProperties.getProperty('keyAlias')
+                keyPassword localProperties.getProperty('keyPassword')
+            }
+            // No signing config available — will fallback to debug signing
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            // ═══ FIX: Use release signing if available, fallback to debug ═══
+            if (signingConfigs.release.storeFile?.exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                // ⚠️ WARNING: Using debug signing — NOT suitable for Play Store
+                System.err.println("⚠️ WARNING: No release keystore found. Using debug signing. " +
+                    "This APK CANNOT be uploaded to Google Play Store. " +
+                    "Set up a release keystore in local.properties or CI secrets.")
+                signingConfig signingConfigs.debug
+            }
+
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -85,8 +137,11 @@ android {
         buildConfig true
     }
 
-    lintOptions {
-        checkReleaseBuilds false
+    // ═══ FIX: Replace deprecated lintOptions with lint ═══
+    lint {
+        checkReleaseBuilds true
+        abortOnError false
+        warningsAsErrors false
     }
 }
 

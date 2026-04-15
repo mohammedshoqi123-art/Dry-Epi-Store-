@@ -119,12 +119,33 @@ jobs:
           cd $GITHUB_WORKSPACE/packages/features && flutter pub get
           cd $GITHUB_WORKSPACE/apps/mobile && flutter pub get
 
+      - name: Setup Release Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ "$KEYSTORE_BASE64" != "NOT_SET" ]; then
+            echo "✅ Release keystore configured — signing APK with release key"
+            # Keystore will be decoded by Gradle at build time from env var
+          else
+            echo "⚠️ No KEYSTORE_BASE64 secret found. APK will use debug signing."
+            echo "   To enable release signing, add these GitHub secrets:"
+            echo "   - KEYSTORE_BASE64 (base64 of your .jks keystore file)"
+            echo "   - KEYSTORE_PASSWORD"
+            echo "   - KEY_ALIAS"
+            echo "   - KEY_PASSWORD"
+          fi
+
       - name: Build APK (release)
         working-directory: apps/mobile
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Release signing (decoded by Gradle in build.gradle)
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           GEMINI_FLAG=""
           if [ "$GEMINI_API_KEY" != "NOT_SET" ] && [ -n "$GEMINI_API_KEY" ]; then

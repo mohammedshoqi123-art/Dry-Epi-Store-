@@ -2,3 +2,26 @@
 # Copy this to local.properties and fill in your paths
 flutter.sdk=/path/to/your/flutter/sdk
 sdk.dir=/path/to/your/Android/Sdk
+
+# ═══════════════════════════════════════════════════════════════
+# RELEASE SIGNING CONFIGURATION (for local development)
+# ═══════════════════════════════════════════════════════════════
+#
+# 1. Generate a keystore (do this ONCE):
+#    keytool -genkey -v -keystore epi-release.jks \
+#      -keyalg RSA -keysize 2048 -validity 10000 \
+#      -alias epi-supervisor
+#
+# 2. Fill in the values below:
+#
+# storeFile=/absolute/path/to/epi-release.jks
+# storePassword=your-store-password
+# keyAlias=epi-supervisor
+# keyPassword=your-key-password
+#
+# 3. For CI/CD (GitHub Actions), encode the keystore:
+#    base64 -w 0 epi-release.jks
+#    Then add as GitHub secret: KEYSTORE_BASE64
+#
+# ⚠️ NEVER commit local.properties or the .jks file to git!
+# ═══════════════════════════════════════════════════════════════
