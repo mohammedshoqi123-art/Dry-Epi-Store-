@@ -103,8 +103,8 @@ serve(async (req) => {
               .eq('governorate_id', gov.id).eq('status', 'submitted').gte('created_at', fromDate).lte('created_at', toDate).is('deleted_at', null),
             db.from('districts').select('*', { count: 'exact', head: true })
               .eq('governorate_id', gov.id).eq('is_active', true).is('deleted_at', null),
-            db.from('health_facilities').select('districts!inner(governorate_id)', { count: 'exact', head: true })
-              .eq('districts.governorate_id', gov.id).eq('is_active', true).is('deleted_at', null),
+            db.from('health_facilities').select('*', { count: 'exact', head: true })
+              .eq('is_active', true).is('deleted_at', null),
             db.from('profiles').select('*', { count: 'exact', head: true })
               .eq('governorate_id', gov.id).eq('is_active', true).is('deleted_at', null),
           ]))
