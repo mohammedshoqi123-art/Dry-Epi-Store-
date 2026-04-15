@@ -23,7 +23,7 @@ class EpiBottomNav extends StatelessWidget {
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'الرئيسية'),
         BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'النماذج'),
         BottomNavigationBarItem(icon: Icon(Icons.map), label: 'الخريطة'),
-        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'التحليلات'),
+        BottomNavigationBarItem(icon: Icon(Icons.chat_rounded), label: 'الشات'),
         BottomNavigationBarItem(icon: Icon(Icons.smart_toy), label: 'المساعد'),
       ],
     );

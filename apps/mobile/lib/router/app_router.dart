@@ -237,7 +237,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     if (location.startsWith('/dashboard')) return 0;
     if (location.startsWith('/forms')) return 1;
     if (location.startsWith('/map')) return 2;
-    if (location.startsWith('/analytics')) return 3;
+    if (location.startsWith('/chat')) return 3;
     if (location.startsWith('/ai')) return 4;
     return 0;
   }
@@ -247,7 +247,7 @@ class _MainShellState extends ConsumerState<MainShell> {
       case 0: context.go('/dashboard'); break;
       case 1: context.go('/forms'); break;
       case 2: context.go('/map'); break;
-      case 3: context.go('/analytics'); break;
+      case 3: context.go('/chat'); break;
       case 4: context.go('/ai'); break;
     }
   }
