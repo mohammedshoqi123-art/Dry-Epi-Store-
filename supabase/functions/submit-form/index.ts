@@ -202,6 +202,12 @@ serve(async (req) => {
       return jsonResponse({ error: 'This form requires at least one photo' }, 400, origin)
     }
 
+    // Enforce max photos limit (server-side)
+    const maxPhotos = form.schema?.max_photos ?? 1
+    if (photos && photos.length > maxPhotos) {
+      return jsonResponse({ error: `Maximum ${maxPhotos} photo(s) allowed` }, 400, origin)
+    }
+
     // ─── Insert Submission ─────────────────────────────────
     const submissionData = {
       form_id,

@@ -848,7 +848,7 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         return PhotoPickerField(
           key: ValueKey('photo_$key'),
           photos: _pickedPhotos,
-          maxPhotos: (_formSchema?['max_photos'] as int?) ?? 5,
+          maxPhotos: (_formSchema?['max_photos'] as int?) ?? 1,
           onPhotosChanged: (photos) {
             setState(() {
               _pickedPhotos.clear();

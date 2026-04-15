@@ -31,7 +31,7 @@ class AppConfig {
 
   // ─── File Upload ─────────────────────────────────────────────────────────
   static const int maxPhotoSizeMb = 5;
-  static const int maxPhotosPerSubmission = 10;
+  static const int maxPhotosPerSubmission = 1;
   static const List<String> allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
   // ─── GPS ─────────────────────────────────────────────────────────────────

@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:epi_shared/epi_shared.dart';
 
-/// Photo picker field — camera or gallery, with preview grid and delete.
+/// Photo picker field — camera or gallery, with auto-compression.
+/// Default: 1 photo max. Compresses to ~200-500KB before storing.
 class PhotoPickerField extends StatelessWidget {
   final List<XFile> photos;
   final int maxPhotos;
@@ -24,14 +27,43 @@ class PhotoPickerField extends StatelessWidget {
         source: source,
         maxWidth: 1920,
         maxHeight: 1080,
-        imageQuality: 80,
+        imageQuality: 95, // High quality pick — we compress separately below
       );
-      if (picked != null) {
-        final updated = List<XFile>.from(photos)..add(picked);
-        onPhotosChanged(updated);
-      }
+      if (picked == null) return;
+
+      // ═══ COMPRESS: reduce file size by ~90% while keeping good quality ═══
+      final compressed = await _compressImage(picked);
+      final finalFile = compressed ?? picked; // Fallback to original if compression fails
+
+      final updated = List<XFile>.from(photos)..add(XFile(finalFile.path));
+      onPhotosChanged(updated);
     } catch (e) {
       if (context.mounted) context.showError('فشل التقاط الصورة');
+    }
+  }
+
+  /// Compress image to ~200-500KB while maintaining readable quality.
+  /// Returns null if compression fails (caller should use original file).
+  static Future<File?> _compressImage(XFile file) async {
+    try {
+      final filePath = file.path;
+      final lastIndex = filePath.lastIndexOf('.');
+      final ext = lastIndex != -1 ? filePath.substring(lastIndex).toLowerCase() : '.jpg';
+      final targetPath = '${filePath}_compressed$ext';
+
+      final result = await FlutterImageCompress.compressAndGetFile(
+        filePath,
+        targetPath,
+        quality: 75,         // 75% quality — good balance of size vs clarity
+        minWidth: 1024,      // Don't go below 1024px width
+        minHeight: 1024,     // Don't go below 1024px height
+        format: ext.contains('png') ? CompressFormat.png : CompressFormat.jpeg,
+      );
+
+      return result != null ? File(result.path) : null;
+    } catch (e) {
+      // Compression failed — use original
+      return null;
     }
   }
 
@@ -70,11 +102,14 @@ class PhotoPickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasPhoto = photos.isNotEmpty;
+    final canAddMore = photos.length < maxPhotos;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Photo grid
-        if (photos.isNotEmpty)
+        // Photo preview
+        if (hasPhoto)
           SizedBox(
             height: 100,
             child: ListView.builder(
@@ -115,9 +150,9 @@ class PhotoPickerField extends StatelessWidget {
               },
             ),
           ),
-        if (photos.isNotEmpty) const SizedBox(height: 8),
-        // Add button
-        if (photos.length < maxPhotos)
+        if (hasPhoto) const SizedBox(height: 8),
+        // Add button — hidden if max reached
+        if (canAddMore)
           InkWell(
             onTap: () => _showPickerOptions(context),
             borderRadius: BorderRadius.circular(12),
@@ -126,13 +161,13 @@ class PhotoPickerField extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 20),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: isRequired && photos.isEmpty
+                  color: isRequired && !hasPhoto
                       ? AppTheme.errorColor
                       : Colors.grey.shade300,
                   style: BorderStyle.solid,
                 ),
                 borderRadius: BorderRadius.circular(12),
-                color: isRequired && photos.isEmpty
+                color: isRequired && !hasPhoto
                     ? AppTheme.errorColor.withValues(alpha: 0.05)
                     : null,
               ),
@@ -141,18 +176,18 @@ class PhotoPickerField extends StatelessWidget {
                   Icon(
                     Icons.add_a_photo,
                     size: 32,
-                    color: isRequired && photos.isEmpty
+                    color: isRequired && !hasPhoto
                         ? AppTheme.errorColor
                         : AppTheme.primaryColor,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    photos.isEmpty
-                        ? 'انقر لإرفاق صورة (${photos.length}/$maxPhotos)'
-                        : 'إضافة صورة أخرى (${photos.length}/$maxPhotos)',
+                    hasPhoto
+                        ? 'إضافة صورة أخرى (${photos.length}/$maxPhotos)'
+                        : 'انقر لإرفاق صورة',
                     style: TextStyle(
                       fontFamily: 'Tajawal',
-                      color: isRequired && photos.isEmpty
+                      color: isRequired && !hasPhoto
                           ? AppTheme.errorColor
                           : Colors.grey.shade600,
                     ),
