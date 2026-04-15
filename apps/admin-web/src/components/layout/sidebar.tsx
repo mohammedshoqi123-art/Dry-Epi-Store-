@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, FileText, FileStack, BarChart3, ScrollText,
   MapPin, Shield, ChevronLeft, ChevronRight, Settings, LogOut,
-  AlertTriangle, Bell, Moon, Sun, Menu, X, Sparkles, Layout
+  AlertTriangle, Bell, Moon, Sun, Menu, X, Sparkles, Layout, Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -15,6 +15,12 @@ import { useTheme } from './theme-provider'
 import { useSignOut, useDashboardStats } from '@/hooks/useApi'
 import { ROLE_LABELS, type UserRole } from '@/types/database'
 import { getInitials } from '@/lib/utils'
+
+// Helper to get logo URL with base path support
+function getLogoUrl(size: '64' | '128' | '256' = '128') {
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}logo-epi-${size}.png`.replace(/\/+/g, '/')
+}
 
 interface SidebarProps {
   user?: { full_name: string; email: string; role: UserRole } | null
@@ -43,6 +49,29 @@ const navItems: NavItem[] = [
   { icon: Layout, label: 'إدارة الصفحات', href: '/pages', roles: ['admin'] },
   { icon: Settings, label: 'الإعدادات', href: '/settings', roles: ['admin'] },
 ]
+
+function LiveClock({ collapsed }: { collapsed: boolean }) {
+  const [time, setTime] = useState(new Date())
+  useEffect(() => {
+    const interval = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const timeStr = time.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+  const dateStr = time.toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric', month: 'short' })
+
+  if (collapsed) return null
+
+  return (
+    <div className="px-4 py-2 text-center">
+      <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <Clock className="w-3 h-3" />
+        <span className="font-mono tabular-nums">{timeStr}</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground/60 mt-0.5">{dateStr}</p>
+    </div>
+  )
+}
 
 export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
   const location = useLocation()
@@ -79,7 +108,7 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
           <>
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50">
               <img
-                src="/logo-epi-128.png"
+                src={getLogoUrl('128')}
                 alt="EPI"
                 className="w-8 h-8 object-contain"
                 onError={(e) => {
@@ -98,7 +127,7 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
         {collapsed && (
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50 mx-auto">
             <img
-              src="/logo-epi-64.png"
+              src={getLogoUrl('64')}
               alt="EPI"
               className="w-8 h-8 object-contain"
               onError={(e) => {
@@ -167,6 +196,11 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
           })}
         </nav>
       </ScrollArea>
+
+      <Separator />
+
+      {/* Live Clock */}
+      <LiveClock collapsed={collapsed} />
 
       <Separator />
 
@@ -245,7 +279,7 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50">
-                  <img src="/logo-epi-64.png" alt="EPI" className="w-8 h-8 object-contain"
+                  <img src={getLogoUrl('64')} alt="EPI" className="w-8 h-8 object-contain"
                     onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 </div>
                 <h1 className="font-heading font-bold text-lg">EPI Supervisor's</h1>

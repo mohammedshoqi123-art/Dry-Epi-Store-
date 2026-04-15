@@ -1,106 +1,55 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AppLayout } from '@/components/layout/app-layout'
-import { AIChatWidget } from '@/components/ai/AIChatWidget'
 import LoginPage from '@/pages/LoginPage'
-import DashboardPage from '@/pages/DashboardPage'
-import UsersPage from '@/pages/UsersPage'
-import FormsPage from '@/pages/FormsPage'
-import SubmissionsPage from '@/pages/SubmissionsPage'
-import AnalyticsPage from '@/pages/AnalyticsPage'
-import AIInsightsPage from '@/pages/AIInsightsPage'
-import AuditPage from '@/pages/AuditPage'
-import ShortagesPage from '@/pages/ShortagesPage'
-import GovernoratesPage from '@/pages/GovernoratesPage'
-import PagesManagementPage from '@/pages/PagesManagementPage'
-import SettingsPage from '@/pages/SettingsPage'
+
+// Lazy load pages for better performance
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const UsersPage = lazy(() => import('@/pages/UsersPage'))
+const FormsPage = lazy(() => import('@/pages/FormsPage'))
+const SubmissionsPage = lazy(() => import('@/pages/SubmissionsPage'))
+const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage'))
+const AIInsightsPage = lazy(() => import('@/pages/AIInsightsPage'))
+const AuditPage = lazy(() => import('@/pages/AuditPage'))
+const ShortagesPage = lazy(() => import('@/pages/ShortagesPage'))
+const GovernoratesPage = lazy(() => import('@/pages/GovernoratesPage'))
+const PagesManagementPage = lazy(() => import('@/pages/PagesManagementPage'))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+
+function PageLoader() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 animate-pulse flex items-center justify-center">
+          <div className="w-5 h-5 rounded-md bg-primary/30" />
+        </div>
+        <p className="text-sm text-muted-foreground animate-pulse">جاري التحميل...</p>
+      </div>
+    </div>
+  )
+}
 
 export default function App() {
   return (
     <TooltipProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route element={<AppLayoutWithAI />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="forms" element={<FormsPage />} />
-          <Route path="submissions" element={<SubmissionsPage />} />
-          <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="insights" element={<AIInsightsPage />} />
-          <Route path="audit" element={<AuditPage />} />
-          <Route path="shortages" element={<ShortagesPage />} />
-          <Route path="governorates" element={<GovernoratesPage />} />
-          <Route path="pages" element={<PagesManagementPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+        <Route element={<AppLayout />}>
+          <Route index element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
+          <Route path="users" element={<Suspense fallback={<PageLoader />}><UsersPage /></Suspense>} />
+          <Route path="forms" element={<Suspense fallback={<PageLoader />}><FormsPage /></Suspense>} />
+          <Route path="submissions" element={<Suspense fallback={<PageLoader />}><SubmissionsPage /></Suspense>} />
+          <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />
+          <Route path="insights" element={<Suspense fallback={<PageLoader />}><AIInsightsPage /></Suspense>} />
+          <Route path="audit" element={<Suspense fallback={<PageLoader />}><AuditPage /></Suspense>} />
+          <Route path="shortages" element={<Suspense fallback={<PageLoader />}><ShortagesPage /></Suspense>} />
+          <Route path="governorates" element={<Suspense fallback={<PageLoader />}><GovernoratesPage /></Suspense>} />
+          <Route path="pages" element={<Suspense fallback={<PageLoader />}><PagesManagementPage /></Suspense>} />
+          <Route path="settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </TooltipProvider>
-  )
-}
-
-// Layout with AI Chat Widget
-import { Outlet, Navigate as Nav } from 'react-router-dom'
-import { useState } from 'react'
-import { Sidebar, MobileSidebar } from '@/components/layout/sidebar'
-import { useAuth } from '@/hooks/useApi'
-import { Skeleton } from '@/components/ui/skeleton'
-import { isConfigured } from '@/lib/supabase'
-
-function AppLayoutWithAI() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const { data: authData, isLoading } = useAuth()
-
-  if (!isConfigured) {
-    return <Nav to="/login" replace />
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse">
-            <div className="w-8 h-8 rounded-lg bg-primary/30" />
-          </div>
-          <Skeleton className="w-32 h-4" />
-        </div>
-      </div>
-    )
-  }
-
-  if (!authData?.session) {
-    return <Nav to="/login" replace />
-  }
-
-  const user = authData.profile
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
-        <Sidebar
-          user={user}
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Header */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b bg-background/80 backdrop-blur-md">
-          <MobileSidebar user={user} />
-          <h1 className="font-heading font-bold text-lg">EPI Supervisor's <span className="text-xs text-muted-foreground font-normal">المشرف</span></h1>
-        </div>
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto">
-          <Outlet />
-        </main>
-      </div>
-
-      {/* AI Chat Widget */}
-      <AIChatWidget />
-    </div>
   )
 }

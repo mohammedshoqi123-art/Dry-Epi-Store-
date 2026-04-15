@@ -39,6 +39,10 @@ jobs:
         working-directory: apps/admin-web/dist
         run: cp index.html 404.html
 
+      - name: Add .nojekyll
+        working-directory: apps/admin-web/dist
+        run: touch .nojekyll
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -48,3 +52,4 @@ jobs:
           force_orphan: true
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'deploy: ${{ github.sha }}'
