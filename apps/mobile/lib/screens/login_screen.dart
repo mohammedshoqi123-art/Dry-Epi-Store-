@@ -104,10 +104,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                       ),
                       const SizedBox(height: 20),
                       const Text(
-                        'منصة مشرف EPI',
+                        "EPI Supervisor's",
                         style: TextStyle(
                           fontFamily: 'Cairo',
-                          fontSize: 28,
+                          fontSize: 26,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: 0.5,

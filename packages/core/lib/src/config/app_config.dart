@@ -5,8 +5,8 @@ class AppConfig {
   AppConfig._();
 
   // ─── App Metadata ────────────────────────────────────────────────────────
-  static const String appName = 'EPI Supervisor';
-  static const String appNameAr = 'منصة مشرف EPI';
+  static const String appName = "EPI Supervisor's";
+  static const String appNameAr = "EPI Supervisor's";
   static const String appVersion = '1.0.0';
   static const int buildNumber = 1;
 

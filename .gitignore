@@ -71,3 +71,9 @@ coverage/
 # ─── Android Local Config ───────────────────────────────────
 **/android/local.properties
 **/android/app/google-services.json
+.dart_tool/
+build/
+.flutter-plugins-dependencies
+*.g.dart
+*.freezed.dart
+.env
