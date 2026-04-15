@@ -22,13 +22,13 @@ import { useToast } from '@/hooks/useToast'
 
 export default function UsersPage() {
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<string>('')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editUser, setEditUser] = useState<UserProfile | null>(null)
   const [deleteUser, setDeleteUser] = useState<UserProfile | null>(null)
 
   const { data: users, isLoading, isError, error, refetch } = useUsers({
-    role: roleFilter as UserRole || undefined,
+    role: roleFilter !== 'all' ? (roleFilter as UserRole) : undefined,
     search: search || undefined,
   })
 
@@ -66,7 +66,7 @@ export default function UsersPage() {
               <SelectValue placeholder="كل الأدوار" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل الأدوار</SelectItem>
+              <SelectItem value="all">كل الأدوار</SelectItem>
               {Object.entries(ROLE_LABELS).map(([key, label]) => (
                 <SelectItem key={key} value={key}>{label}</SelectItem>
               ))}
@@ -327,10 +327,10 @@ function EditUserDialog({ user, open, onOpenChange }: { user: UserProfile; open:
           {role !== 'admin' && role !== 'central' && (
             <div className="space-y-2">
               <Label>المحافظة</Label>
-              <Select value={govId} onValueChange={(v) => { setGovId(v); setDistrictId('') }}>
+              <Select value={govId} onValueChange={(v) => { setGovId(v === 'none' ? '' : v); setDistrictId('') }}>
                 <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">بدون</SelectItem>
+                  <SelectItem value="none">بدون</SelectItem>
                   {governorates?.map((g) => <SelectItem key={g.id} value={g.id}>{g.name_ar}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -339,10 +339,10 @@ function EditUserDialog({ user, open, onOpenChange }: { user: UserProfile; open:
           {(role === 'district' || role === 'data_entry') && govId && (
             <div className="space-y-2">
               <Label>المديرية</Label>
-              <Select value={districtId} onValueChange={setDistrictId}>
+              <Select value={districtId} onValueChange={(v) => setDistrictId(v === 'none' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="اختر" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">بدون</SelectItem>
+                  <SelectItem value="none">بدون</SelectItem>
                   {districts?.map((d) => <SelectItem key={d.id} value={d.id}>{d.name_ar}</SelectItem>)}
                 </SelectContent>
               </Select>

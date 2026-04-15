@@ -20,10 +20,10 @@ import { formatRelativeTime, formatDateTime, cn, formatNumber } from '@/lib/util
 import { useToast } from '@/hooks/useToast'
 
 export default function ShortagesPage() {
-  const [severityFilter, setSeverityFilter] = useState<string>('')
-  const [resolvedFilter, setResolvedFilter] = useState<string>('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('')
-  const [govFilter, setGovFilter] = useState<string>('')
+  const [severityFilter, setSeverityFilter] = useState<string>('all')
+  const [resolvedFilter, setResolvedFilter] = useState<string>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [govFilter, setGovFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [selectedShortage, setSelectedShortage] = useState<SupplyShortage | null>(null)
   const { data: shortages, isLoading, isError, error, refetch } = useShortages()
@@ -33,11 +33,11 @@ export default function ShortagesPage() {
 
   const filtered = useMemo(() => {
     return shortages?.filter(s => {
-      if (severityFilter && s.severity !== severityFilter) return false
+      if (severityFilter !== 'all' && s.severity !== severityFilter) return false
       if (resolvedFilter === 'resolved' && !s.is_resolved) return false
       if (resolvedFilter === 'pending' && s.is_resolved) return false
-      if (categoryFilter && s.item_category !== categoryFilter) return false
-      if (govFilter && s.governorate_id !== govFilter) return false
+      if (categoryFilter !== 'all' && s.item_category !== categoryFilter) return false
+      if (govFilter !== 'all' && s.governorate_id !== govFilter) return false
       if (search) {
         const searchLower = search.toLowerCase()
         const name = s.item_name?.toLowerCase() || ''
@@ -167,7 +167,7 @@ export default function ShortagesPage() {
               <SelectValue placeholder="الشدة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل الشدات</SelectItem>
+              <SelectItem value="all">كل الشدات</SelectItem>
               {Object.entries(SEVERITY_LABELS).map(([key, label]) => (
                 <SelectItem key={key} value={key}>{label}</SelectItem>
               ))}
@@ -179,7 +179,7 @@ export default function ShortagesPage() {
               <SelectValue placeholder="الحالة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل الحالات</SelectItem>
+              <SelectItem value="all">كل الحالات</SelectItem>
               <SelectItem value="pending">قيد الانتظار</SelectItem>
               <SelectItem value="resolved">تم الحل</SelectItem>
             </SelectContent>
@@ -191,7 +191,7 @@ export default function ShortagesPage() {
                 <SelectValue placeholder="التصنيف" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">كل التصنيفات</SelectItem>
+                <SelectItem value="all">كل التصنيفات</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
@@ -204,7 +204,7 @@ export default function ShortagesPage() {
               <SelectValue placeholder="المحافظة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل المحافظات</SelectItem>
+              <SelectItem value="all">كل المحافظات</SelectItem>
               {governorates?.map(g => (
                 <SelectItem key={g.id} value={g.id}>{g.name_ar}</SelectItem>
               ))}

@@ -5,7 +5,7 @@
  * JWT fallback parsing has been REMOVED for security — unsigned tokens are never trusted.
  */
 
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 export interface AuthResult {
   userId: string

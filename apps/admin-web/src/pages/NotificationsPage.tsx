@@ -40,8 +40,8 @@ const CATEGORY_CONFIG: Record<string, { icon: React.ElementType; label: string }
 }
 
 export default function NotificationsPage() {
-  const [typeFilter, setTypeFilter] = useState<string>('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [readFilter, setReadFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null)
@@ -55,8 +55,8 @@ export default function NotificationsPage() {
   // Filter notifications
   const filtered = useMemo(() => {
     return notifications?.filter((n: Notification) => {
-      if (typeFilter && n.type !== typeFilter) return false
-      if (categoryFilter && n.category !== categoryFilter) return false
+      if (typeFilter !== 'all' && n.type !== typeFilter) return false
+      if (categoryFilter !== 'all' && n.category !== categoryFilter) return false
       if (readFilter === 'unread' && n.is_read) return false
       if (readFilter === 'read' && !n.is_read) return false
       if (search && !n.title.includes(search) && !n.body.includes(search)) return false
@@ -166,7 +166,7 @@ export default function NotificationsPage() {
               <SelectValue placeholder="النوع" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل الأنواع</SelectItem>
+              <SelectItem value="all">كل الأنواع</SelectItem>
               {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
                 <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
               ))}
@@ -178,7 +178,7 @@ export default function NotificationsPage() {
               <SelectValue placeholder="التصنيف" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل التصنيفات</SelectItem>
+              <SelectItem value="all">كل التصنيفات</SelectItem>
               {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
                 <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
               ))}

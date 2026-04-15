@@ -112,13 +112,13 @@ async function exportAuditLogs() {
 }
 
 export default function AuditPage() {
-  const [actionFilter, setActionFilter] = useState<string>('')
-  const [tableFilter, setTableFilter] = useState<string>('')
+  const [actionFilter, setActionFilter] = useState<string>('all')
+  const [tableFilter, setTableFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null)
   const { data, isLoading, isError, error, refetch } = useAuditLogs({
-    action: actionFilter || undefined,
+    action: actionFilter !== 'all' ? actionFilter : undefined,
     page,
   })
   const { toast } = useToast()
@@ -130,7 +130,7 @@ export default function AuditPage() {
   // Client-side filtering for table and search
   const filteredLogs = useMemo(() => {
     return logs.filter((log: AuditLogEntry) => {
-      if (tableFilter && log.table_name !== tableFilter) return false
+      if (tableFilter !== 'all' && log.table_name !== tableFilter) return false
       if (search) {
         const searchLower = search.toLowerCase()
         const name = log.profiles?.full_name?.toLowerCase() || ''
@@ -208,7 +208,7 @@ export default function AuditPage() {
               <SelectValue placeholder="كل العمليات" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل العمليات</SelectItem>
+              <SelectItem value="all">كل العمليات</SelectItem>
               {Object.entries(ACTION_LABELS).map(([key, label]) => (
                 <SelectItem key={key} value={key}>{label}</SelectItem>
               ))}
@@ -220,7 +220,7 @@ export default function AuditPage() {
               <SelectValue placeholder="كل الجداول" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل الجداول</SelectItem>
+              <SelectItem value="all">كل الجداول</SelectItem>
               {Object.entries(TABLE_LABELS).map(([key, label]) => (
                 <SelectItem key={key} value={key}>{label}</SelectItem>
               ))}

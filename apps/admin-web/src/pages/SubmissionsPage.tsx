@@ -71,14 +71,14 @@ async function exportSubmissions() {
 }
 
 export default function SubmissionsPage() {
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [formFilter, setFormFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [formFilter, setFormFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null)
 
   const { data, isLoading, isError, error, refetch } = useSubmissions({
-    status: statusFilter as SubmissionStatus || undefined,
-    formId: formFilter || undefined,
+    status: statusFilter !== 'all' ? (statusFilter as SubmissionStatus) : undefined,
+    formId: formFilter !== 'all' ? formFilter : undefined,
     page,
     pageSize: 20,
   })
@@ -110,7 +110,7 @@ export default function SubmissionsPage() {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <Tabs value={statusFilter || 'all'} onValueChange={(v) => { setStatusFilter(v === 'all' ? '' : v); setPage(1) }}>
+          <Tabs value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1) }}>
             <TabsList>
               <TabsTrigger value="all" className="text-xs">الكل</TabsTrigger>
               <TabsTrigger value="submitted" className="text-xs">مرسلة</TabsTrigger>
@@ -125,7 +125,7 @@ export default function SubmissionsPage() {
               <SelectValue placeholder="كل النماذج" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">كل النماذج</SelectItem>
+              <SelectItem value="all">كل النماذج</SelectItem>
               {forms?.map((f) => <SelectItem key={f.id} value={f.id}>{f.title_ar}</SelectItem>)}
             </SelectContent>
           </Select>
