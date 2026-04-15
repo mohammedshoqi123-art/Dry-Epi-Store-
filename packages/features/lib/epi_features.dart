@@ -1,3 +1,6 @@
+/// ═══════════════════════════════════════════════════════════════════
+///  EPI Features — Package Entry Point
+/// ═══════════════════════════════════════════════════════════════════
+
+// All exports through single source of truth
 export 'src/features_export.dart';
-export 'src/admin/admin_dashboard.dart';
-export 'src/admin/form_builder_screen.dart';
