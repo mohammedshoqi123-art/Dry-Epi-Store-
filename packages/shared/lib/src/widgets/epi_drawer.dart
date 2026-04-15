@@ -101,7 +101,6 @@ class EpiDrawer extends StatelessWidget {
                   _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
                   _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
                   _buildItem(context, Icons.notifications_rounded, 'الإشعارات', '/notifications'),
-                  _buildItem(context, Icons.chat_rounded, 'الدردشة الداخلية', '/admin/chat'),
 
                   // References — visible to all roles
                   const Padding(
@@ -119,20 +118,6 @@ class EpiDrawer extends StatelessWidget {
                   _SectionLabel(label: 'التحليلات والذكاء'),
                   _buildItem(context, Icons.bar_chart_rounded, 'التقارير', '/analytics'),
                   _buildItem(context, Icons.smart_toy_rounded, 'المساعد الذكي', '/ai'),
-
-                  // Admin section — only for admin (level 5)
-                  if (userRoleLevel >= 5) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Divider(height: 1),
-                    ),
-                    _SectionLabel(label: 'الإدارة'),
-                    _buildItem(context, Icons.admin_panel_settings_rounded, 'لوحة المدير', '/admin'),
-                    _buildItem(context, Icons.people_rounded, 'المستخدمين', '/admin/users'),
-                    _buildItem(context, Icons.edit_document, 'إدارة النماذج', '/admin/forms'),
-                    _buildItem(context, Icons.menu_book_rounded, 'إدارة المراجع', '/admin/references'),
-                    _buildItem(context, Icons.history_rounded, 'سجل العمليات', '/admin/audit'),
-                  ],
                 ],
               ),
             ),

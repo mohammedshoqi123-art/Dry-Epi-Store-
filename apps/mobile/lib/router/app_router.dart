@@ -18,7 +18,6 @@ import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
 import '../screens/forms_status_screen.dart';
 import '../screens/notifications_screen.dart';
-import 'package:epi_features/epi_features.dart';
 import '../screens/references_screen.dart';
 import '../screens/chat_screen.dart';
 
@@ -27,13 +26,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   // Minimum role level required per route
   const routeMinRole = {
-    '/admin': 5,           // admin only
-    '/admin/dashboard': 5, // admin only
-    '/admin/users': 5,     // admin only for user management
-    '/admin/audit': 4,     // central+
-    '/admin/forms': 4,     // central+ for form management
-    '/admin/references': 5,// admin only for reference management
-    '/admin/pages': 5,    // admin only for page management
     '/analytics': 1,       // everyone
     '/ai': 1,              // everyone
     '/references': 1,      // everyone can view references
@@ -131,34 +123,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/ai',
             builder: (context, state) => const AiChatScreen(),
-          ),
-          GoRoute(
-            path: '/admin',
-            builder: (context, state) => const AdminDashboard(),
-          ),
-          GoRoute(
-            path: '/admin/users',
-            builder: (context, state) => const UserManagementScreen(),
-          ),
-          GoRoute(
-            path: '/admin/forms',
-            builder: (context, state) => const FormsManagementScreen(),
-          ),
-          GoRoute(
-            path: '/admin/audit',
-            builder: (context, state) => const AuditLogScreen(),
-          ),
-          GoRoute(
-            path: '/admin/references',
-            builder: (context, state) => const ReferencesManagementScreen(),
-          ),
-          GoRoute(
-            path: '/admin/pages',
-            builder: (context, state) => const PagesManagementScreen(),
-          ),
-          GoRoute(
-            path: '/admin/chat',
-            builder: (context, state) => const InternalChatScreen(),
           ),
           GoRoute(
             path: '/references',

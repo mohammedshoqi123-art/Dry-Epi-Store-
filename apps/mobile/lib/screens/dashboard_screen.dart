@@ -512,7 +512,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       _QA(Icons.map_outlined, 'الخريطة', '/map', const Color(0xFF1E88E5)),
       _QA(Icons.bar_chart_rounded, 'التحليلات', '/analytics', const Color(0xFF43A047)),
       _QA(Icons.smart_toy_outlined, 'المساعد الذكي', '/ai', const Color(0xFFFF8F00)),
-      _QA(Icons.admin_panel_settings_rounded, 'الإدارة', '/admin', const Color(0xFFE53935)),
     ];
 
     return SizedBox(
