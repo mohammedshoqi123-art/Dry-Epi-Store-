@@ -401,25 +401,15 @@ class _AiFab extends StatefulWidget {
 }
 
 class _AiFabState extends State<_AiFab> with SingleTickerProviderStateMixin {
-  late AnimationController _pulseCtrl;
-  late Animation<double> _pulseAnim;
   bool _isPressed = false;
 
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
   }
 
   @override
   void dispose() {
-    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -436,56 +426,29 @@ class _AiFabState extends State<_AiFab> with SingleTickerProviderStateMixin {
         scale: _isPressed ? 0.9 : 1.0,
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
-        child: AnimatedBuilder(
-          animation: _pulseAnim,
-          builder: (context, _) {
-            return Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF8F00), Color(0xFFFF6D00)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF8F00).withValues(
-                      alpha: 0.3 + 0.15 * _pulseAnim.value,
-                    ),
-                    blurRadius: 16 + 8 * _pulseAnim.value,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF8F00), Color(0xFFFF6D00)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFF8F00).withValues(alpha: 0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer pulse ring
-                  Container(
-                    width: 60 + 6 * _pulseAnim.value,
-                    height: 60 + 6 * _pulseAnim.value,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFFF8F00).withValues(
-                          alpha: 0.3 * (1 - _pulseAnim.value),
-                        ),
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                  // Inner icon
-                  const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ],
-              ),
-            );
-          },
+            ],
+          ),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
         ),
       ),
     );

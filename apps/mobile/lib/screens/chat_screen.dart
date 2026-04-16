@@ -13,8 +13,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen>
-    with TickerProviderStateMixin {
+class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   List<Map<String, dynamic>> _messages = [];
@@ -26,18 +25,11 @@ class _ChatScreenState extends State<ChatScreen>
   Timer? _pollTimer;
   Timer? _typingTimer;
 
-  // Typing indicator animation
-  late AnimationController _typingAnimController;
 
   @override
   void initState() {
     super.initState();
     _isConfigured = SupabaseConfig.isConfigured;
-    _typingAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
-
     if (_isConfigured) {
       _initUser();
       _loadMessages();
@@ -69,7 +61,6 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollController.dispose();
     _pollTimer?.cancel();
     _typingTimer?.cancel();
-    _typingAnimController.dispose();
     super.dispose();
   }
 
