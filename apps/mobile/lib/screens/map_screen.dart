@@ -1061,7 +1061,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 child: ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
-                    context.go('/submissions/${sub['id']}');
+                    context.go('/forms/status/submission/${sub['id']}');
                   },
                   icon: const Icon(Icons.open_in_new_rounded, size: 18),
                   label: const Text('عرض التفاصيل',

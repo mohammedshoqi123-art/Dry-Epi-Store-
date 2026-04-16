@@ -228,7 +228,7 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
           status: status,
           date: sub['created_at'],
           userName: sub['profiles']?['full_name'],
-          onTap: () => context.go('/submissions/${sub['id']}'),
+          onTap: () => context.go('/forms/status/submission/${sub['id']}'),
           onPdf: canPdf ? () => _quickGeneratePdf(sub) : null,
         );
       },

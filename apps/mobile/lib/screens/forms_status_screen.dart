@@ -586,7 +586,7 @@ class _SubmittedTab extends ConsumerWidget {
                 date: sub['submitted_at'] ?? sub['created_at'],
                 userName: sub['profiles']?['full_name'],
                 isOffline: sub['is_offline'] == true,
-                onTap: () => context.go('/submissions/${sub['id']}'),
+                onTap: () => context.go('/forms/status/submission/${sub['id']}'),
               );
             },
           );
@@ -669,7 +669,7 @@ class _AllTabState extends ConsumerState<_AllTab> {
                       date: sub['submitted_at'] ?? sub['created_at'],
                       userName: sub['profiles']?['full_name'],
                       isOffline: sub['is_offline'] == true,
-                      onTap: () => context.go('/submissions/${sub['id']}'),
+                      onTap: () => context.go('/forms/status/submission/${sub['id']}'),
                     );
                   },
                 );

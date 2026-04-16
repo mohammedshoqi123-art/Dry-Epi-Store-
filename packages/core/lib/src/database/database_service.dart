@@ -399,15 +399,10 @@ class DatabaseService {
     );
   }
 
-  /// Get unread notification count using efficient count query
+  /// Get unread notification count using efficient DB count
   Future<int> getUnreadNotificationCount() async {
     try {
-      final results = await _api.select(
-        'notifications',
-        select: 'id',
-        filters: {'is_read': false},
-      );
-      return results.length;
+      return await _api.count('notifications', filters: {'is_read': false});
     } catch (_) {
       return 0;
     }

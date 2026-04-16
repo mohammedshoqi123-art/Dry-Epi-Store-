@@ -149,6 +149,15 @@ Future<void> main() async {
     }
   }
 
+  // Initialize Notification Service with API client
+  try {
+    if (SupabaseConfig.isConfigured) {
+      NotificationService.init(ApiClient());
+    }
+  } catch (e) {
+    debugPrint('NotificationService init failed: $e');
+  }
+
   // Lock to portrait on mobile
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

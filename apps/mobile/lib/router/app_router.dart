@@ -10,7 +10,6 @@ import '../screens/splash_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/forms_screen.dart';
-import '../screens/submissions_screen.dart';
 import '../screens/map_screen.dart';
 import '../screens/analytics_screen.dart';
 import '../screens/ai_chat_screen.dart';
@@ -100,18 +99,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'status',
                 builder: (context, state) => const FormsStatusScreen(),
-              ),
-            ],
-          ),
-          GoRoute(
-            path: '/submissions',
-            builder: (context, state) => const SubmissionsScreen(),
-            routes: [
-              GoRoute(
-                path: ':id',
-                builder: (context, state) => SubmissionDetailScreen(
-                  id: state.pathParameters['id']!,
-                ),
+                routes: [
+                  GoRoute(
+                    path: 'submission/:id',
+                    builder: (context, state) => SubmissionDetailScreen(
+                      id: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

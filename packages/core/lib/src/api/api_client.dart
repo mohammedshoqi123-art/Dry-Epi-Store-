@@ -103,6 +103,33 @@ class ApiClient {
     }
   }
 
+  /// Efficient count query using Supabase head request.
+  Future<int> count(
+    String table, {
+    Map<String, dynamic>? filters,
+  }) async {
+    try {
+      var query = _safeClient.from(table).select('id');
+      if (filters != null) {
+        for (final key in filters.keys) {
+          if (filters[key] is _NullFilterSentinel) {
+            query = query.isFilter(key, null);
+          } else if (filters[key] != null) {
+            query = query.eq(key, filters[key]);
+          }
+        }
+      }
+      final result = await query.count();
+      return result.count;
+    } on PostgrestException catch (e) {
+      throw _mapPostgrestException(e);
+    } catch (e, stack) {
+      _reportUnexpectedError(e, stack, context: 'count($table)');
+      if (_isNetworkError(e)) throw const NetworkException();
+      throw ApiException('Unexpected error in count: ${e.runtimeType}', code: 'unknown');
+    }
+  }
+
   Future<Map<String, dynamic>> insert(
     String table,
     Map<String, dynamic> data, {

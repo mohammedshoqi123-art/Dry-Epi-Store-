@@ -186,7 +186,6 @@ class EpiDrawer extends StatelessWidget {
                   _buildItem(context, Icons.dashboard_rounded, 'لوحة التحكم', '/dashboard'),
                   _buildItem(context, Icons.assignment_rounded, 'النماذج', '/forms'),
                   _buildItem(context, Icons.fact_check_rounded, 'حالة الاستمارات', '/forms/status'),
-                  _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
                   _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
                   _buildItem(context, Icons.notifications_rounded, 'الإشعارات', '/notifications'),
                   _buildItem(context, Icons.chat_rounded, 'الشات الداخلي', '/chat'),

@@ -467,7 +467,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
-        if (kpi.label == 'الإرساليات') context.go('/submissions');
+        if (kpi.label == 'الإرساليات') context.go('/forms/status');
         if (kpi.label == 'النواقص' || kpi.label == 'حرج') context.go('/analytics');
         if (kpi.label == 'الإنجاز') context.go('/analytics');
       },
