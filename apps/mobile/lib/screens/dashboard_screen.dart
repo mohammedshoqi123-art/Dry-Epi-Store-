@@ -51,7 +51,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    final analytics = ref.watch(dashboardAnalyticsProvider(const AnalyticsFilter()));
+    final analytics = ref.watch(dashboardAnalyticsProvider(AnalyticsFilter(campaignType: ref.read(campaignProvider).value)));
     final authState = ref.watch(authStateProvider);
     final pendingAsync = ref.watch(syncPendingCountProvider);
     final pendingCount = pendingAsync.valueOrNull ?? 0;
@@ -63,7 +63,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           HapticFeedback.mediumImpact();
           if (!ConnectivityUtils.isOnline) return;
           await ref.read(forceRefreshProvider)('dashboard_analytics');
-          ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter()));
+          ref.invalidate(dashboardAnalyticsProvider(AnalyticsFilter(campaignType: ref.read(campaignProvider).value)));
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -89,7 +89,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   const SizedBox(height: 100),
                   EpiErrorWidget(
                     message: e.toString(),
-                    onRetry: () => ref.invalidate(dashboardAnalyticsProvider(const AnalyticsFilter())),
+                    onRetry: () => ref.invalidate(dashboardAnalyticsProvider(AnalyticsFilter(campaignType: ref.read(campaignProvider).value))),
                   ),
                 ])),
                 data: (data) => _buildDashboardContent(data),

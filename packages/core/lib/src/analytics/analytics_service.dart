@@ -18,6 +18,7 @@ class AnalyticsService {
     DateTime? startDate,
     DateTime? endDate,
     String? formId,
+    String? campaignType,
   }) async {
     try {
       // Try Edge Function first for complex aggregation
@@ -27,6 +28,7 @@ class AnalyticsService {
         'start_date': startDate?.toIso8601String(),
         'end_date': endDate?.toIso8601String(),
         'form_id': formId,
+        'campaign_type': campaignType,
       });
       return result;
     } catch (_) {
@@ -36,6 +38,7 @@ class AnalyticsService {
         districtId: districtId,
         startDate: startDate,
         endDate: endDate,
+        campaignType: campaignType,
       );
     }
   }
@@ -45,10 +48,12 @@ class AnalyticsService {
     String? districtId,
     DateTime? startDate,
     DateTime? endDate,
+    String? campaignType,
   }) async {
     final filters = <String, dynamic>{};
     if (governorateId != null) filters['governorate_id'] = governorateId;
     if (districtId != null) filters['district_id'] = districtId;
+    if (campaignType != null) filters['campaign_type'] = campaignType;
 
     // Submissions
     final submissions = await _api.select(

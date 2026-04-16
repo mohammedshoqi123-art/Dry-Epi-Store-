@@ -38,6 +38,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     governorateId: _selectedGovernorateId,
     districtId: _selectedDistrictId,
     formId: _selectedFormId,
+    campaignType: ref.read(campaignProvider).value,
     startDate: _startDate,
   );
 

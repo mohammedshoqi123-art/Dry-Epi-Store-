@@ -122,6 +122,7 @@ class DatabaseService {
     String? governorateId,
     String? districtId,
     String? submittedBy,
+    String? campaignType,
     int? limit,
     int? offset,
     String? orderBy,
@@ -133,6 +134,7 @@ class DatabaseService {
     if (governorateId != null) filters['governorate_id'] = governorateId;
     if (districtId != null) filters['district_id'] = districtId;
     if (submittedBy != null) filters['submitted_by'] = submittedBy;
+    if (campaignType != null) filters['campaign_type'] = campaignType;
 
     return _api.select(
       'form_submissions',

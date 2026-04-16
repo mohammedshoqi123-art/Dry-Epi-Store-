@@ -42,7 +42,7 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.invalidate(submissionsProvider(const SubmissionsFilter()));
+              ref.invalidate(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
               ref.invalidate(formsProvider);
               setState(() {}); // Force stats rebuild
             },
@@ -544,15 +544,15 @@ class _PendingSyncTabState extends ConsumerState<_PendingSyncTab> {
 class _SubmittedTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final submissions = ref.watch(submissionsProvider(const SubmissionsFilter()));
+    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(submissionsProvider(const SubmissionsFilter())),
+      onRefresh: () async => ref.invalidate(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value))),
       child: submissions.when(
         loading: () => const EpiLoading.shimmer(),
         error: (e, _) => EpiErrorWidget(
           message: e.toString(),
-          onRetry: () => ref.invalidate(submissionsProvider(const SubmissionsFilter())),
+          onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value))),
         ),
         data: (data) {
           final submitted = data.where((s) =>
@@ -610,7 +610,7 @@ class _AllTabState extends ConsumerState<_AllTab> {
 
   @override
   Widget build(BuildContext context) {
-    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(status: _statusFilter)));
+    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(status: _statusFilter, campaignType: ref.read(campaignProvider).value)));
 
     return Column(
       children: [
@@ -637,12 +637,12 @@ class _AllTabState extends ConsumerState<_AllTab> {
         // List
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter))),
+            onRefresh: () async => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter, campaignType: ref.read(campaignProvider).value))),
             child: submissions.when(
               loading: () => const EpiLoading.shimmer(),
               error: (e, _) => EpiErrorWidget(
                 message: e.toString(),
-                onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter))),
+                onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter, campaignType: ref.read(campaignProvider).value))),
               ),
               data: (data) {
                 if (data.isEmpty) {

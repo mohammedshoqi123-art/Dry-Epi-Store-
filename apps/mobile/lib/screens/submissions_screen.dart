@@ -74,8 +74,10 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
     setState(() => _isLoadingMore = true);
 
     try {
+      final campaign = ref.read(campaignProvider);
       final filter = SubmissionsFilter(
         status: _statusFilter,
+        campaignType: campaign.value,
         limit: _pageSize,
         offset: _offset,
       );
@@ -101,7 +103,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
   /// Pull-to-refresh: clear cache and reload
   Future<void> _refresh() async {
     if (!ConnectivityUtils.isOnline) return;
-    final filter = SubmissionsFilter(status: _statusFilter);
+    final campaign = ref.read(campaignProvider);
+    final filter = SubmissionsFilter(status: _statusFilter, campaignType: campaign.value);
     await ref.read(forceRefreshProvider)(filter.cacheKey);
     ref.invalidate(submissionsProvider(filter));
     await _loadInitial();

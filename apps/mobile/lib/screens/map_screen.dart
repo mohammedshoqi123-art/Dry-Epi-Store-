@@ -33,7 +33,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               if (!ConnectivityUtils.isOnline) return;
-              ref.invalidate(submissionsProvider(const SubmissionsFilter()));
+              ref.invalidate(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
               ref.invalidate(shortagesProvider);
               ref.invalidate(governoratesProvider);
             },
@@ -161,7 +161,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   Widget _buildSubmissionsLayer() {
-    final submissionsAsync = ref.watch(submissionsProvider(const SubmissionsFilter()));
+    final submissionsAsync = ref.watch(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
 
     return submissionsAsync.when(
       loading: () => const MarkerLayer(markers: []),

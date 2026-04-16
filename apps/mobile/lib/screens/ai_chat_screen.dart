@@ -52,12 +52,17 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> with SingleTickerPr
 
     try {
       final gemini = ref.read(geminiServiceProvider);
-      final analytics = ref.read(dashboardAnalyticsProvider(const AnalyticsFilter()));
+      final campaign = ref.read(campaignProvider);
+      final analytics = ref.read(dashboardAnalyticsProvider(
+        AnalyticsFilter(campaignType: campaign.value),
+      ));
       Map<String, dynamic>? ctx;
       analytics.whenData((d) => ctx = d);
 
+      // Include campaign context in the prompt
+      final campaignPrefix = 'النشاط الحالي: ${campaign.labelAr}. ';
       final response = await gemini.chat(
-        text,
+        '$campaignPrefix$text',
         analyticsContext: ctx,
         mode: mode,
         template: template,

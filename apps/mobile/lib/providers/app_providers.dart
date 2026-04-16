@@ -147,6 +147,7 @@ class SubmissionsFilter {
   final String? formId;
   final String? governorateId;
   final String? districtId;
+  final String? campaignType;
   final int limit;
   final int offset;
 
@@ -155,6 +156,7 @@ class SubmissionsFilter {
     this.formId,
     this.governorateId,
     this.districtId,
+    this.campaignType,
     this.limit = 20,
     this.offset = 0,
   });
@@ -168,14 +170,16 @@ class SubmissionsFilter {
           formId == other.formId &&
           governorateId == other.governorateId &&
           districtId == other.districtId &&
+          campaignType == other.campaignType &&
           limit == other.limit &&
           offset == other.offset;
 
   @override
-  int get hashCode => Object.hash(status, formId, governorateId, districtId, limit, offset);
+  int get hashCode => Object.hash(status, formId, governorateId, districtId, campaignType, limit, offset);
 
   String get cacheKey {
     final parts = <String>['submissions'];
+    if (campaignType != null) parts.add('camp_$campaignType');
     if (formId != null) parts.add('form_$formId');
     if (status != null) parts.add('status_$status');
     if (governorateId != null) parts.add('gov_$governorateId');
@@ -222,7 +226,6 @@ final districtsProvider = FutureProvider.family<List<Map<String, dynamic>>, Stri
 /// cached locally in Hive for offline access.
 class CampaignNotifier extends StateNotifier<CampaignType> {
   final Ref _ref;
-  bool _loaded = false;
 
   CampaignNotifier(this._ref) : super(CampaignType.polioCampaign) {
     _load();
@@ -241,10 +244,8 @@ class CampaignNotifier extends StateNotifier<CampaignType> {
         maxAge: const Duration(days: 30),
       );
       state = CampaignType.fromString(cached['campaign'] as String? ?? 'polio_campaign');
-      _loaded = true;
     } catch (_) {
       // Default to polio campaign if loading fails
-      _loaded = true;
     }
   }
 
@@ -255,12 +256,17 @@ class CampaignNotifier extends StateNotifier<CampaignType> {
       // Save to Supabase
       final db = _ref.read(databaseServiceProvider);
       await db.setActiveCampaign(campaign.value);
-      // Invalidate forms cache (both campaigns) to reload with new filter
+      // Invalidate ALL campaign-dependent caches
       final cache = await _ref.read(offlineDataCacheProvider.future);
-      await cache.invalidate('forms_polio_campaign');
-      await cache.invalidate('forms_integrated_activity');
-      // Invalidate forms provider to reload
+      for (final c in CampaignType.values) {
+        await cache.invalidate('forms_${c.value}');
+      }
+      // Invalidate all providers that depend on campaign
       _ref.invalidate(formsProvider);
+      _ref.invalidate(dashboardAnalyticsProvider);
+      _ref.invalidate(submissionTrendProvider);
+      _ref.invalidate(governorateRankingProvider);
+      _ref.invalidate(shortagesProvider);
     } catch (e) {
       debugPrint('[CampaignNotifier] Save failed: $e');
     }
@@ -294,6 +300,7 @@ final submissionsProvider =
             status: filter.status,
             governorateId: filter.governorateId,
             districtId: filter.districtId,
+            campaignType: filter.campaignType,
             limit: filter.limit,
             offset: filter.offset,
           ),
@@ -307,6 +314,7 @@ class AnalyticsFilter {
   final String? governorateId;
   final String? districtId;
   final String? formId;
+  final String? campaignType;
   final DateTime? startDate;
   final DateTime? endDate;
 
@@ -314,6 +322,7 @@ class AnalyticsFilter {
     this.governorateId,
     this.districtId,
     this.formId,
+    this.campaignType,
     this.startDate,
     this.endDate,
   });
@@ -326,14 +335,16 @@ class AnalyticsFilter {
           governorateId == other.governorateId &&
           districtId == other.districtId &&
           formId == other.formId &&
+          campaignType == other.campaignType &&
           startDate == other.startDate &&
           endDate == other.endDate;
 
   @override
-  int get hashCode => Object.hash(governorateId, districtId, formId, startDate, endDate);
+  int get hashCode => Object.hash(governorateId, districtId, formId, campaignType, startDate, endDate);
 
   String get cacheKey {
     final parts = ['dashboard_analytics'];
+    if (campaignType != null) parts.add('camp_$campaignType');
     if (governorateId != null) parts.add('gov_$governorateId');
     if (districtId != null) parts.add('dist_$districtId');
     if (formId != null) parts.add('form_$formId');
@@ -353,6 +364,7 @@ final dashboardAnalyticsProvider =
             governorateId: filter.governorateId,
             districtId: filter.districtId,
             formId: filter.formId,
+            campaignType: filter.campaignType,
             startDate: filter.startDate,
             endDate: filter.endDate,
           ),
