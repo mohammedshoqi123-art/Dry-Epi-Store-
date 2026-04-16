@@ -6,7 +6,7 @@ void main() {
     test('app metadata is set', () {
       expect(AppConfig.appName, equals("EPI Supervisor's"));
       expect(AppConfig.appNameAr, equals("EPI Supervisor's"));
-      expect(AppConfig.appVersion, equals('1.0.0'));
+      expect(AppConfig.appVersion, equals('2.1.0'));
     });
 
     test('pagination limits are sensible', () {
