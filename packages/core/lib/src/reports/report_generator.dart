@@ -448,7 +448,6 @@ class ReportGenerator {
           decoration: pw.BoxDecoration(
             borderRadius: pw.BorderRadius.circular(6),
           ),
-          clipBehavior: pw.Clip.hardEdge,
           child: pw.Row(children: barWidgets),
         ),
       ],
