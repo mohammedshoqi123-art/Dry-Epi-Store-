@@ -320,11 +320,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
 
     try {
-      // 1. Fetch data from Edge Function (or local cache)
-      final analytics = ref.read(dashboardAnalyticsProvider(
-        AnalyticsFilter(campaignType: ref.read(campaignProvider).value),
-      ));
-      final data = await analytics.future;
+      // 1. Fetch data from cache/API
+      final filter = AnalyticsFilter(campaignType: ref.read(campaignProvider).value);
+      final analytics = ref.read(dashboardAnalyticsProvider(filter));
+      final data = analytics.valueOrNull;
+      if (data == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('لا توجد بيانات — تأكد من الاتصال', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.warningColor),
+          );
+        }
+        return;
+      }
 
       // 2. Fetch governorate ranking
       List<Map<String, dynamic>>? govData;
@@ -896,8 +904,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)]),
       child: Column(
         children: insights.asMap().entries.map((entry) {
-          final isFirst = entry.key == 0;
-          final isLast = entry.key == insights.length - 1;
           return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
@@ -922,8 +928,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                 ],
               ),
-            ),
-          );
+            );
         }).toList(),
       ),
     );
