@@ -17,6 +17,7 @@ class SubmissionDetailScreen extends ConsumerStatefulWidget {
 class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen> {
   Map<String, dynamic>? _submission;
   bool _isLoading = true;
+  bool _isGeneratingPdf = false;
 
   @override
   void initState() {
@@ -38,6 +39,12 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
     }
   }
 
+  /// Check if PDF can be generated (not for draft submissions)
+  bool get _canGeneratePdf {
+    final status = _submission?['status'] as String?;
+    return status != null && status != 'draft';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,7 +57,6 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'approve', child: Text('اعتماد')),
                 const PopupMenuItem(value: 'reject', child: Text('رفض')),
-                const PopupMenuItem(value: 'pdf', child: Text('تقرير PDF')),
                 const PopupMenuItem(value: 'share', child: Text('مشاركة')),
                 const PopupMenuItem(value: 'copy', child: Text('نسخ البيانات')),
               ],
@@ -66,7 +72,7 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
+                      // Header with PDF button
                       _buildHeader(),
                       const SizedBox(height: 20),
 
@@ -113,6 +119,13 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
                           if (_submission!['review_notes'] != null)
                             _infoRow('ملاحظات', _submission!['review_notes']),
                         ]),
+
+                      const SizedBox(height: 16),
+
+                      // ═══ PDF Download Button (prominent) ═══
+                      if (_canGeneratePdf) _buildPdfButton(),
+
+                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
@@ -120,15 +133,27 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
   }
 
   Widget _buildHeader() {
+    final status = _submission!['status'] ?? 'draft';
+    final isSubmitted = status != 'draft';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryColor, AppTheme.primaryDark],
+        gradient: LinearGradient(
+          colors: isSubmitted
+              ? [AppTheme.primaryColor, AppTheme.primaryDark]
+              : [Colors.grey.shade400, Colors.grey.shade600],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: (isSubmitted ? AppTheme.primaryColor : Colors.grey).withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -148,8 +173,89 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
               ],
             ),
           ),
-          EpiStatusChip(status: _submission!['status'] ?? 'draft'),
+          EpiStatusChip(status: status),
         ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PDF DOWNLOAD BUTTON — prominent, gradient, with loading state
+  // ═══════════════════════════════════════════════════════════
+  Widget _buildPdfButton() {
+    return GestureDetector(
+      onTap: _isGeneratingPdf ? null : _generatePDF,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          gradient: _isGeneratingPdf
+              ? LinearGradient(colors: [Colors.grey.shade300, Colors.grey.shade400])
+              : const LinearGradient(
+                  colors: [Color(0xFFE53935), Color(0xFFC62828)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: _isGeneratingPdf
+              ? []
+              : [
+                  const BoxShadow(
+                    color: Color(0x4DE53935),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (_isGeneratingPdf)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 24),
+              ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isGeneratingPdf ? 'جارٍ إنشاء التقرير...' : 'تحميل التقرير PDF',
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+                if (!_isGeneratingPdf)
+                  Text(
+                    'مشاركة أو حفظ كملف PDF',
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+              ],
+            ),
+            if (!_isGeneratingPdf) ...[
+              const Spacer(),
+              const Icon(Icons.download_rounded, color: Colors.white, size: 22),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -216,9 +322,6 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
       case 'reject':
         _updateStatus('rejected');
         break;
-      case 'pdf':
-        _generatePDF();
-        break;
       case 'share':
         _shareSubmission();
         break;
@@ -277,11 +380,16 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
     if (mounted) context.showSuccess('تم نسخ البيانات');
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // PDF GENERATION — with loading state and error handling
+  // ═══════════════════════════════════════════════════════════
   Future<void> _generatePDF() async {
-    if (_submission == null) return;
-    try {
-      if (mounted) context.showInfo('جارٍ إنشاء التقرير...');
+    if (_submission == null || _isGeneratingPdf) return;
 
+    setState(() => _isGeneratingPdf = true);
+    HapticFeedback.mediumImpact();
+
+    try {
       final form = _submission!['forms'] as Map<String, dynamic>? ?? {};
       final file = await FormReportGenerator.generate(
         form: form,
@@ -289,12 +397,22 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
         period: 'إرسال واحدة — ${(_submission!['created_at'] ?? '').toString().substring(0, 10)}',
       );
 
+      if (!mounted) return;
+
       await SharePlus.instance.share(ShareParams(
         files: [XFile(file.path)],
-        subject: 'تقرير استمارة EPI',
+        subject: 'تقرير استمارة EPI — ${form['title_ar'] ?? ''}',
       ));
+
+      if (mounted) {
+        context.showSuccess('تم إنشاء التقرير بنجاح ✅');
+      }
     } catch (e) {
-      if (mounted) context.showError('فشل إنشاء التقرير: $e');
+      if (mounted) {
+        context.showError('فشل إنشاء التقرير: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
     }
   }
 }

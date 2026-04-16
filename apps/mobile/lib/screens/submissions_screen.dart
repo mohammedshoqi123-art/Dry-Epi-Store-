@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:epi_shared/epi_shared.dart';
 import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
@@ -218,12 +220,16 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
         }
 
         final sub = filtered[index];
+        final status = sub['status'] ?? 'draft';
+        final canPdf = status != 'draft';
+
         return _SubmissionTile(
           title: sub['forms']?['title_ar'] ?? 'نموذج',
-          status: sub['status'] ?? 'draft',
+          status: status,
           date: sub['created_at'],
           userName: sub['profiles']?['full_name'],
           onTap: () => context.go('/submissions/${sub['id']}'),
+          onPdf: canPdf ? () => _quickGeneratePdf(sub) : null,
         );
       },
     );
@@ -264,6 +270,46 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
       ),
     );
   }
+
+  /// Quick PDF generation from the list tile
+  Future<void> _quickGeneratePdf(Map<String, dynamic> sub) async {
+    HapticFeedback.lightImpact();
+
+    try {
+      final form = sub['forms'] as Map<String, dynamic>? ?? {};
+      final file = await FormReportGenerator.generate(
+        form: form,
+        submissions: [sub],
+        period: 'إرسال واحدة — ${(sub['created_at'] ?? '').toString().substring(0, 10)}',
+      );
+
+      if (!mounted) return;
+
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
+        subject: 'تقرير استمارة EPI — ${form['title_ar'] ?? ''}',
+      ));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إنشاء التقرير ✅', style: TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: AppTheme.successColor,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل إنشاء التقرير: $e', style: const TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+  }
 }
 
 class _SubmissionTile extends StatelessWidget {
@@ -272,6 +318,7 @@ class _SubmissionTile extends StatelessWidget {
   final String? date;
   final String? userName;
   final VoidCallback onTap;
+  final VoidCallback? onPdf;
 
   const _SubmissionTile({
     required this.title,
@@ -279,6 +326,7 @@ class _SubmissionTile extends StatelessWidget {
     this.date,
     this.userName,
     required this.onTap,
+    this.onPdf,
   });
 
   @override
@@ -312,6 +360,25 @@ class _SubmissionTile extends StatelessWidget {
               ],
             ),
           ),
+          // ═══ PDF Button (only for non-draft submissions) ═══
+          if (onPdf != null)
+            GestureDetector(
+              onTap: onPdf,
+              child: Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53935).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: Color(0xFFE53935),
+                  size: 20,
+                ),
+              ),
+            ),
+          const SizedBox(width: 4),
           EpiStatusChip(status: status, small: true),
         ],
       ),
