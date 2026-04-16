@@ -212,23 +212,35 @@ class _MainShellState extends ConsumerState<MainShell> {
           Expanded(child: widget.child),
         ],
       ),
-      floatingActionButton: pendingCount > 0
-          ? FloatingActionButton.extended(
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // ═══ Sync button (only when pending) ═══
+          if (pendingCount > 0) ...[
+            FloatingActionButton.small(
+              heroTag: 'sync_fab',
               onPressed: _isSyncing ? null : _triggerManualSync,
-              icon: _isSyncing
+              backgroundColor: isOnline ? Colors.green : Colors.orange,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              child: _isSyncing
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.sync, size: 20),
-              label: Text(
-                _isSyncing ? 'جاري المزامنة...' : 'مزامنة ($pendingCount)',
-                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13),
-              ),
-              backgroundColor: isOnline ? Colors.green : Colors.orange,
-            )
-          : null,
+                  : Badge(
+                      label: Text('$pendingCount', style: const TextStyle(fontSize: 10)),
+                      child: const Icon(Icons.cloud_upload_rounded, size: 20),
+                    ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          // ═══ AI Assistant — always visible, beautiful, interactive ═══
+          _AiFab(onTap: () => context.go('/ai')),
+        ],
+      ),
       bottomNavigationBar: EpiBottomNav(
         currentIndex: _getSelectedIndex(context),
         onTap: (index) => _onItemTapped(context, index),
@@ -240,10 +252,10 @@ class _MainShellState extends ConsumerState<MainShell> {
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/dashboard')) return 0;
-    if (location.startsWith('/forms')) return 1;
-    if (location.startsWith('/map')) return 2;
-    if (location.startsWith('/chat')) return 3;
-    if (location.startsWith('/ai')) return 4;
+    if (location == '/forms/status') return 2; // حالة الاستمارات
+    if (location.startsWith('/forms')) return 1; // النماذج
+    if (location.startsWith('/map')) return 3; // الخريطة
+    if (location.startsWith('/chat')) return 4; // الشات
     return 0;
   }
 
@@ -251,9 +263,9 @@ class _MainShellState extends ConsumerState<MainShell> {
     switch (index) {
       case 0: context.go('/dashboard'); break;
       case 1: context.go('/forms'); break;
-      case 2: context.go('/map'); break;
-      case 3: context.go('/chat'); break;
-      case 4: context.go('/ai'); break;
+      case 2: context.go('/forms/status'); break;
+      case 3: context.go('/map'); break;
+      case 4: context.go('/chat'); break;
     }
   }
 }
@@ -376,5 +388,106 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription?.cancel();
     super.dispose();
+  }
+}
+
+/// ═══ AI Assistant Floating Button — always visible, animated, interactive ═══
+class _AiFab extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AiFab({required this.onTap});
+
+  @override
+  State<_AiFab> createState() => _AiFabState();
+}
+
+class _AiFabState extends State<_AiFab> with SingleTickerProviderStateMixin {
+  late AnimationController _pulseCtrl;
+  late Animation<double> _pulseAnim;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.9 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        child: AnimatedBuilder(
+          animation: _pulseAnim,
+          builder: (context, _) {
+            return Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF8F00), Color(0xFFFF6D00)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF8F00).withValues(
+                      alpha: 0.3 + 0.15 * _pulseAnim.value,
+                    ),
+                    blurRadius: 16 + 8 * _pulseAnim.value,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Outer pulse ring
+                  Container(
+                    width: 60 + 6 * _pulseAnim.value,
+                    height: 60 + 6 * _pulseAnim.value,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFFF8F00).withValues(
+                          alpha: 0.3 * (1 - _pulseAnim.value),
+                        ),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  // Inner icon
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }

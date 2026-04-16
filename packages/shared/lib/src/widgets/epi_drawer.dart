@@ -185,8 +185,7 @@ class EpiDrawer extends StatelessWidget {
                   _SectionLabel(label: 'الرئيسية'),
                   _buildItem(context, Icons.dashboard_rounded, 'لوحة التحكم', '/dashboard'),
                   _buildItem(context, Icons.assignment_rounded, 'النماذج', '/forms'),
-                  if (campaign == DrawerCampaign.polioCampaign)
-                    _buildItem(context, Icons.poll_rounded, 'المسح العشوائي', '/random-survey'),
+                  _buildItem(context, Icons.fact_check_rounded, 'حالة الاستمارات', '/forms/status'),
                   _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
                   _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
                   _buildItem(context, Icons.notifications_rounded, 'الإشعارات', '/notifications'),
@@ -207,7 +206,6 @@ class EpiDrawer extends StatelessWidget {
                   ),
                   _SectionLabel(label: 'التحليلات والذكاء'),
                   _buildItem(context, Icons.bar_chart_rounded, 'التقارير', '/analytics'),
-                  _buildItem(context, Icons.smart_toy_rounded, 'المساعد الذكي', '/ai'),
                 ],
               ),
             ),
