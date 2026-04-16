@@ -483,7 +483,7 @@ class OfflineManager {
       // When offline or forceStale: allow data up to 30 days old
       if (offlineOverride || !_isOnline) {
         if (age > AppConfig.maxOfflineRetention) {
-          if (kDebugMode) print('[OfflineManager] Cache expired (>$maxOfflineRetention days) for $key');
+          if (kDebugMode) print('[OfflineManager] Cache expired (>${AppConfig.maxOfflineRetention.inDays} days) for $key');
           return null;
         }
         // Return stale data when offline — stale is better than nothing
