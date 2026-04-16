@@ -205,7 +205,19 @@ class EpiDrawer extends StatelessWidget {
                     child: Divider(height: 1),
                   ),
                   _SectionLabel(label: 'التحليلات والذكاء'),
-                  _buildItem(context, Icons.bar_chart_rounded, 'التقارير', '/analytics'),
+                  _buildItem(context, Icons.bar_chart_rounded, 'لوحة التحليلات', '/analytics'),
+                  _buildItem(context, Icons.auto_awesome_rounded, 'المساعد الذكي', '/ai'),
+
+                  // Admin-only sections
+                  if (userRoleLevel >= 4) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Divider(height: 1),
+                    ),
+                    _SectionLabel(label: 'الإدارة'),
+                    _buildItem(context, Icons.people_rounded, 'إدارة المستخدمين', '/users'),
+                    _buildItem(context, Icons.settings_applications_rounded, 'إدارة النماذج', '/forms-management'),
+                  ],
                 ],
               ),
             ),

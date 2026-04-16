@@ -258,6 +258,102 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   // ═══════════════════════════════════════════════════════════
+  // PDF EXPORT
+  // ═══════════════════════════════════════════════════════════
+  Future<void> _exportPdfReport() async {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            const Icon(Icons.picture_as_pdf_rounded, size: 48, color: Color(0xFFE53935)),
+            const SizedBox(height: 12),
+            const Text('استخراج تقرير PDF', style: TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            const Text('اختر نوع التقرير الذي تريد استخراجه', style: TextStyle(fontFamily: 'Tajawal', fontSize: 14, color: AppTheme.textSecondary)),
+            const SizedBox(height: 20),
+            _exportOption(ctx, 'تقرير الإرساليات اليومي', Icons.today_rounded, () => _generateReport(ctx, 'daily')),
+            _exportOption(ctx, 'تقرير الإرساليات الأسبوعي', Icons.date_range_rounded, () => _generateReport(ctx, 'weekly')),
+            _exportOption(ctx, 'تقرير النواقص والاحتياجات', Icons.warning_amber_rounded, () => _generateReport(ctx, 'shortages')),
+            _exportOption(ctx, 'تقرير أداء المحافظات', Icons.map_rounded, () => _generateReport(ctx, 'governorates')),
+            _exportOption(ctx, 'تقرير شامل (كل البيانات)', Icons.assessment_rounded, () => _generateReport(ctx, 'full')),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _exportOption(BuildContext ctx, String title, IconData icon, VoidCallback onTap) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: const Color(0xFFE53935).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: const Color(0xFFE53935), size: 22),
+      ),
+      title: Text(title, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 14)),
+      trailing: const Icon(Icons.chevron_left_rounded, color: AppTheme.textHint),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onTap: onTap,
+    );
+  }
+
+  Future<void> _generateReport(BuildContext ctx, String type) async {
+    Navigator.pop(ctx);
+    if (!ConnectivityUtils.isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يجب الاتصال بالإنترنت لاستخراج التقرير', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Row(children: [SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)), SizedBox(width: 12), Text('جاري استخراج التقرير...', style: TextStyle(fontFamily: 'Tajawal'))]), duration: Duration(seconds: 30)),
+    );
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.callFunction('get-advanced-reports', {
+        'report_type': type,
+        'format': 'pdf',
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        final pdfUrl = response['pdf_url'] as String?;
+        if (pdfUrl != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تم استخراج التقرير بنجاح ✅', style: const TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: AppTheme.successColor,
+              action: SnackBarAction(label: 'عرض', textColor: Colors.white, onPressed: () {
+                // Open PDF URL
+              }),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم إنشاء التقرير ✅', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.successColor),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل استخراج التقرير: ${e.toString().replaceAll('Exception: ', '')}', style: const TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.errorColor),
+        );
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // DASHBOARD CONTENT
   // ═══════════════════════════════════════════════════════════
   SliverList _buildDashboardContent(Map<String, dynamic> data) {
@@ -529,6 +625,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final actions = [
       _QA(Icons.add_circle_outline_rounded, 'إرسال جديد', '/forms', const Color(0xFF00897B)),
       _QA(Icons.description_rounded, 'النماذج', '/forms', const Color(0xFF5C6BC0)),
+      _QA(Icons.picture_as_pdf_rounded, 'تصدير PDF', '__export_pdf__', const Color(0xFFE53935)),
       _QA(Icons.map_outlined, 'الخريطة', '/map', const Color(0xFF1E88E5)),
       _QA(Icons.bar_chart_rounded, 'التحليلات', '/analytics', const Color(0xFF43A047)),
       _QA(Icons.smart_toy_outlined, 'المساعد الذكي', '/ai', const Color(0xFFFF8F00)),
@@ -547,7 +644,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             onTapDown: (_) => setState(() => _selectedQuickAction = i),
             onTapUp: (_) {
               HapticFeedback.lightImpact();
-              context.go(a.route);
+              if (a.route == '__export_pdf__') {
+                _exportPdfReport();
+              } else {
+                context.go(a.route);
+              }
               Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted) setState(() => _selectedQuickAction = -1);
               });

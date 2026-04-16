@@ -65,6 +65,21 @@ class DatabaseService {
     );
   }
 
+  // ===== HEALTH FACILITIES =====
+
+  Future<List<Map<String, dynamic>>> getHealthFacilities({String? districtId}) async {
+    final filters = <String, dynamic>{
+      'deleted_at': ApiClient.isNull,
+      'is_active': true,
+    };
+    if (districtId != null) filters['district_id'] = districtId;
+    return _api.select(
+      'health_facilities',
+      filters: filters,
+      orderBy: 'name_ar',
+    );
+  }
+
   // ===== FORMS =====
 
   Future<List<Map<String, dynamic>>> getForms({bool activeOnly = true, String? campaignType}) async {

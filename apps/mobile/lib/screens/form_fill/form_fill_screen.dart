@@ -11,6 +11,7 @@ import 'package:epi_shared/epi_shared.dart';
 import '../../providers/app_providers.dart';
 import 'governorate_dropdown.dart';
 import 'district_dropdown.dart';
+import 'health_facility_dropdown.dart';
 import 'photo_picker_field.dart';
 
 class FormFillScreen extends ConsumerStatefulWidget {
@@ -910,6 +911,14 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       case 'district':
         return DistrictDropdown(
           governorateId: _formData['governorate_id'] as String?,
+          value: _formData[key],
+          onChanged: (v) => setState(() { _formData[key] = v; _markChanged(); }),
+          isRequired: isRequired,
+        );
+
+      case 'health_facility':
+        return HealthFacilityDropdown(
+          districtId: _formData['district_id'] as String?,
           value: _formData[key],
           onChanged: (v) => setState(() { _formData[key] = v; _markChanged(); }),
           isRequired: isRequired,

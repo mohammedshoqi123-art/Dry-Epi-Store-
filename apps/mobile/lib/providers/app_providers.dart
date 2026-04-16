@@ -220,6 +220,18 @@ final districtsProvider = FutureProvider.family<List<Map<String, dynamic>>, Stri
   },
 );
 
+final healthFacilitiesProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>(
+  (ref, districtId) async {
+    if (districtId == null) return [];
+    final cache = await ref.watch(offlineDataCacheProvider.future);
+    return cache.getList(
+      'facilities_$districtId',
+      () => ref.read(databaseServiceProvider).getHealthFacilities(districtId: districtId),
+      maxAge: const Duration(hours: 24),
+    );
+  },
+);
+
 // ─── Campaign / Activity Selection ──────────────────────────────────────────
 
 /// Persisted campaign selection — stored in Supabase profiles table,
