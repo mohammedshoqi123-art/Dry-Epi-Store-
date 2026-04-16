@@ -9,7 +9,7 @@ void main() {
     });
 
     test('app version is set correctly', () {
-      expect(AppConfig.appVersion, equals('2.1.0'));
+      expect(AppConfig.appVersion, equals('2.2.0'));
       expect(AppConfig.buildNumber, equals(1));
     });
 
