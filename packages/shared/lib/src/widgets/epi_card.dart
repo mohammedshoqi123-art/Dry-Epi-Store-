@@ -28,7 +28,8 @@ class EpiCard extends StatelessWidget {
       return GestureDetector(
         onTap: onTap,
         child: Container(
-          margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin:
+              margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: padding ?? const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: color ?? Colors.white.withValues(alpha: 0.15),

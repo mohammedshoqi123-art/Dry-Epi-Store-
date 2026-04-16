@@ -36,8 +36,7 @@ final usersListProvider =
     query = query.eq('is_active', filters.isActive!);
   }
 
-  final response =
-      await query.order('created_at', ascending: false).limit(200);
+  final response = await query.order('created_at', ascending: false).limit(200);
   return (response as List<dynamic>).cast<Map<String, dynamic>>();
 });
 
@@ -174,8 +173,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           textDirection: TextDirection.rtl,
           decoration: InputDecoration(
             hintText: 'بحث بالاسم أو البريد...',
-            prefixIcon:
-                const Icon(Icons.search, color: AppTheme.textSecondary),
+            prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear),
@@ -237,8 +235,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         ),
         items: [
           const DropdownMenuItem(value: null, child: Text('كل الأدوار')),
-          ...roles.entries.map(
-              (e) => DropdownMenuItem(value: e.key, child: Text(e.value))),
+          ...roles.entries
+              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))),
         ],
       ),
     );
@@ -276,8 +274,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 const DropdownMenuItem(
                     value: null, child: Text('كل المحافظات')),
                 ...govs.map((g) => DropdownMenuItem(
-                    value: g['id'] as String,
-                    child: Text(g['name_ar'] ?? ''))),
+                    value: g['id'] as String, child: Text(g['name_ar'] ?? ''))),
               ],
             ),
           ),
@@ -344,16 +341,14 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
             onPressed: () => _bulkToggleActive(false),
             icon: const Icon(Icons.block, size: 18),
             label: const Text('تعطيل'),
-            style:
-                TextButton.styleFrom(foregroundColor: AppTheme.warningColor),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.warningColor),
           ),
           const SizedBox(width: 8),
           TextButton.icon(
             onPressed: () => _bulkDelete(),
             icon: const Icon(Icons.delete_outline, size: 18),
             label: const Text('حذف'),
-            style:
-                TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
           ),
           const SizedBox(width: 8),
           IconButton(
@@ -424,18 +419,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               );
             }
 
-            final paged = users
-                .skip(_currentPage * _pageSize)
-                .take(_pageSize)
-                .toList();
+            final paged =
+                users.skip(_currentPage * _pageSize).take(_pageSize).toList();
             final totalPages = (users.length / _pageSize).ceil();
 
             return Column(
               children: [
                 Expanded(
-                  child: isWide
-                      ? _buildDataTable(paged)
-                      : _buildCardsList(paged),
+                  child:
+                      isWide ? _buildDataTable(paged) : _buildCardsList(paged),
                 ),
                 _buildPagination(totalPages, users.length),
               ],
@@ -456,8 +448,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
         columns: [
           DataColumn(
             label: Checkbox(
-              value: _selectedUserIds.length == users.length &&
-                  users.isNotEmpty,
+              value:
+                  _selectedUserIds.length == users.length && users.isNotEmpty,
               onChanged: (v) {
                 setState(() {
                   if (v == true) {
@@ -535,15 +527,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               DataCell(Text(user['full_name'] ?? '',
                   style: const TextStyle(fontFamily: 'Tajawal'))),
               DataCell(Text(user['email'] ?? '',
-                  style:
-                      const TextStyle(fontFamily: 'Tajawal', fontSize: 12))),
+                  style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12))),
               DataCell(_buildRoleChip(user['role'] ?? 'data_entry')),
-              DataCell(Text(govName,
-                  style: const TextStyle(fontFamily: 'Tajawal'))),
+              DataCell(
+                  Text(govName, style: const TextStyle(fontFamily: 'Tajawal'))),
               DataCell(_buildStatusChip(isActive)),
               DataCell(Text(lastLogin,
-                  style: const TextStyle(
-                      fontFamily: 'Tajawal', fontSize: 12))),
+                  style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12))),
               DataCell(Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -611,8 +601,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(user['email'] ?? '',
-                    style: const TextStyle(
-                        fontFamily: 'Tajawal', fontSize: 12)),
+                    style:
+                        const TextStyle(fontFamily: 'Tajawal', fontSize: 12)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -645,8 +635,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         Icon(Icons.edit_outlined,
                             size: 18, color: AppTheme.infoColor),
                         SizedBox(width: 8),
-                        Text('تعديل',
-                            style: TextStyle(fontFamily: 'Tajawal')),
+                        Text('تعديل', style: TextStyle(fontFamily: 'Tajawal')),
                       ],
                     )),
                 PopupMenuItem(
@@ -663,8 +652,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                 : AppTheme.successColor),
                         const SizedBox(width: 8),
                         Text(isActive ? 'تعطيل' : 'تفعيل',
-                            style:
-                                const TextStyle(fontFamily: 'Tajawal')),
+                            style: const TextStyle(fontFamily: 'Tajawal')),
                       ],
                     )),
                 const PopupMenuItem(
@@ -674,8 +662,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         Icon(Icons.delete_outline,
                             size: 18, color: AppTheme.errorColor),
                         SizedBox(width: 8),
-                        Text('حذف',
-                            style: TextStyle(fontFamily: 'Tajawal')),
+                        Text('حذف', style: TextStyle(fontFamily: 'Tajawal')),
                       ],
                     )),
               ],
@@ -836,10 +823,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     final isEdit = user != null;
     final nameController =
         TextEditingController(text: user?['full_name'] ?? '');
-    final emailController =
-        TextEditingController(text: user?['email'] ?? '');
-    final phoneController =
-        TextEditingController(text: user?['phone'] ?? '');
+    final emailController = TextEditingController(text: user?['email'] ?? '');
+    final phoneController = TextEditingController(text: user?['phone'] ?? '');
     String selectedRole = user?['role'] ?? 'data_entry';
     String? selectedGovId = user?['governorate_id'];
     String? selectedDistId = user?['district_id'];
@@ -851,8 +836,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           return Directionality(
             textDirection: TextDirection.rtl,
             child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: AppTheme.radiusLarge),
+              shape: RoundedRectangleBorder(borderRadius: AppTheme.radiusLarge),
               title: Text(
                 isEdit ? 'تعديل المستخدم' : 'إضافة مستخدم جديد',
                 style: const TextStyle(fontFamily: 'Cairo'),
@@ -899,33 +883,26 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         ),
                         items: const [
                           DropdownMenuItem(
-                              value: 'admin',
-                              child: Text('مدير النظام')),
+                              value: 'admin', child: Text('مدير النظام')),
                           DropdownMenuItem(
-                              value: 'central',
-                              child: Text('مركزي')),
+                              value: 'central', child: Text('مركزي')),
                           DropdownMenuItem(
-                              value: 'governorate',
-                              child: Text('محافظة')),
+                              value: 'governorate', child: Text('محافظة')),
                           DropdownMenuItem(
-                              value: 'district',
-                              child: Text('منطقة')),
+                              value: 'district', child: Text('منطقة')),
                           DropdownMenuItem(
-                              value: 'data_entry',
-                              child: Text('إدخال بيانات')),
+                              value: 'data_entry', child: Text('إدخال بيانات')),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Consumer(
                         builder: (context, ref, _) {
-                          final govsAsync =
-                              ref.watch(governoratesListProvider);
+                          final govsAsync = ref.watch(governoratesListProvider);
                           return govsAsync.when(
-                            loading: () => const CircularProgressIndicator(
-                                strokeWidth: 2),
+                            loading: () =>
+                                const CircularProgressIndicator(strokeWidth: 2),
                             error: (_, __) => const SizedBox.shrink(),
-                            data: (govs) =>
-                                DropdownButtonFormField<String?>(
+                            data: (govs) => DropdownButtonFormField<String?>(
                               value: selectedGovId,
                               onChanged: (v) => setDialogState(() {
                                 selectedGovId = v;
@@ -950,22 +927,19 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         const SizedBox(height: 12),
                         Consumer(
                           builder: (context, ref, _) {
-                            final distsAsync = ref
-                                .watch(districtsListProvider(selectedGovId));
+                            final distsAsync =
+                                ref.watch(districtsListProvider(selectedGovId));
                             return distsAsync.when(
-                              loading: () =>
-                                  const CircularProgressIndicator(
-                                      strokeWidth: 2),
+                              loading: () => const CircularProgressIndicator(
+                                  strokeWidth: 2),
                               error: (_, __) => const SizedBox.shrink(),
-                              data: (dists) =>
-                                  DropdownButtonFormField<String?>(
+                              data: (dists) => DropdownButtonFormField<String?>(
                                 value: selectedDistId,
-                                onChanged: (v) => setDialogState(
-                                    () => selectedDistId = v),
+                                onChanged: (v) =>
+                                    setDialogState(() => selectedDistId = v),
                                 decoration: const InputDecoration(
                                   labelText: 'المنطقة / المديرية',
-                                  prefixIcon:
-                                      Icon(Icons.location_on_outlined),
+                                  prefixIcon: Icon(Icons.location_on_outlined),
                                 ),
                                 items: [
                                   const DropdownMenuItem(
@@ -999,8 +973,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     selectedGovId,
                     selectedDistId,
                   ),
-                  icon: Icon(isEdit ? Icons.save : Icons.person_add,
-                      size: 18),
+                  icon: Icon(isEdit ? Icons.save : Icons.person_add, size: 18),
                   label: Text(isEdit ? 'حفظ' : 'إضافة'),
                 ),
               ],
@@ -1133,8 +1106,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
     if (confirmed != true) return;
 
     try {
-      await Supabase.instance.client.functions
-          .invoke('admin-actions', body: {
+      await Supabase.instance.client.functions.invoke('admin-actions', body: {
         'action': 'delete_user',
         'user_id': id,
       });
@@ -1211,8 +1183,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
     try {
       for (final id in _selectedUserIds) {
-        await Supabase.instance.client.functions
-            .invoke('admin-actions', body: {
+        await Supabase.instance.client.functions.invoke('admin-actions', body: {
           'action': 'delete_user',
           'user_id': id,
         });
@@ -1232,8 +1203,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل الحذف: $e',
-                style: TextStyle(fontFamily: 'Tajawal')),
+            content:
+                Text('فشل الحذف: $e', style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -1252,7 +1223,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       final users = response as List<dynamic>;
 
       final rows = <List<dynamic>>[
-        ['الاسم', 'البريد', 'الهاتف', 'الدور', 'المحافظة', 'المنطقة', 'نشط', 'آخر دخول'],
+        [
+          'الاسم',
+          'البريد',
+          'الهاتف',
+          'الدور',
+          'المحافظة',
+          'المنطقة',
+          'نشط',
+          'آخر دخول'
+        ],
         ...users.map((u) => [
               u['full_name'] ?? '',
               u['email'] ?? '',

@@ -54,7 +54,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   void _initControllers(AuthState state) {
     if (_nameCtrl.text.isEmpty) _nameCtrl.text = state.fullName ?? '';
     if (_phoneCtrl.text.isEmpty) _phoneCtrl.text = state.phone ?? '';
-    if (_nationalIdCtrl.text.isEmpty) _nationalIdCtrl.text = state.nationalId ?? '';
+    if (_nationalIdCtrl.text.isEmpty)
+      _nationalIdCtrl.text = state.nationalId ?? '';
   }
 
   Future<void> _pickImage() async {
@@ -110,8 +111,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       await authRepo.updateProfile(
         fullName: _nameCtrl.text.trim(),
         phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-        nationalId:
-            _nationalIdCtrl.text.trim().isEmpty ? null : _nationalIdCtrl.text.trim(),
+        nationalId: _nationalIdCtrl.text.trim().isEmpty
+            ? null
+            : _nationalIdCtrl.text.trim(),
         avatarUrl: newAvatarUrl,
       );
 
@@ -155,14 +157,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       return Scaffold(
         appBar: AppBar(
           title: const Text('البروفايل',
-              style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700)),
+              style:
+                  TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700)),
           centerTitle: true,
         ),
         body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.person_off_outlined, size: 64, color: AppTheme.textHint),
+              Icon(Icons.person_off_outlined,
+                  size: 64, color: AppTheme.textHint),
               SizedBox(height: 16),
               Text('غير مسجل الدخول',
                   style: TextStyle(
@@ -378,8 +382,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   child: AnimatedBuilder(
                     animation: _animController,
                     builder: (context, _) {
-                      final scale = Curves.easeOutBack
-                          .transform(_animController.value);
+                      final scale =
+                          Curves.easeOutBack.transform(_animController.value);
                       return Transform.scale(
                         scale: scale,
                         child: Stack(
@@ -552,7 +556,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: _isEditing
-            ? Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3), width: 1.5)
+            ? Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.3), width: 1.5)
             : Border.all(color: Colors.transparent),
         boxShadow: [
           BoxShadow(

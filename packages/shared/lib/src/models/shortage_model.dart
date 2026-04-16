@@ -29,5 +29,6 @@ class ShortageModel with _$ShortageModel {
     Map<String, dynamic>? profiles,
   }) = _ShortageModel;
 
-  factory ShortageModel.fromJson(Map<String, dynamic> json) => _$ShortageModelFromJson(json);
+  factory ShortageModel.fromJson(Map<String, dynamic> json) =>
+      _$ShortageModelFromJson(json);
 }

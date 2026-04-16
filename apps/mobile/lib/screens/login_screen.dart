@@ -12,7 +12,8 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -33,7 +34,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     _slideAnim = Tween<Offset>(
       begin: const Offset(0, 0.15),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
+    ).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
     _animController.forward();
   }
 
@@ -75,7 +77,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppTheme.primaryColor, AppTheme.primaryDark, Color(0xFF004D40)],
+            colors: [
+              AppTheme.primaryColor,
+              AppTheme.primaryDark,
+              Color(0xFF004D40)
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             stops: [0.0, 0.6, 1.0],
@@ -140,11 +146,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                            border: Border.all(
+                                color: Colors.orange.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                              const Icon(Icons.warning_amber,
+                                  color: Colors.orange, size: 20),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -210,7 +218,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                   keyboardType: TextInputType.emailAddress,
                                   prefixIcon: Icons.email_outlined,
                                   validator: (v) {
-                                    if (v == null || v.isEmpty) return 'البريد مطلوب';
+                                    if (v == null || v.isEmpty)
+                                      return 'البريد مطلوب';
                                     if (!v.isValidEmail) return 'بريد غير صالح';
                                     return null;
                                   },
@@ -228,15 +237,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                   icon: AnimatedSwitcher(
                                     duration: const Duration(milliseconds: 200),
                                     child: Icon(
-                                      _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                      _obscurePassword
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
                                       key: ValueKey(_obscurePassword),
                                     ),
                                   ),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  onPressed: () => setState(() =>
+                                      _obscurePassword = !_obscurePassword),
                                 ),
                                 validator: (v) {
-                                  if (v == null || v.isEmpty) return 'كلمة المرور مطلوبة';
-                                  if (v.length < 6) return 'قصيرة جداً (6 أحرف على الأقل)';
+                                  if (v == null || v.isEmpty)
+                                    return 'كلمة المرور مطلوبة';
+                                  if (v.length < 6)
+                                    return 'قصيرة جداً (6 أحرف على الأقل)';
                                   return null;
                                 },
                               ),
@@ -248,12 +262,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                 child: DecoratedBox(
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
-                                      colors: [AppTheme.primaryColor, AppTheme.primaryDark],
+                                      colors: [
+                                        AppTheme.primaryColor,
+                                        AppTheme.primaryDark
+                                      ],
                                     ),
                                     borderRadius: BorderRadius.circular(14),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppTheme.primaryColor.withValues(alpha: 0.35),
+                                        color: AppTheme.primaryColor
+                                            .withValues(alpha: 0.35),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
@@ -264,16 +282,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14)),
                                     ),
                                     child: _isLoading
                                         ? const SizedBox(
                                             width: 22,
                                             height: 22,
-                                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                color: Colors.white),
                                           )
                                         : const Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Text(
                                                 'دخول',
@@ -285,7 +308,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                                                 ),
                                               ),
                                               SizedBox(width: 8),
-                                              Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                                              Icon(Icons.arrow_forward,
+                                                  color: Colors.white,
+                                                  size: 20),
                                             ],
                                           ),
                                   ),

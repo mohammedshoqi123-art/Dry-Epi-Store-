@@ -11,10 +11,12 @@ class SubmissionDetailScreen extends ConsumerStatefulWidget {
   const SubmissionDetailScreen({super.key, required this.id});
 
   @override
-  ConsumerState<SubmissionDetailScreen> createState() => _SubmissionDetailScreenState();
+  ConsumerState<SubmissionDetailScreen> createState() =>
+      _SubmissionDetailScreenState();
 }
 
-class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen> {
+class _SubmissionDetailScreenState
+    extends ConsumerState<SubmissionDetailScreen> {
   Map<String, dynamic>? _submission;
   bool _isLoading = true;
   bool _isGeneratingPdf = false;
@@ -80,12 +82,16 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
                       _buildSection('الحالة', [
                         Row(
                           children: [
-                            EpiStatusChip(status: _submission!['status'] ?? 'draft'),
+                            EpiStatusChip(
+                                status: _submission!['status'] ?? 'draft'),
                             const Spacer(),
                             if (_submission!['submitted_at'] != null)
                               Text(
                                 _formatDate(_submission!['submitted_at']),
-                                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary),
+                                style: const TextStyle(
+                                    fontFamily: 'Tajawal',
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary),
                               ),
                           ],
                         ),
@@ -94,8 +100,10 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
 
                       // Submitter info
                       _buildSection('المُرسل', [
-                        _infoRow('الاسم', _submission!['profiles']?['full_name'] ?? '-'),
-                        _infoRow('البريد', _submission!['profiles']?['email'] ?? '-'),
+                        _infoRow('الاسم',
+                            _submission!['profiles']?['full_name'] ?? '-'),
+                        _infoRow('البريد',
+                            _submission!['profiles']?['email'] ?? '-'),
                       ]),
                       const SizedBox(height: 16),
 
@@ -114,8 +122,10 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
                       // Review info
                       if (_submission!['reviewed_by'] != null)
                         _buildSection('المراجعة', [
-                          _infoRow('راجع بواسطة', _submission!['profiles']?['full_name'] ?? '-'),
-                          _infoRow('تاريخ المراجعة', _formatDate(_submission!['reviewed_at'])),
+                          _infoRow('راجع بواسطة',
+                              _submission!['profiles']?['full_name'] ?? '-'),
+                          _infoRow('تاريخ المراجعة',
+                              _formatDate(_submission!['reviewed_at'])),
                           if (_submission!['review_notes'] != null)
                             _infoRow('ملاحظات', _submission!['review_notes']),
                         ]),
@@ -149,7 +159,8 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: (isSubmitted ? AppTheme.primaryColor : Colors.grey).withValues(alpha: 0.3),
+            color: (isSubmitted ? AppTheme.primaryColor : Colors.grey)
+                .withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -163,12 +174,19 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
               children: [
                 Text(
                   _submission!['forms']?['title_ar'] ?? 'نموذج',
-                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+                  style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'ID: ${widget.id.substring(0, 8)}...',
-                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                  style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 12),
                 ),
               ],
             ),
@@ -191,7 +209,8 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
           gradient: _isGeneratingPdf
-              ? LinearGradient(colors: [Colors.grey.shade300, Colors.grey.shade400])
+              ? LinearGradient(
+                  colors: [Colors.grey.shade300, Colors.grey.shade400])
               : const LinearGradient(
                   colors: [Color(0xFFE53935), Color(0xFFC62828)],
                   begin: Alignment.topLeft,
@@ -215,7 +234,8 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
               const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                child: CircularProgressIndicator(
+                    strokeWidth: 2.5, color: Colors.white),
               )
             else
               Container(
@@ -224,14 +244,17 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 24),
+                child: const Icon(Icons.picture_as_pdf_rounded,
+                    color: Colors.white, size: 24),
               ),
             const SizedBox(width: 14),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isGeneratingPdf ? 'جارٍ إنشاء التقرير...' : 'تحميل التقرير PDF',
+                  _isGeneratingPdf
+                      ? 'جارٍ إنشاء التقرير...'
+                      : 'تحميل التقرير PDF',
                   style: const TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 16,
@@ -266,13 +289,18 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: const TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w600)),
+              style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
           const Divider(),
           const SizedBox(height: 8),
           ...children,
@@ -290,10 +318,15 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
           SizedBox(
             width: 100,
             child: Text(label,
-                style: const TextStyle(fontFamily: 'Tajawal', color: AppTheme.textSecondary, fontSize: 13)),
+                style: const TextStyle(
+                    fontFamily: 'Tajawal',
+                    color: AppTheme.textSecondary,
+                    fontSize: 13)),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w500)),
+            child: Text(value,
+                style: const TextStyle(
+                    fontFamily: 'Tajawal', fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -302,7 +335,12 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
 
   List<Widget> _buildFormData() {
     final data = _submission!['data'] as Map<String, dynamic>? ?? {};
-    if (data.isEmpty) return [const Text('لا توجد بيانات', style: TextStyle(fontFamily: 'Tajawal', color: AppTheme.textSecondary))];
+    if (data.isEmpty)
+      return [
+        const Text('لا توجد بيانات',
+            style:
+                TextStyle(fontFamily: 'Tajawal', color: AppTheme.textSecondary))
+      ];
 
     return data.entries.map((e) => _infoRow(e.key, '${e.value}')).toList();
   }
@@ -364,7 +402,8 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
     }
     if (_submission!['gps_lat'] != null) {
       text.writeln('');
-      text.writeln('📍 الموقع: ${_submission!['gps_lat']}, ${_submission!['gps_lng']}');
+      text.writeln(
+          '📍 الموقع: ${_submission!['gps_lat']}, ${_submission!['gps_lng']}');
     }
     text.writeln('');
     text.writeln('━━━━ EPI Supervisor ━━━━');
@@ -394,7 +433,8 @@ class _SubmissionDetailScreenState extends ConsumerState<SubmissionDetailScreen>
       final file = await FormReportGenerator.generate(
         form: form,
         submissions: [_submission!],
-        period: 'إرسال واحدة — ${(_submission!['created_at'] ?? '').toString().substring(0, 10)}',
+        period:
+            'إرسال واحدة — ${(_submission!['created_at'] ?? '').toString().substring(0, 10)}',
       );
 
       if (!mounted) return;

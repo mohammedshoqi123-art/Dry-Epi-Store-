@@ -11,7 +11,8 @@ class AuthRepository {
   Timer? _sessionRefreshTimer;
   final _authStateController = StreamController<app_auth.AuthState>.broadcast();
 
-  Stream<app_auth.AuthState> get authStateChanges => _authStateController.stream;
+  Stream<app_auth.AuthState> get authStateChanges =>
+      _authStateController.stream;
   app_auth.AuthState _currentState = const app_auth.AuthState();
   app_auth.AuthState get currentState => _currentState;
 
@@ -25,7 +26,8 @@ class AuthRepository {
       if (!SupabaseConfig.isConfigured) {
         _isConfigured = false;
         _currentState = const app_auth.AuthState(
-          error: 'Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY.',
+          error:
+              'Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY.',
         );
         _authStateController.add(_currentState);
         return;
@@ -57,8 +59,8 @@ class AuthRepository {
       final session = data.session;
 
       if ((event == AuthChangeEvent.signedIn ||
-               event == AuthChangeEvent.initialSession) &&
-              session != null) {
+              event == AuthChangeEvent.initialSession) &&
+          session != null) {
         await _loadProfile(session.user.id);
       } else if (event == AuthChangeEvent.signedOut) {
         _currentState = const app_auth.AuthState();
@@ -72,12 +74,15 @@ class AuthRepository {
     });
 
     // Proactive session refresh: check every 4 minutes if token is near expiry
-    _sessionRefreshTimer = Timer.periodic(const Duration(minutes: 4), (_) async {
+    _sessionRefreshTimer =
+        Timer.periodic(const Duration(minutes: 4), (_) async {
       try {
         final session = _client?.auth.currentSession;
         if (session == null) return;
-        final expiresAt = DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
-        if (DateTime.now().isAfter(expiresAt.subtract(const Duration(minutes: 10)))) {
+        final expiresAt =
+            DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
+        if (DateTime.now()
+            .isAfter(expiresAt.subtract(const Duration(minutes: 10)))) {
           await _client?.auth.refreshSession();
         }
       } catch (_) {
@@ -192,7 +197,8 @@ class AuthRepository {
 
   Future<AuthResponse> signIn(String email, String password) async {
     if (!_isConfigured || _client == null) {
-      throw StateError('Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY.');
+      throw StateError(
+          'Supabase is not configured. Please set SUPABASE_URL and SUPABASE_ANON_KEY.');
     }
 
     _currentState = _currentState.copyWith(isLoading: true, error: null);
@@ -205,7 +211,8 @@ class AuthRepository {
       );
       return response;
     } catch (e) {
-      _currentState = _currentState.copyWith(isLoading: false, error: e.toString());
+      _currentState =
+          _currentState.copyWith(isLoading: false, error: e.toString());
       _authStateController.add(_currentState);
       rethrow;
     }
@@ -287,7 +294,8 @@ class AuthRepository {
           ),
         );
 
-    final publicUrl = _client!.storage.from('avatars').getPublicUrl(storagePath);
+    final publicUrl =
+        _client!.storage.from('avatars').getPublicUrl(storagePath);
 
     // Update profile with new avatar URL
     await updateProfile(avatarUrl: publicUrl);

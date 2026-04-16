@@ -43,7 +43,9 @@ class OfflineManager {
       if (!_connectivityController.isClosed) {
         _connectivityController.add(_isOnline);
       }
-      if (kDebugMode) print('[OfflineManager] Connectivity changed: ${online ? "online" : "offline"}');
+      if (kDebugMode)
+        print(
+            '[OfflineManager] Connectivity changed: ${online ? "online" : "offline"}');
     }
   }
 
@@ -90,7 +92,9 @@ class OfflineManager {
     await _recoverStuckSyncingItems();
 
     _initialized = true;
-    if (kDebugMode) print('[OfflineManager] Initialized. Pending items: ${_getQueue().length}');
+    if (kDebugMode)
+      print(
+          '[OfflineManager] Initialized. Pending items: ${_getQueue().length}');
   }
 
   // ═══ FIX: Serialize write operations to prevent race conditions ═══
@@ -141,7 +145,8 @@ class OfflineManager {
       if (recovered > 0) {
         final encrypted = _encryption.encrypt(jsonEncode(queue));
         await _safeBox.put(_syncQueueKey, encrypted);
-        if (kDebugMode) print('[OfflineManager] Recovered $recovered stuck syncing items');
+        if (kDebugMode)
+          print('[OfflineManager] Recovered $recovered stuck syncing items');
       }
     } catch (e) {
       if (kDebugMode) print('[OfflineManager] Recovery check failed: $e');
@@ -162,7 +167,8 @@ class OfflineManager {
       // Validate payload size
       final payloadSize = jsonEncode(submission).length;
       if (payloadSize > _maxPayloadSize) {
-        throw ValidationException('Submission payload too large (${payloadSize ~/ 1024}KB, max ${_maxPayloadSize ~/ 1024}KB)',
+        throw ValidationException(
+            'Submission payload too large (${payloadSize ~/ 1024}KB, max ${_maxPayloadSize ~/ 1024}KB)',
             fieldErrors: {'size': 'exceeds 1MB limit'});
       }
 
@@ -233,7 +239,9 @@ class OfflineManager {
 
   /// Sync all pending items with retry logic and conflict handling.
   /// ═══ FIX: Process in-memory, save ONCE at end — prevents data loss on crash ═══
-  Future<List<OfflineSyncResult>> syncPendingItems(Future<Map<String, dynamic>> Function(Map<String, dynamic>) submitFn) async {
+  Future<List<OfflineSyncResult>> syncPendingItems(
+      Future<Map<String, dynamic>> Function(Map<String, dynamic>)
+          submitFn) async {
     final pending = _getQueue();
     if (pending.isEmpty) return [];
 
@@ -263,7 +271,8 @@ class OfflineManager {
 
         if (response['status'] == 'duplicate') {
           successfullySynced.add(item['offline_id']);
-          results.add(OfflineSyncResult.duplicate(item['offline_id'], response));
+          results
+              .add(OfflineSyncResult.duplicate(item['offline_id'], response));
         } else if (response['conflict'] == true) {
           await _saveConflict(item, response);
           successfullySynced.add(item['offline_id']);
@@ -278,11 +287,13 @@ class OfflineManager {
             item['last_retry_at'] = DateTime.now().toIso8601String();
             item.remove('_syncing');
             remaining.add(item);
-            results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
+            results.add(OfflineSyncResult.error(
+                item['offline_id'], 'Unexpected server response'));
           } else {
             item.remove('_syncing');
             remaining.add(item);
-            results.add(OfflineSyncResult.error(item['offline_id'], 'Unexpected server response'));
+            results.add(OfflineSyncResult.error(
+                item['offline_id'], 'Unexpected server response'));
           }
         }
       } on ApiException catch (e) {
@@ -292,7 +303,8 @@ class OfflineManager {
           item['last_retry_at'] = DateTime.now().toIso8601String();
           item.remove('_syncing');
           remaining.add(item);
-          results.add(OfflineSyncResult.error(item['offline_id'], 'RETRY_${retryCount + 1}/$_maxRetries: ${e.message}'));
+          results.add(OfflineSyncResult.error(item['offline_id'],
+              'RETRY_${retryCount + 1}/$_maxRetries: ${e.message}'));
         } else {
           await _logSyncError(item, e);
           item.remove('_syncing');
@@ -329,7 +341,8 @@ class OfflineManager {
 
   /// Save a conflict between local and server data for manual resolution.
   /// Public method so SyncService can record conflicts during batch sync.
-  Future<void> saveConflict(Map<String, dynamic> local, Map<String, dynamic> server) async {
+  Future<void> saveConflict(
+      Map<String, dynamic> local, Map<String, dynamic> server) async {
     try {
       final conflicts = _getConflicts();
       conflicts[local['offline_id']] = {
@@ -345,7 +358,8 @@ class OfflineManager {
     }
   }
 
-  Future<void> _saveConflict(Map<String, dynamic> local, Map<String, dynamic> server) async {
+  Future<void> _saveConflict(
+      Map<String, dynamic> local, Map<String, dynamic> server) async {
     return saveConflict(local, server);
   }
 
@@ -367,11 +381,13 @@ class OfflineManager {
         .toList();
   }
 
-  Future<void> resolveConflict(String offlineId, {bool useLocal = false}) async {
+  Future<void> resolveConflict(String offlineId,
+      {bool useLocal = false}) async {
     final conflicts = _getConflicts();
     if (conflicts.containsKey(offlineId)) {
       conflicts[offlineId]['resolved'] = true;
-      conflicts[offlineId]['resolution'] = useLocal ? 'local_wins' : 'server_wins';
+      conflicts[offlineId]['resolution'] =
+          useLocal ? 'local_wins' : 'server_wins';
       conflicts[offlineId]['resolved_at'] = DateTime.now().toIso8601String();
       final encrypted = _encryption.encrypt(jsonEncode(conflicts));
       await _safeBox.put(_conflictsKey, encrypted);
@@ -388,7 +404,8 @@ class OfflineManager {
       final duplicates = results.where((r) => r.isDuplicate).length;
       final conflicts = results.where((r) => r.isConflict).length;
       final errors = results.where((r) => r.isError).length;
-      print('Sync summary: $success ok, $duplicates dup, $conflicts conflict, $errors error');
+      print(
+          'Sync summary: $success ok, $duplicates dup, $conflicts conflict, $errors error');
     }
   }
 
@@ -471,7 +488,8 @@ class OfflineManager {
   /// When offline, cached data is NEVER discarded due to staleness.
   ///
   /// [offlineOverride] — if true, ignores normal cacheExpiry and uses maxOfflineRetention.
-  Map<String, dynamic>? getCachedData(String key, {bool offlineOverride = false}) {
+  Map<String, dynamic>? getCachedData(String key,
+      {bool offlineOverride = false}) {
     final cache = _getCache();
     final entry = cache[key];
     if (entry == null) return null;
@@ -483,7 +501,9 @@ class OfflineManager {
       // When offline or forceStale: allow data up to 30 days old
       if (offlineOverride || !_isOnline) {
         if (age > AppConfig.maxOfflineRetention) {
-          if (kDebugMode) print('[OfflineManager] Cache expired (>${AppConfig.maxOfflineRetention.inDays} days) for $key');
+          if (kDebugMode)
+            print(
+                '[OfflineManager] Cache expired (>${AppConfig.maxOfflineRetention.inDays} days) for $key');
           return null;
         }
         // Return stale data when offline — stale is better than nothing

@@ -52,7 +52,8 @@ class _ReferencesScreenState extends ConsumerState<ReferencesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('المراجع والكتب', style: TextStyle(fontFamily: 'Cairo')),
+        title:
+            const Text('المراجع والكتب', style: TextStyle(fontFamily: 'Cairo')),
         centerTitle: true,
       ),
       body: Column(
@@ -176,7 +177,8 @@ class _ReferenceCard extends StatelessWidget {
                     ],
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6),
@@ -194,7 +196,8 @@ class _ReferenceCard extends StatelessWidget {
                 ),
               ),
               if (fileUrl != null)
-                const Icon(Icons.download_rounded, color: AppTheme.primaryColor),
+                const Icon(Icons.download_rounded,
+                    color: AppTheme.primaryColor),
             ],
           ),
         ),

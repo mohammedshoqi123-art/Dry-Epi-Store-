@@ -25,12 +25,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   @override
   void initState() {
     super.initState();
-    _headerAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _cardsAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
-    _pulseAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _headerAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    _cardsAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1000));
+    _pulseAnim = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1500));
 
     _headerAnim.forward();
-    Future.delayed(const Duration(milliseconds: 200), () => _cardsAnim.forward());
+    Future.delayed(
+        const Duration(milliseconds: 200), () => _cardsAnim.forward());
     _pulseAnim.repeat(reverse: true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,7 +56,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    final analytics = ref.watch(dashboardAnalyticsProvider(AnalyticsFilter(campaignType: ref.read(campaignProvider).value)));
+    final analytics = ref.watch(dashboardAnalyticsProvider(
+        AnalyticsFilter(campaignType: ref.read(campaignProvider).value)));
     final authState = ref.watch(authStateProvider);
     final pendingAsync = ref.watch(syncPendingCountProvider);
     final pendingCount = pendingAsync.valueOrNull ?? 0;
@@ -64,14 +69,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           HapticFeedback.mediumImpact();
           if (!ConnectivityUtils.isOnline) return;
           await ref.read(forceRefreshProvider)('dashboard_analytics');
-          ref.invalidate(dashboardAnalyticsProvider(AnalyticsFilter(campaignType: ref.read(campaignProvider).value)));
+          ref.invalidate(dashboardAnalyticsProvider(
+              AnalyticsFilter(campaignType: ref.read(campaignProvider).value)));
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             // ═══ Animated Header ═══
             SliverToBoxAdapter(
-              child: _buildHeroHeader(authState.valueOrNull?.fullName ?? 'مستخدم'),
+              child:
+                  _buildHeroHeader(authState.valueOrNull?.fullName ?? 'مستخدم'),
             ),
 
             // ═══ Pending Sync ═══
@@ -82,15 +89,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: analytics.when(
-                loading: () => SliverList(delegate: SliverChildListDelegate([
+                loading: () => SliverList(
+                    delegate: SliverChildListDelegate([
                   const SizedBox(height: 200),
                   const Center(child: EpiLoading.shimmer()),
                 ])),
-                error: (e, _) => SliverList(delegate: SliverChildListDelegate([
+                error: (e, _) => SliverList(
+                    delegate: SliverChildListDelegate([
                   const SizedBox(height: 100),
                   EpiErrorWidget(
                     message: e.toString(),
-                    onRetry: () => ref.invalidate(dashboardAnalyticsProvider(AnalyticsFilter(campaignType: ref.read(campaignProvider).value))),
+                    onRetry: () => ref.invalidate(dashboardAnalyticsProvider(
+                        AnalyticsFilter(
+                            campaignType: ref.read(campaignProvider).value))),
                   ),
                 ])),
                 data: (data) => _buildDashboardContent(data),
@@ -110,13 +121,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   // ═══════════════════════════════════════════════════════════
   Widget _buildHeroHeader(String name) {
     final hour = DateTime.now().hour;
-    final greeting = hour < 12 ? 'صباح الخير' : hour < 17 ? 'مساء الخير' : 'تصبح على خير';
-    final emoji = hour < 12 ? '☀️' : hour < 17 ? '🌤️' : '🌙';
+    final greeting = hour < 12
+        ? 'صباح الخير'
+        : hour < 17
+            ? 'مساء الخير'
+            : 'تصبح على خير';
+    final emoji = hour < 12
+        ? '☀️'
+        : hour < 17
+            ? '🌤️'
+            : '🌙';
     final campaign = ref.watch(campaignProvider);
 
     return SlideTransition(
       position: Tween<Offset>(begin: const Offset(0, -0.3), end: Offset.zero)
-          .animate(CurvedAnimation(parent: _headerAnim, curve: Curves.easeOutCubic)),
+          .animate(
+              CurvedAnimation(parent: _headerAnim, curve: Curves.easeOutCubic)),
       child: FadeTransition(
         opacity: _headerAnim,
         child: Container(
@@ -166,7 +186,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         ),
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
@@ -193,10 +214,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         return Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15 + 0.05 * _pulseAnim.value),
+                            color: Colors.white.withValues(
+                                alpha: 0.15 + 0.05 * _pulseAnim.value),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 24),
+                          child: const Icon(Icons.notifications_active_rounded,
+                              color: Colors.white, size: 24),
                         );
                       },
                     ),
@@ -207,11 +230,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               // Date row
               Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded, color: Colors.white60, size: 14),
+                  const Icon(Icons.calendar_today_rounded,
+                      color: Colors.white60, size: 14),
                   const SizedBox(width: 6),
                   Text(
                     _getDateString(),
-                    style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: Colors.white60),
+                    style: const TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        color: Colors.white60),
                   ),
                 ],
               ),
@@ -224,8 +251,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   String _getDateString() {
     final now = DateTime.now();
-    const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-    const days = ['الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'];
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر'
+    ];
+    const days = [
+      'الاثنين',
+      'الثلاثاء',
+      'الأربعاء',
+      'الخميس',
+      'الجمعة',
+      'السبت',
+      'الأحد'
+    ];
     return '${days[now.weekday - 1]}، ${now.day} ${months[now.month - 1]} ${now.year}';
   }
 
@@ -240,18 +288,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_upload_outlined, color: Colors.orange, size: 22),
+          const Icon(Icons.cloud_upload_outlined,
+              color: Colors.orange, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text('$count استمارة بانتظار المزامنة',
-              style: TextStyle(fontFamily: 'Tajawal', fontSize: 13, fontWeight: FontWeight.w600, color: Colors.orange.shade800)),
+                style: TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800)),
           ),
           TextButton(
             onPressed: () {
               HapticFeedback.lightImpact();
-              ref.read(syncServiceProvider.future).then((s) => s.sync().catchError((_) => SyncCycleResult.empty()));
+              ref.read(syncServiceProvider.future).then(
+                  (s) => s.sync().catchError((_) => SyncCycleResult.empty()));
             },
-            child: Text('مزامنة', style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.w600)),
+            child: Text('مزامنة',
+                style: TextStyle(
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -265,25 +322,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            const Icon(Icons.picture_as_pdf_rounded, size: 48, color: Color(0xFFE53935)),
+            const Icon(Icons.picture_as_pdf_rounded,
+                size: 48, color: Color(0xFFE53935)),
             const SizedBox(height: 12),
-            const Text('استخراج تقرير PDF', style: TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700)),
+            const Text('استخراج تقرير PDF',
+                style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            const Text('اختر نوع التقرير الذي تريد استخراجه', style: TextStyle(fontFamily: 'Tajawal', fontSize: 14, color: AppTheme.textSecondary)),
+            const Text('اختر نوع التقرير الذي تريد استخراجه',
+                style: TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 14,
+                    color: AppTheme.textSecondary)),
             const SizedBox(height: 20),
-            _exportOption(ctx, 'تقرير الإرساليات اليومي', Icons.today_rounded, () => _generateReport(ctx, 'daily')),
-            _exportOption(ctx, 'تقرير الإرساليات الأسبوعي', Icons.date_range_rounded, () => _generateReport(ctx, 'weekly')),
-            _exportOption(ctx, 'تقرير النواقص والاحتياجات', Icons.warning_amber_rounded, () => _generateReport(ctx, 'shortages')),
-            _exportOption(ctx, 'تقرير أداء المحافظات', Icons.map_rounded, () => _generateReport(ctx, 'governorates')),
-            _exportOption(ctx, 'تقرير شامل (كل البيانات)', Icons.assessment_rounded, () => _generateReport(ctx, 'full')),
+            _exportOption(ctx, 'تقرير الإرساليات اليومي', Icons.today_rounded,
+                () => _generateReport(ctx, 'daily')),
+            _exportOption(ctx, 'تقرير الإرساليات الأسبوعي',
+                Icons.date_range_rounded, () => _generateReport(ctx, 'weekly')),
+            _exportOption(
+                ctx,
+                'تقرير النواقص والاحتياجات',
+                Icons.warning_amber_rounded,
+                () => _generateReport(ctx, 'shortages')),
+            _exportOption(ctx, 'تقرير أداء المحافظات', Icons.map_rounded,
+                () => _generateReport(ctx, 'governorates')),
+            _exportOption(ctx, 'تقرير شامل (كل البيانات)',
+                Icons.assessment_rounded, () => _generateReport(ctx, 'full')),
             const SizedBox(height: 12),
           ],
         ),
@@ -291,15 +371,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  Widget _exportOption(BuildContext ctx, String title, IconData icon, VoidCallback onTap) {
+  Widget _exportOption(
+      BuildContext ctx, String title, IconData icon, VoidCallback onTap) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: const Color(0xFFE53935).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(
+            color: const Color(0xFFE53935).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, color: const Color(0xFFE53935), size: 22),
       ),
-      title: Text(title, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 14)),
-      trailing: const Icon(Icons.chevron_left_rounded, color: AppTheme.textHint),
+      title: Text(title,
+          style: const TextStyle(fontFamily: 'Tajawal', fontSize: 14)),
+      trailing:
+          const Icon(Icons.chevron_left_rounded, color: AppTheme.textHint),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: onTap,
     );
@@ -311,9 +396,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Row(children: [
-          SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+          SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white)),
           SizedBox(width: 12),
-          Text('جاري إنشاء التقرير...', style: TextStyle(fontFamily: 'Tajawal')),
+          Text('جاري إنشاء التقرير...',
+              style: TextStyle(fontFamily: 'Tajawal')),
         ]),
         duration: Duration(seconds: 30),
       ),
@@ -321,14 +411,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     try {
       // 1. Fetch data from cache/API
-      final filter = AnalyticsFilter(campaignType: ref.read(campaignProvider).value);
+      final filter =
+          AnalyticsFilter(campaignType: ref.read(campaignProvider).value);
       final analytics = ref.read(dashboardAnalyticsProvider(filter));
       final data = analytics.valueOrNull;
       if (data == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('لا توجد بيانات — تأكد من الاتصال', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.warningColor),
+            const SnackBar(
+                content: Text('لا توجد بيانات — تأكد من الاتصال',
+                    style: TextStyle(fontFamily: 'Tajawal')),
+                backgroundColor: AppTheme.warningColor),
           );
         }
         return;
@@ -337,14 +431,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       // 2. Fetch governorate ranking
       List<Map<String, dynamic>>? govData;
       try {
-        govData = await ref.read(analyticsServiceProvider).getGovernorateRanking();
+        govData =
+            await ref.read(analyticsServiceProvider).getGovernorateRanking();
       } catch (_) {}
 
       // 3. Fetch shortages if needed
       List<Map<String, dynamic>>? shortagesData;
       if (type == 'shortages' || type == 'full') {
         try {
-          shortagesData = await ref.read(databaseServiceProvider).getShortages();
+          shortagesData =
+              await ref.read(databaseServiceProvider).getShortages();
         } catch (_) {}
       }
 
@@ -358,7 +454,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         period: reportInfo['period']!,
         analyticsData: data,
         governorateData: govData,
-        shortagesData: type == 'shortages' || type == 'full' ? shortagesData : null,
+        shortagesData:
+            type == 'shortages' || type == 'full' ? shortagesData : null,
       );
 
       if (!mounted) return;
@@ -374,7 +471,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('تم إنشاء التقرير بنجاح ✅', style: TextStyle(fontFamily: 'Tajawal')),
+            content: const Text('تم إنشاء التقرير بنجاح ✅',
+                style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
           ),
         );
@@ -384,8 +482,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل إنشاء التقرير: ${e.toString().replaceAll('Exception: ', '')}',
-              style: const TextStyle(fontFamily: 'Tajawal')),
+            content: Text(
+                'فشل إنشاء التقرير: ${e.toString().replaceAll('Exception: ', '')}',
+                style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -395,7 +494,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   Map<String, String> _getReportInfo(String type) {
     final now = DateTime.now();
-    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     switch (type) {
       case 'daily':
         return {
@@ -405,7 +505,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         };
       case 'weekly':
         final weekAgo = now.subtract(const Duration(days: 7));
-        final fromStr = '${weekAgo.year}-${weekAgo.month.toString().padLeft(2, '0')}-${weekAgo.day.toString().padLeft(2, '0')}';
+        final fromStr =
+            '${weekAgo.year}-${weekAgo.month.toString().padLeft(2, '0')}-${weekAgo.day.toString().padLeft(2, '0')}';
         return {
           'title': 'تقرير الإرساليات الأسبوعي',
           'subtitle': 'ملخص أداء الأسبوع الماضي',
@@ -445,12 +546,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final resolved = shortages['resolved'] as int? ?? 0;
     final bySeverity = shortages['bySeverity'] as Map<String, dynamic>? ?? {};
     final critical = bySeverity['critical'] as int? ?? 0;
-    final completionRate = totalShortages > 0 ? ((resolved / totalShortages) * 100).round() : 0;
+    final completionRate =
+        totalShortages > 0 ? ((resolved / totalShortages) * 100).round() : 0;
 
     return SliverList(
       delegate: SliverChildListDelegate([
         // ═══ KPI Cards — animated grid ═══
-        _buildKPIGrid(total, today, totalShortages, resolved, critical, completionRate),
+        _buildKPIGrid(
+            total, today, totalShortages, resolved, critical, completionRate),
         const SizedBox(height: 20),
 
         // ═══ Health Ring ═══
@@ -466,7 +569,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         // ═══ Status Distribution ═══
         _sectionTitle('توزيع الحالات'),
         const SizedBox(height: 12),
-        _buildStatusDonut(submissions['byStatus'] as Map<String, dynamic>? ?? {}),
+        _buildStatusDonut(
+            submissions['byStatus'] as Map<String, dynamic>? ?? {}),
         const SizedBox(height: 20),
 
         // ═══ Weekly Trend ═══
@@ -496,7 +600,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
         ),
         const SizedBox(width: 10),
-        Text(title, style: const TextStyle(fontFamily: 'Cairo', fontSize: 17, fontWeight: FontWeight.w700)),
+        Text(title,
+            style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
       ],
     );
   }
@@ -504,11 +612,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   // ═══════════════════════════════════════════════════════════
   // KPI GRID
   // ═══════════════════════════════════════════════════════════
-  Widget _buildKPIGrid(int total, int today, int shortages, int resolved, int critical, int rate) {
+  Widget _buildKPIGrid(int total, int today, int shortages, int resolved,
+      int critical, int rate) {
     final items = [
-      _KPI('الإرساليات', total, today, Icons.upload_file_rounded, AppTheme.primaryColor, 'اليوم'),
-      _KPI('النواقص', shortages, resolved, Icons.warning_amber_rounded, AppTheme.warningColor, 'محلول'),
-      _KPI('حرج', critical, 0, Icons.local_fire_department_rounded, AppTheme.errorColor, critical > 0 ? 'يحتاج تدخل!' : 'لا يوجد'),
+      _KPI('الإرساليات', total, today, Icons.upload_file_rounded,
+          AppTheme.primaryColor, 'اليوم'),
+      _KPI('النواقص', shortages, resolved, Icons.warning_amber_rounded,
+          AppTheme.warningColor, 'محلول'),
+      _KPI('حرج', critical, 0, Icons.local_fire_department_rounded,
+          AppTheme.errorColor, critical > 0 ? 'يحتاج تدخل!' : 'لا يوجد'),
       _KPI('الإنجاز', rate, 0, Icons.speed_rounded, AppTheme.successColor, '%'),
     ];
 
@@ -554,7 +666,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: kpi.color.withValues(alpha: 0.08), blurRadius: 14, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+                color: kpi.color.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 4))
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -571,7 +688,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                   child: Icon(kpi.icon, color: kpi.color, size: 20),
                 ),
-                Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey.shade300),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    size: 12, color: Colors.grey.shade300),
               ],
             ),
             const Spacer(),
@@ -584,13 +702,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(kpi.label, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary)),
+                Text(kpi.label,
+                    style: const TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        color: AppTheme.textSecondary)),
                 if (kpi.label != 'الإنجاز')
                   Text('${kpi.subValue} ${kpi.subLabel}',
-                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: kpi.color.withValues(alpha: 0.7))),
+                      style: TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 10,
+                          color: kpi.color.withValues(alpha: 0.7))),
                 if (kpi.label == 'الإنجاز')
                   Text(kpi.subLabel,
-                    style: TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: kpi.color.withValues(alpha: 0.7))),
+                      style: TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 10,
+                          color: kpi.color.withValues(alpha: 0.7))),
               ],
             ),
           ],
@@ -614,8 +742,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       totalSubmissions: submissions['total'] as int? ?? 0,
     );
 
-    final color = score >= 80 ? AppTheme.successColor : score >= 50 ? AppTheme.warningColor : AppTheme.errorColor;
-    final label = score >= 80 ? 'أداء ممتاز' : score >= 50 ? 'أداء متوسط' : 'يحتاج تحسين';
+    final color = score >= 80
+        ? AppTheme.successColor
+        : score >= 50
+            ? AppTheme.warningColor
+            : AppTheme.errorColor;
+    final label = score >= 80
+        ? 'أداء ممتاز'
+        : score >= 50
+            ? 'أداء متوسط'
+            : 'يحتاج تحسين';
     final insights = LocalAnalyticsEngine.generateInsights(data);
 
     return Container(
@@ -623,7 +759,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: color.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Row(
         children: [
@@ -647,7 +788,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     Center(
                       child: Text(
                         '$score',
-                        style: TextStyle(fontFamily: 'Cairo', fontSize: 22, fontWeight: FontWeight.w700, color: color),
+                        style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: color),
                       ),
                     ),
                   ],
@@ -660,12 +805,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+                Text(label,
+                    style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: color)),
                 const SizedBox(height: 6),
                 if (insights.isNotEmpty)
                   Text(
                     insights.first,
-                    style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary),
+                    style: const TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        color: AppTheme.textSecondary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -676,14 +829,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   runSpacing: 4,
                   children: insights.skip(1).take(2).map((insight) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        insight.length > 35 ? '${insight.substring(0, 32)}...' : insight,
-                        style: const TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: AppTheme.primaryColor),
+                        insight.length > 35
+                            ? '${insight.substring(0, 32)}...'
+                            : insight,
+                        style: const TextStyle(
+                            fontFamily: 'Tajawal',
+                            fontSize: 10,
+                            color: AppTheme.primaryColor),
                       ),
                     );
                   }).toList(),
@@ -701,11 +860,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   // ═══════════════════════════════════════════════════════════
   Widget _buildQuickActions() {
     final actions = [
-      _QA(Icons.add_circle_outline_rounded, 'إرسال جديد', '/forms', const Color(0xFF00897B)),
-      _QA(Icons.description_rounded, 'النماذج', '/forms', const Color(0xFF5C6BC0)),
-      _QA(Icons.picture_as_pdf_rounded, 'تصدير PDF', '__export_pdf__', const Color(0xFFE53935)),
+      _QA(Icons.add_circle_outline_rounded, 'إرسال جديد', '/forms',
+          const Color(0xFF00897B)),
+      _QA(Icons.description_rounded, 'النماذج', '/forms',
+          const Color(0xFF5C6BC0)),
+      _QA(Icons.picture_as_pdf_rounded, 'تصدير PDF', '__export_pdf__',
+          const Color(0xFFE53935)),
       _QA(Icons.map_outlined, 'الخريطة', '/map', const Color(0xFF1E88E5)),
-      _QA(Icons.smart_toy_outlined, 'المساعد الذكي', '/ai', const Color(0xFFFF8F00)),
+      _QA(Icons.smart_toy_outlined, 'المساعد الذكي', '/ai',
+          const Color(0xFFFF8F00)),
     ];
 
     return SizedBox(
@@ -736,13 +899,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               width: 82,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? a.color.withValues(alpha: 0.12) : Colors.white,
+                color:
+                    isSelected ? a.color.withValues(alpha: 0.12) : Colors.white,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: isSelected ? a.color.withValues(alpha: 0.4) : Colors.grey.shade100,
+                  color: isSelected
+                      ? a.color.withValues(alpha: 0.4)
+                      : Colors.grey.shade100,
                   width: 1.5,
                 ),
-                boxShadow: [BoxShadow(color: a.color.withValues(alpha: isSelected ? 0.12 : 0.04), blurRadius: 12, offset: const Offset(0, 3))],
+                boxShadow: [
+                  BoxShadow(
+                      color:
+                          a.color.withValues(alpha: isSelected ? 0.12 : 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3))
+                ],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -757,7 +929,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     child: Icon(a.icon, color: a.color, size: 22),
                   ),
                   const SizedBox(height: 6),
-                  Text(a.label, style: TextStyle(fontFamily: 'Tajawal', fontSize: 10, fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500, color: a.color), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(a.label,
+                      style: TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 10,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: a.color),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
                 ],
               ),
             ),
@@ -792,7 +973,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)
+          ]),
       child: Row(
         children: [
           SizedBox(
@@ -809,7 +996,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     color: colors[e.key] ?? Colors.grey,
                     radius: 45,
                     title: '${pct.toStringAsFixed(0)}%',
-                    titleStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                    titleStyle: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
                   );
                 }).toList(),
               ),
@@ -819,17 +1010,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           Expanded(
             child: Column(
               children: data.entries.map((e) {
-                final pct = total > 0 ? ((e.value as int) / total * 100).toStringAsFixed(0) : '0';
+                final pct = total > 0
+                    ? ((e.value as int) / total * 100).toStringAsFixed(0)
+                    : '0';
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Row(
                     children: [
-                      Container(width: 10, height: 10, decoration: BoxDecoration(color: colors[e.key], borderRadius: BorderRadius.circular(3))),
+                      Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                              color: colors[e.key],
+                              borderRadius: BorderRadius.circular(3))),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(labels[e.key] ?? e.key, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12))),
-                      Text('${e.value}', style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w700)),
+                      Expanded(
+                          child: Text(labels[e.key] ?? e.key,
+                              style: const TextStyle(
+                                  fontFamily: 'Tajawal', fontSize: 12))),
+                      Text('${e.value}',
+                          style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
                       const SizedBox(width: 4),
-                      Text('($pct%)', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: AppTheme.textHint)),
+                      Text('($pct%)',
+                          style: const TextStyle(
+                              fontFamily: 'Tajawal',
+                              fontSize: 10,
+                              color: AppTheme.textHint)),
                     ],
                   ),
                 );
@@ -848,44 +1057,96 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     if (dayData.isEmpty) return _emptyCard('لا توجد بيانات');
 
     final entries = dayData.entries.toList();
-    final maxY = entries.fold<num>(1, (m, e) => e.value > m ? e.value : m).toDouble();
+    final maxY =
+        entries.fold<num>(1, (m, e) => e.value > m ? e.value : m).toDouble();
 
     return Container(
       height: 200,
       padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)
+          ]),
       child: LineChart(
         LineChartData(
-          gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: Colors.grey.shade100, strokeWidth: 1)),
+          gridData: FlGridData(
+              show: true,
+              drawVerticalLine: false,
+              getDrawingHorizontalLine: (v) =>
+                  FlLine(color: Colors.grey.shade100, strokeWidth: 1)),
           titlesData: FlTitlesData(
-            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(fontFamily: 'Cairo', fontSize: 9, color: AppTheme.textHint)))),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
-              final i = v.toInt();
-              if (i >= 0 && i < entries.length && (i % 2 == 0 || entries.length <= 7)) {
-                return Padding(padding: const EdgeInsets.only(top: 4), child: Text(entries[i].key, style: const TextStyle(fontFamily: 'Tajawal', fontSize: 9, color: AppTheme.textHint)));
-              }
-              return const SizedBox();
-            })),
+            leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 30,
+                    getTitlesWidget: (v, _) => Text(v.toInt().toString(),
+                        style: const TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 9,
+                            color: AppTheme.textHint)))),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (v, _) {
+                      final i = v.toInt();
+                      if (i >= 0 &&
+                          i < entries.length &&
+                          (i % 2 == 0 || entries.length <= 7)) {
+                        return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(entries[i].key,
+                                style: const TextStyle(
+                                    fontFamily: 'Tajawal',
+                                    fontSize: 9,
+                                    color: AppTheme.textHint)));
+                      }
+                      return const SizedBox();
+                    })),
           ),
           borderData: FlBorderData(show: false),
           minY: 0,
           maxY: maxY * 1.2,
           lineBarsData: [
             LineChartBarData(
-              spots: entries.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value.value as num).toDouble())).toList(),
+              spots: entries
+                  .asMap()
+                  .entries
+                  .map((e) => FlSpot(
+                      e.key.toDouble(), (e.value.value as num).toDouble()))
+                  .toList(),
               isCurved: true,
               curveSmoothness: 0.3,
               color: AppTheme.primaryColor,
               barWidth: 2.5,
-              dotData: FlDotData(show: true, getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(radius: 3, color: AppTheme.primaryColor, strokeWidth: 0)),
-              belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [AppTheme.primaryColor.withValues(alpha: 0.15), AppTheme.primaryColor.withValues(alpha: 0.02)], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+              dotData: FlDotData(
+                  show: true,
+                  getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
+                      radius: 3, color: AppTheme.primaryColor, strokeWidth: 0)),
+              belowBarData: BarAreaData(
+                  show: true,
+                  gradient: LinearGradient(colors: [
+                    AppTheme.primaryColor.withValues(alpha: 0.15),
+                    AppTheme.primaryColor.withValues(alpha: 0.02)
+                  ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
             ),
           ],
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipItems: (spots) => spots.map((s) => LineTooltipItem('${entries[s.x.toInt()].key}\n${s.y.toInt()} إرسالية', const TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: Colors.white))).toList(),
+              getTooltipItems: (spots) => spots
+                  .map((s) => LineTooltipItem(
+                      '${entries[s.x.toInt()].key}\n${s.y.toInt()} إرسالية',
+                      const TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 11,
+                          color: Colors.white)))
+                  .toList(),
             ),
           ),
         ),
@@ -901,34 +1162,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     if (insights.isEmpty) return _emptyCard('لا توجد نشاطات حديثة');
 
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)
+          ]),
       child: Column(
         children: insights.asMap().entries.map((entry) {
           return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(child: Text(entry.value.substring(0, 1), style: const TextStyle(fontSize: 16))),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      entry.value,
-                      style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13, color: AppTheme.textPrimary),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                  child: Center(
+                      child: Text(entry.value.substring(0, 1),
+                          style: const TextStyle(fontSize: 16))),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 13,
+                        color: AppTheme.textPrimary),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
-            );
+                ),
+              ],
+            ),
+          );
         }).toList(),
       ),
     );
@@ -937,10 +1209,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   Widget _emptyCard(String msg) {
     return Container(
       height: 120,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-      child: Center(child: Column(
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      child: Center(
+          child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [Icon(Icons.inbox_rounded, size: 32, color: Colors.grey.shade300), const SizedBox(height: 8), Text(msg, style: TextStyle(fontFamily: 'Tajawal', color: Colors.grey.shade400, fontSize: 13))],
+        children: [
+          Icon(Icons.inbox_rounded, size: 32, color: Colors.grey.shade300),
+          const SizedBox(height: 8),
+          Text(msg,
+              style: TextStyle(
+                  fontFamily: 'Tajawal',
+                  color: Colors.grey.shade400,
+                  fontSize: 13))
+        ],
       )),
     );
   }
@@ -954,7 +1236,8 @@ class _KPI {
   final IconData icon;
   final Color color;
   final String subLabel;
-  _KPI(this.label, this.mainValue, this.subValue, this.icon, this.color, this.subLabel);
+  _KPI(this.label, this.mainValue, this.subValue, this.icon, this.color,
+      this.subLabel);
 }
 
 class _QA {
@@ -970,13 +1253,15 @@ class _AnimatedCounter extends StatefulWidget {
   final int value;
   final Color color;
   final double fontSize;
-  const _AnimatedCounter({required this.value, required this.color, this.fontSize = 28});
+  const _AnimatedCounter(
+      {required this.value, required this.color, this.fontSize = 28});
 
   @override
   State<_AnimatedCounter> createState() => _AnimatedCounterState();
 }
 
-class _AnimatedCounterState extends State<_AnimatedCounter> with SingleTickerProviderStateMixin {
+class _AnimatedCounterState extends State<_AnimatedCounter>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _anim;
   int _lastValue = 0;
@@ -984,8 +1269,10 @@ class _AnimatedCounterState extends State<_AnimatedCounter> with SingleTickerPro
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _anim = Tween(begin: 0.0, end: widget.value.toDouble()).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800));
+    _anim = Tween(begin: 0.0, end: widget.value.toDouble())
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _lastValue = widget.value;
     _ctrl.forward();
   }
@@ -994,7 +1281,8 @@ class _AnimatedCounterState extends State<_AnimatedCounter> with SingleTickerPro
   void didUpdateWidget(_AnimatedCounter old) {
     super.didUpdateWidget(old);
     if (old.value != widget.value) {
-      _anim = Tween(begin: _lastValue.toDouble(), end: widget.value.toDouble()).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+      _anim = Tween(begin: _lastValue.toDouble(), end: widget.value.toDouble())
+          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
       _lastValue = widget.value;
       _ctrl.reset();
       _ctrl.forward();
@@ -1014,7 +1302,11 @@ class _AnimatedCounterState extends State<_AnimatedCounter> with SingleTickerPro
       builder: (context, _) {
         return Text(
           _anim.value.round().toString(),
-          style: TextStyle(fontFamily: 'Cairo', fontSize: widget.fontSize, fontWeight: FontWeight.w700, color: widget.color),
+          style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: widget.fontSize,
+              fontWeight: FontWeight.w700,
+              color: widget.color),
         );
       },
     );

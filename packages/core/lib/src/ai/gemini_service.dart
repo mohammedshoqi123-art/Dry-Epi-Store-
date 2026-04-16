@@ -74,11 +74,11 @@ class GeminiService {
   }
 
   List<String> _fallbackSuggestions() => [
-    '📊 ما حالة الإرساليات اليوم؟',
-    '⚠️ أين النواقص الحرجة؟',
-    '📈 اعرض تقرير أسبوعي',
-    '🗺️ أي المحافظات تحتاج دعم؟',
-  ];
+        '📊 ما حالة الإرساليات اليوم؟',
+        '⚠️ أين النواقص الحرجة؟',
+        '📈 اعرض تقرير أسبوعي',
+        '🗺️ أي المحافظات تحتاج دعم؟',
+      ];
 
   // ─── Report Templates ─────────────────────────────────────────────────────
 
@@ -103,14 +103,21 @@ class GeminiService {
     required Map<String, dynamic> analyticsData,
   }) async {
     final descriptions = {
-      'daily': 'أنشئ تقريراً يومياً شاملاً: ملخص الإرساليات، توزيع الحالات، النواقص الحرجة، توصيات.',
-      'weekly': 'حلل اتجاه الأسبوع: هل الإرساليات في تحسن أم تراجع؟ ما الأسباب؟',
-      'governorate': 'قارن أداء المحافظات: الأفضل أداءً، الأضعف، مع نسب وترتيب.',
+      'daily':
+          'أنشئ تقريراً يومياً شاملاً: ملخص الإرساليات، توزيع الحالات، النواقص الحرجة، توصيات.',
+      'weekly':
+          'حلل اتجاه الأسبوع: هل الإرساليات في تحسن أم تراجع؟ ما الأسباب؟',
+      'governorate':
+          'قارن أداء المحافظات: الأفضل أداءً، الأضعف، مع نسب وترتيب.',
       'shortages': 'حلل النواقص: حسب الخطورة، حسب الموقع، أولويات المعالجة.',
-      'quality': 'حلل جودة البيانات: نسبة الرفض، اكتمال الحقول، أكثر الأخطاء شيوعاً.',
-      'comparison': 'قارن فترتين زمنيتين: الأسبوع الحالي مقابل السابق، مع نسب التغيير.',
-      'coverage': 'حلل تغطية التطعيم: Penta3، نسبة الانسحاب، حصبة. حدد الفجوات والتدخلات.',
-      'field_performance': 'تقييم أداء المشرفين الميدانيين: عدد الإرساليات، جودة الإدخال، الالتزام.',
+      'quality':
+          'حلل جودة البيانات: نسبة الرفض، اكتمال الحقول، أكثر الأخطاء شيوعاً.',
+      'comparison':
+          'قارن فترتين زمنيتين: الأسبوع الحالي مقابل السابق، مع نسب التغيير.',
+      'coverage':
+          'حلل تغطية التطعيم: Penta3، نسبة الانسحاب، حصبة. حدد الفجوات والتدخلات.',
+      'field_performance':
+          'تقييم أداء المشرفين الميدانيين: عدد الإرساليات، جودة الإدخال، الالتزام.',
     };
 
     return chat(
@@ -121,20 +128,61 @@ class GeminiService {
   }
 
   List<Map<String, dynamic>> _fallbackTemplates() => [
-    {'id': 'daily', 'name': 'التقرير اليومي', 'description': 'ملخص شامل ليوم العمل', 'icon': '📅'},
-    {'id': 'weekly', 'name': 'التقرير الأسبوعي', 'description': 'تحليل اتجاه الأسبوع', 'icon': '📊'},
-    {'id': 'governorate', 'name': 'تقرير المحافظات', 'description': 'مقارنة أداء المحافظات', 'icon': '🗺️'},
-    {'id': 'shortages', 'name': 'تقرير النواقص', 'description': 'تحليل النواقص والحلول', 'icon': '⚠️'},
-    {'id': 'quality', 'name': 'تقرير جودة البيانات', 'description': 'اكتمال ودقة الإدخال', 'icon': '✅'},
-    {'id': 'comparison', 'name': 'تقرير مقارنة', 'description': 'مقارنة فترتين زمنيتين', 'icon': '🔄'},
-    {'id': 'coverage', 'name': 'تقرير التغطية', 'description': 'تغطية التطعيمات وفجوات', 'icon': '💉'},
-    {'id': 'field_performance', 'name': 'تقييم الميدانيين', 'description': 'أداء المشرفين الميدانيين', 'icon': '👥'},
-  ];
+        {
+          'id': 'daily',
+          'name': 'التقرير اليومي',
+          'description': 'ملخص شامل ليوم العمل',
+          'icon': '📅'
+        },
+        {
+          'id': 'weekly',
+          'name': 'التقرير الأسبوعي',
+          'description': 'تحليل اتجاه الأسبوع',
+          'icon': '📊'
+        },
+        {
+          'id': 'governorate',
+          'name': 'تقرير المحافظات',
+          'description': 'مقارنة أداء المحافظات',
+          'icon': '🗺️'
+        },
+        {
+          'id': 'shortages',
+          'name': 'تقرير النواقص',
+          'description': 'تحليل النواقص والحلول',
+          'icon': '⚠️'
+        },
+        {
+          'id': 'quality',
+          'name': 'تقرير جودة البيانات',
+          'description': 'اكتمال ودقة الإدخال',
+          'icon': '✅'
+        },
+        {
+          'id': 'comparison',
+          'name': 'تقرير مقارنة',
+          'description': 'مقارنة فترتين زمنيتين',
+          'icon': '🔄'
+        },
+        {
+          'id': 'coverage',
+          'name': 'تقرير التغطية',
+          'description': 'تغطية التطعيمات وفجوات',
+          'icon': '💉'
+        },
+        {
+          'id': 'field_performance',
+          'name': 'تقييم الميدانيين',
+          'description': 'أداء المشرفين الميدانيين',
+          'icon': '👥'
+        },
+      ];
 
   // ─── Quick Actions ─────────────────────────────────────────────────────────
 
   /// Get contextual quick actions based on current data
-  Future<List<Map<String, dynamic>>> getQuickActions({Map<String, dynamic>? context}) async {
+  Future<List<Map<String, dynamic>>> getQuickActions(
+      {Map<String, dynamic>? context}) async {
     try {
       final response = await _api.callFunction(SupabaseConfig.fnAiChat, {
         'mode': 'quick_actions',
@@ -149,7 +197,11 @@ class GeminiService {
     return [
       {'label': 'تقرير يومي', 'icon': '📅', 'action': 'daily_report'},
       {'label': 'فحص النواقص', 'icon': '⚠️', 'action': 'check_shortages'},
-      {'label': 'تغطية التطعيم', 'icon': '💉', 'action': 'vaccination_coverage'},
+      {
+        'label': 'تغطية التطعيم',
+        'icon': '💉',
+        'action': 'vaccination_coverage'
+      },
     ];
   }
 

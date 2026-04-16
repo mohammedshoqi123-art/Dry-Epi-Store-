@@ -28,14 +28,15 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   // Minimum role level required per route
   const routeMinRole = {
-    '/ai': 1,              // everyone
-    '/references': 1,      // everyone can view references
+    '/ai': 1, // everyone
+    '/references': 1, // everyone can view references
   };
 
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
-    refreshListenable: GoRouterRefreshStream(ref.watch(authRepositoryProvider).authStateChanges),
+    refreshListenable: GoRouterRefreshStream(
+        ref.watch(authRepositoryProvider).authStateChanges),
     redirect: (context, state) {
       final isLoginRoute = state.matchedLocation == '/login';
       final isSplash = state.matchedLocation == '/splash';
@@ -181,15 +182,18 @@ class _MainShellState extends ConsumerState<MainShell> {
                 ? 'فشلت مزامنة ${result.failed} عنصر ❌'
                 : 'لا توجد عناصر للمزامنة';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg, style: const TextStyle(fontFamily: 'Tajawal')),
-            duration: const Duration(seconds: 2)),
+          SnackBar(
+              content: Text(msg, style: const TextStyle(fontFamily: 'Tajawal')),
+              duration: const Duration(seconds: 2)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشلت المزامنة: $e', style: const TextStyle(fontFamily: 'Tajawal')),
-            duration: const Duration(seconds: 3)),
+          SnackBar(
+              content: Text('فشلت المزامنة: $e',
+                  style: const TextStyle(fontFamily: 'Tajawal')),
+              duration: const Duration(seconds: 3)),
         );
       }
     } finally {
@@ -200,7 +204,8 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   Widget build(BuildContext context) {
     final connectivityAsync = ref.watch(connectivityProvider);
-    final isOnline = connectivityAsync.valueOrNull ?? ConnectivityUtils.isOnline;
+    final isOnline =
+        connectivityAsync.valueOrNull ?? ConnectivityUtils.isOnline;
     final pendingAsync = ref.watch(syncPendingCountProvider);
     final pendingCount = pendingAsync.valueOrNull ?? 0;
 
@@ -232,10 +237,12 @@ class _MainShellState extends ConsumerState<MainShell> {
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : Badge(
-                      label: Text('$pendingCount', style: const TextStyle(fontSize: 10)),
+                      label: Text('$pendingCount',
+                          style: const TextStyle(fontSize: 10)),
                       child: const Icon(Icons.cloud_upload_rounded, size: 20),
                     ),
             ),
@@ -265,11 +272,21 @@ class _MainShellState extends ConsumerState<MainShell> {
 
   void _onItemTapped(BuildContext context, int index) {
     switch (index) {
-      case 0: context.go('/dashboard'); break;
-      case 1: context.go('/forms'); break;
-      case 2: context.go('/forms/status'); break;
-      case 3: context.go('/map'); break;
-      case 4: context.go('/chat'); break;
+      case 0:
+        context.go('/dashboard');
+        break;
+      case 1:
+        context.go('/forms');
+        break;
+      case 2:
+        context.go('/forms/status');
+        break;
+      case 3:
+        context.go('/map');
+        break;
+      case 4:
+        context.go('/chat');
+        break;
     }
   }
 }
@@ -292,7 +309,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('لا يمكن المزامنة بدون إنترنت. اتصلك حالياً غير متاح.', style: TextStyle(fontFamily: 'Tajawal')),
+            content: Text(
+                'لا يمكن المزامنة بدون إنترنت. اتصلك حالياً غير متاح.',
+                style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),
@@ -331,7 +350,8 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشلت المزامنة: $e', style: const TextStyle(fontFamily: 'Tajawal')),
+            content: Text('فشلت المزامنة: $e',
+                style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -360,7 +380,9 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       isSyncingConfig: _isSyncingConfig,
       activeCampaign: campaign.value,
       onCampaignChanged: (v) {
-        ref.read(campaignProvider.notifier).selectCampaign(CampaignType.fromString(v));
+        ref
+            .read(campaignProvider.notifier)
+            .selectCampaign(CampaignType.fromString(v));
       },
     );
   }

@@ -326,7 +326,8 @@ class EnhancedSyncService {
     final pending = _getPendingChanges();
     change['queued_at'] = DateTime.now().toIso8601String();
     change['retry_count'] = 0;
-    change['change_id'] = change['change_id'] ?? DateTime.now().microsecondsSinceEpoch.toString();
+    change['change_id'] =
+        change['change_id'] ?? DateTime.now().microsecondsSinceEpoch.toString();
     pending.add(change);
     await _savePendingChanges(pending);
     _pendingCount = pending.length;
@@ -434,8 +435,7 @@ class EnhancedSyncService {
           final conflict = _detectConflict(change, serverVersion);
           if (conflict != null) {
             await _saveConflict(conflict);
-            return ChangeSyncResult.conflict(
-                change['change_id'], conflict);
+            return ChangeSyncResult.conflict(change['change_id'], conflict);
           }
         }
       }

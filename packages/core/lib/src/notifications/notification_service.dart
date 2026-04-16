@@ -138,8 +138,7 @@ class NotificationService {
         offset: _currentPage * _pageSize,
       );
 
-      final loaded =
-          results.map((j) => AppNotification.fromJson(j)).toList();
+      final loaded = results.map((j) => AppNotification.fromJson(j)).toList();
 
       if (loaded.length < _pageSize) _hasMore = false;
       _notifications.addAll(loaded);

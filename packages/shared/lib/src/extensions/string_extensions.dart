@@ -6,12 +6,10 @@ extension StringExtensions on String {
           .hasMatch(this);
 
   // ─── Phone (Yemeni) ───────────────────────────────────────────────────────
-  bool get isValidYemeniPhone =>
-      RegExp(r'^(07[0-9]{8})$').hasMatch(this);
+  bool get isValidYemeniPhone => RegExp(r'^(07[0-9]{8})$').hasMatch(this);
 
   /// Generic phone validator (7-15 digits)
-  bool get isValidPhone =>
-      RegExp(r'^\+?[0-9]{7,15}$').hasMatch(this);
+  bool get isValidPhone => RegExp(r'^\+?[0-9]{7,15}$').hasMatch(this);
 
   // ─── General ──────────────────────────────────────────────────────────────
   bool get isNotBlank => trim().isNotEmpty;

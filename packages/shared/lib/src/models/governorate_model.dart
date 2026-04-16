@@ -18,5 +18,6 @@ class GovernorateModel with _$GovernorateModel {
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _GovernorateModel;
 
-  factory GovernorateModel.fromJson(Map<String, dynamic> json) => _$GovernorateModelFromJson(json);
+  factory GovernorateModel.fromJson(Map<String, dynamic> json) =>
+      _$GovernorateModelFromJson(json);
 }

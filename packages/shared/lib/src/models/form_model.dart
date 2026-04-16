@@ -23,14 +23,16 @@ class FormModel with _$FormModel {
     @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _FormModel;
 
-  factory FormModel.fromJson(Map<String, dynamic> json) => _$FormModelFromJson(json);
+  factory FormModel.fromJson(Map<String, dynamic> json) =>
+      _$FormModelFromJson(json);
 }
 
 @freezed
 class FormField with _$FormField {
   const factory FormField({
     required String key,
-    required String type, // text, number, select, multiselect, date, gps, photo, textarea
+    required String
+        type, // text, number, select, multiselect, date, gps, photo, textarea
     @JsonKey(name: 'label_ar') required String labelAr,
     @JsonKey(name: 'label_en') String? labelEn,
     @Default(false) bool required,
@@ -43,5 +45,6 @@ class FormField with _$FormField {
     Map<String, dynamic>? validation,
   }) = _FormField;
 
-  factory FormField.fromJson(Map<String, dynamic> json) => _$FormFieldFromJson(json);
+  factory FormField.fromJson(Map<String, dynamic> json) =>
+      _$FormFieldFromJson(json);
 }

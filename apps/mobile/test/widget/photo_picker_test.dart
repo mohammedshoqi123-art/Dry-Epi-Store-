@@ -46,7 +46,8 @@ void main() {
       expect(find.text('انقر لإرفاق صورة'), findsOneWidget);
     });
 
-    testWidgets('renders with required styling when empty and required', (tester) async {
+    testWidgets('renders with required styling when empty and required',
+        (tester) async {
       await tester.pumpWidget(buildPhotoPicker(isRequired: true));
 
       // Should not crash

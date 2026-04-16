@@ -50,7 +50,8 @@ class ProductionSyncQueue {
     await _recoverStuckItems();
 
     // Auto-cleanup every hour: remove completed items older than 24h
-    _cleanupTimer = Timer.periodic(const Duration(hours: 1), (_) => _autoCleanup());
+    _cleanupTimer =
+        Timer.periodic(const Duration(hours: 1), (_) => _autoCleanup());
 
     // Emit initial counts
     _emitCounts();
@@ -108,7 +109,9 @@ class ProductionSyncQueue {
     await _saveEntry(entry);
     _emitCounts();
 
-    if (kDebugMode) print('[SyncQueue] Enqueued: ${entry.id} (type=$type, priority=${priority.name})');
+    if (kDebugMode)
+      print(
+          '[SyncQueue] Enqueued: ${entry.id} (type=$type, priority=${priority.name})');
     return entry.id;
   }
 
@@ -120,7 +123,8 @@ class ProductionSyncQueue {
     final entries = _getAllEntries();
     return entries
         .where((e) =>
-            (e.status == QueueItemStatus.pending || e.status == QueueItemStatus.retrying) &&
+            (e.status == QueueItemStatus.pending ||
+                e.status == QueueItemStatus.retrying) &&
             e.isReadyForRetry)
         .toList()
       ..sort((a, b) {
@@ -174,7 +178,8 @@ class ProductionSyncQueue {
       );
       await _saveFailedEntry(failedEntry);
       await _deleteEntry(id);
-      if (kDebugMode) print('[SyncQueue] Moved to failed box: $id (retries=$newRetryCount)');
+      if (kDebugMode)
+        print('[SyncQueue] Moved to failed box: $id (retries=$newRetryCount)');
     } else {
       // Update for retry with backoff
       final retryEntry = entry.copyWith(
@@ -185,8 +190,9 @@ class ProductionSyncQueue {
       );
       await _saveEntry(retryEntry);
       if (kDebugMode) {
-        print('[SyncQueue] Retry $newRetryCount/${SyncQueueEntry.maxRetries} for $id '
-              '(next retry in ${retryEntry.nextRetryDelay.inSeconds}s)');
+        print(
+            '[SyncQueue] Retry $newRetryCount/${SyncQueueEntry.maxRetries} for $id '
+            '(next retry in ${retryEntry.nextRetryDelay.inSeconds}s)');
       }
     }
     _emitCounts();
@@ -197,15 +203,18 @@ class ProductionSyncQueue {
   /// Get all permanently failed items for manual review.
   List<SyncQueueEntry> getFailedItems() {
     if (_failedBox == null || !_failedBox!.isOpen) return [];
-    return _failedBox!.values.map((raw) {
-      try {
-        return SyncQueueEntry.fromJson(
-          Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
-        );
-      } catch (_) {
-        return null;
-      }
-    }).whereType<SyncQueueEntry>().toList()
+    return _failedBox!.values
+        .map((raw) {
+          try {
+            return SyncQueueEntry.fromJson(
+              Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+            );
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<SyncQueueEntry>()
+        .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
@@ -249,9 +258,12 @@ class ProductionSyncQueue {
 
   QueueCounts getCounts() {
     final entries = _getAllEntries();
-    final pending = entries.where((e) => e.status == QueueItemStatus.pending).length;
-    final retrying = entries.where((e) => e.status == QueueItemStatus.retrying).length;
-    final syncing = entries.where((e) => e.status == QueueItemStatus.syncing).length;
+    final pending =
+        entries.where((e) => e.status == QueueItemStatus.pending).length;
+    final retrying =
+        entries.where((e) => e.status == QueueItemStatus.retrying).length;
+    final syncing =
+        entries.where((e) => e.status == QueueItemStatus.syncing).length;
     final failed = getFailedItems().length;
 
     return QueueCounts(
@@ -283,7 +295,8 @@ class ProductionSyncQueue {
           Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
         );
         // Remove old completed items
-        if (entry.status == QueueItemStatus.completed && entry.createdAt.isBefore(cutoff)) {
+        if (entry.status == QueueItemStatus.completed &&
+            entry.createdAt.isBefore(cutoff)) {
           keysToDelete.add(key as String);
         }
       } catch (_) {
@@ -319,7 +332,8 @@ class ProductionSyncQueue {
   Box<String> get _safeQueueBox {
     final b = _queueBox;
     if (b == null || !b.isOpen) {
-      throw StateError('ProductionSyncQueue not initialized. Call init() first.');
+      throw StateError(
+          'ProductionSyncQueue not initialized. Call init() first.');
     }
     return b;
   }
@@ -346,15 +360,18 @@ class ProductionSyncQueue {
   }
 
   List<SyncQueueEntry> _getAllEntries() {
-    return _safeQueueBox.values.map((raw) {
-      try {
-        return SyncQueueEntry.fromJson(
-          Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
-        );
-      } catch (_) {
-        return null;
-      }
-    }).whereType<SyncQueueEntry>().toList();
+    return _safeQueueBox.values
+        .map((raw) {
+          try {
+            return SyncQueueEntry.fromJson(
+              Map<String, dynamic>.from(jsonDecode(_encryption.decrypt(raw))),
+            );
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<SyncQueueEntry>()
+        .toList();
   }
 
   Future<void> _saveFailedEntry(SyncQueueEntry entry) async {

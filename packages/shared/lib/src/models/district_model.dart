@@ -21,5 +21,6 @@ class DistrictModel with _$DistrictModel {
     Map<String, dynamic>? governorates,
   }) = _DistrictModel;
 
-  factory DistrictModel.fromJson(Map<String, dynamic> json) => _$DistrictModelFromJson(json);
+  factory DistrictModel.fromJson(Map<String, dynamic> json) =>
+      _$DistrictModelFromJson(json);
 }

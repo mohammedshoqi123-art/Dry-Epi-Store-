@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -207,10 +206,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                   _iconButton(
                     Icons.refresh_rounded,
                     onTap: () {
-                      ref.invalidate(submissionsProvider(
-                          SubmissionsFilter(
-                              campaignType:
-                                  ref.read(campaignProvider).value)));
+                      ref.invalidate(submissionsProvider(SubmissionsFilter(
+                          campaignType: ref.read(campaignProvider).value)));
                       ref.invalidate(shortagesProvider);
                       ref.invalidate(governoratesProvider);
                     },
@@ -221,8 +218,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
                     _showStats
                         ? Icons.info_rounded
                         : Icons.info_outline_rounded,
-                    onTap: () =>
-                        setState(() => _showStats = !_showStats),
+                    onTap: () => setState(() => _showStats = !_showStats),
                   ),
                 ],
               ),
@@ -233,14 +229,12 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
-                    _modeChip('submissions', 'إرساليات',
-                        Icons.description_rounded),
-                    const SizedBox(width: 8),
                     _modeChip(
-                        'shortages', 'نواقص', Icons.warning_rounded),
+                        'submissions', 'إرساليات', Icons.description_rounded),
                     const SizedBox(width: 8),
-                    _modeChip(
-                        'heatmap', 'خريطة حرارية', Icons.grid_on_rounded),
+                    _modeChip('shortages', 'نواقص', Icons.warning_rounded),
+                    const SizedBox(width: 8),
+                    _modeChip('heatmap', 'خريطة حرارية', Icons.grid_on_rounded),
                   ],
                 ),
               ),
@@ -252,9 +246,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
   }
 
   Widget _modeChip(String mode, String label, IconData icon) {
-    final isActive = mode == 'heatmap'
-        ? _showHeatmap
-        : _mapMode == mode && !_showHeatmap;
+    final isActive =
+        mode == 'heatmap' ? _showHeatmap : _mapMode == mode && !_showHeatmap;
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -270,9 +263,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive
-              ? Colors.white
-              : Colors.white.withValues(alpha: 0.2),
+          color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(20),
           border: isActive
               ? null
@@ -285,9 +276,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
             Icon(
               icon,
               size: 16,
-              color: isActive
-                  ? const Color(0xFF00695C)
-                  : Colors.white,
+              color: isActive ? const Color(0xFF00695C) : Colors.white,
             ),
             const SizedBox(width: 6),
             Text(
@@ -295,11 +284,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
               style: TextStyle(
                 fontFamily: 'Tajawal',
                 fontSize: 13,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive
-                    ? const Color(0xFF00695C)
-                    : Colors.white,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? const Color(0xFF00695C) : Colors.white,
               ),
             ),
           ],
@@ -341,14 +327,15 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
           return Row(
             children: [
-              _statCard(
-                  'إرساليات', '$subCount', Icons.description_rounded,
+              _statCard('إرساليات', '$subCount', Icons.description_rounded,
                   const Color(0xFF3B82F6)),
               const SizedBox(width: 8),
-              _statCard('محافظات', '$govCount',
-                  Icons.location_city_rounded, const Color(0xFF10B981)),
+              _statCard('محافظات', '$govCount', Icons.location_city_rounded,
+                  const Color(0xFF10B981)),
               const SizedBox(width: 8),
-              _statCard('خريطة', _showHeatmap ? 'حرارية' : 'علامات',
+              _statCard(
+                  'خريطة',
+                  _showHeatmap ? 'حرارية' : 'علامات',
                   _showHeatmap ? Icons.grid_on : Icons.place_rounded,
                   const Color(0xFFF59E0B)),
             ],
@@ -358,8 +345,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
     );
   }
 
-  Widget _statCard(
-      String label, String value, IconData icon, Color color) {
+  Widget _statCard(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -557,8 +543,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
               () {
                 setState(
                     () => _currentZoom = (_currentZoom + 1).clamp(4.0, 18.0));
-                _mapController.move(
-                    _mapController.camera.center, _currentZoom);
+                _mapController.move(_mapController.camera.center, _currentZoom);
               },
               iconColor: const Color(0xFF1A2332),
             ),
@@ -573,8 +558,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
               () {
                 setState(
                     () => _currentZoom = (_currentZoom - 1).clamp(4.0, 18.0));
-                _mapController.move(
-                    _mapController.camera.center, _currentZoom);
+                _mapController.move(_mapController.camera.center, _currentZoom);
               },
               iconColor: const Color(0xFF1A2332),
             ),
@@ -649,10 +633,26 @@ class _MapScreenState extends ConsumerState<MapScreen>
   ) {
     return ColorFiltered(
       colorFilter: const ColorFilter.matrix([
-        0.85, 0, 0, 0, 10,
-        0, 0.9, 0, 0, 8,
-        0, 0, 0.95, 0, 5,
-        0, 0, 0, 1, 0,
+        0.85,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0.9,
+        0,
+        0,
+        8,
+        0,
+        0,
+        0.95,
+        0,
+        5,
+        0,
+        0,
+        0,
+        1,
+        0,
       ]),
       child: tileWidget,
     );
@@ -675,27 +675,24 @@ class _MapScreenState extends ConsumerState<MapScreen>
           final lng = gov['center_lng'];
           if (lat == null || lng == null) continue;
 
-          final count =
-              (gov['submission_count'] as num?)?.toDouble() ?? 1.0;
+          final count = (gov['submission_count'] as num?)?.toDouble() ?? 1.0;
           const maxCount = 50.0;
           final intensity = (count / maxCount).clamp(0.1, 1.0);
 
           Color color;
           if (intensity < 0.33) {
-            color = Color.lerp(
-                const Color(0xFF22C55E), const Color(0xFFFBBF24),
+            color = Color.lerp(const Color(0xFF22C55E), const Color(0xFFFBBF24),
                 intensity * 3)!;
           } else if (intensity < 0.66) {
-            color = Color.lerp(const Color(0xFFFBBF24),
-                const Color(0xFFF97316), (intensity - 0.33) * 3)!;
+            color = Color.lerp(const Color(0xFFFBBF24), const Color(0xFFF97316),
+                (intensity - 0.33) * 3)!;
           } else {
-            color = Color.lerp(const Color(0xFFF97316),
-                const Color(0xFFEF4444), (intensity - 0.66) * 3)!;
+            color = Color.lerp(const Color(0xFFF97316), const Color(0xFFEF4444),
+                (intensity - 0.66) * 3)!;
           }
 
           circles.add(CircleMarker(
-            point: LatLng(
-                lat.toDouble(), lng.toDouble()),
+            point: LatLng(lat.toDouble(), lng.toDouble()),
             radius: 12000 + (count * 600),
             useRadiusInMeter: true,
             color: color.withValues(alpha: 0.35),
@@ -705,8 +702,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
           // Add count label
           labels.add(Marker(
-            point: LatLng(
-                lat.toDouble(), lng.toDouble()),
+            point: LatLng(lat.toDouble(), lng.toDouble()),
             width: 40,
             height: 24,
             child: Container(
@@ -741,8 +737,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
   // ─── Submissions Cluster Layer ───────────────────────────────────────
 
   Widget _buildSubmissionsClusterLayer() {
-    final submissionsAsync = ref.watch(submissionsProvider(SubmissionsFilter(
-        campaignType: ref.read(campaignProvider).value)));
+    final submissionsAsync = ref.watch(submissionsProvider(
+        SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
 
     return submissionsAsync.when(
       loading: () => const MarkerLayer(markers: []),
@@ -858,8 +854,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
           final lng = shortage['gps_lng'] as double?;
           if (lat == null || lng == null) continue;
 
-          final severity =
-              shortage['severity'] as String? ?? 'medium';
+          final severity = shortage['severity'] as String? ?? 'medium';
           final color = _severityColor(severity);
 
           markers.add(Marker(
@@ -868,8 +863,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
             height: 44,
             child: GestureDetector(
               onTap: () => _showShortageInfo(shortage),
-              child: _animatedMarker(
-                  color, Icons.warning_rounded),
+              child: _animatedMarker(color, Icons.warning_rounded),
             ),
           ));
         }
@@ -893,17 +887,14 @@ class _MapScreenState extends ConsumerState<MapScreen>
       error: (_, __) => const MarkerLayer(markers: []),
       data: (governorates) {
         final markers = governorates
-            .where((g) =>
-                g['center_lat'] != null && g['center_lng'] != null)
+            .where((g) => g['center_lat'] != null && g['center_lng'] != null)
             .map((gov) {
           final lat = (gov['center_lat'] as num).toDouble();
           final lng = (gov['center_lng'] as num).toDouble();
           final name = gov['name_ar'] ?? '';
-          final count =
-              (gov['submission_count'] as num?)?.toInt() ?? 0;
-          final color = severityMode
-              ? const Color(0xFFF97316)
-              : const Color(0xFF00897B);
+          final count = (gov['submission_count'] as num?)?.toInt() ?? 0;
+          final color =
+              severityMode ? const Color(0xFFF97316) : const Color(0xFF00897B);
 
           return Marker(
             point: LatLng(lat, lng),
@@ -916,8 +907,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                 children: [
                   // Label
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: color,
                       borderRadius: BorderRadius.circular(10),
@@ -947,10 +938,8 @@ class _MapScreenState extends ConsumerState<MapScreen>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
-                              color: Colors.white
-                                  .withValues(alpha: 0.25),
-                              borderRadius:
-                                  BorderRadius.circular(8),
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '$count',
@@ -988,8 +977,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void _showSubmissionInfo(Map<String, dynamic> sub) {
     final formTitle = sub['forms']?['title_ar'] ?? 'نموذج';
     final status = sub['status'] ?? 'draft';
-    final date =
-        sub['created_at']?.toString().split('T')[0] ?? '';
+    final date = sub['created_at']?.toString().split('T')[0] ?? '';
     final gov = sub['governorates']?['name_ar'] ?? '';
     final dist = sub['districts']?['name_ar'] ?? '';
     final color = _statusColor(status);
@@ -1153,8 +1141,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
             ),
             const SizedBox(height: 8),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
@@ -1192,8 +1179,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
   void _showGovernorateInfo(Map<String, dynamic> gov) {
     final name = gov['name_ar'] ?? '';
     final nameEn = gov['name_en'] ?? '';
-    final count =
-        (gov['submission_count'] as num?)?.toInt() ?? 0;
+    final count = (gov['submission_count'] as num?)?.toInt() ?? 0;
 
     showModalBottomSheet(
       context: context,
@@ -1259,8 +1245,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _govStatBox('الإرساليات', '$count',
-                    Icons.description_rounded),
+                _govStatBox('الإرساليات', '$count', Icons.description_rounded),
               ],
             ),
             const SizedBox(height: 16),

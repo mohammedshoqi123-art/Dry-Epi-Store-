@@ -13,9 +13,9 @@ import 'dart:math';
 /// Higher priority items are synced first.
 enum SyncPriority {
   critical(100), // Form submissions with health data
-  high(75),      // Shortage reports
-  normal(50),    // Profile updates
-  low(25);       // Analytics, logs
+  high(75), // Shortage reports
+  normal(50), // Profile updates
+  low(25); // Analytics, logs
 
   const SyncPriority(this.value);
   final int value;
@@ -23,15 +23,22 @@ enum SyncPriority {
 
 /// Status of a queue item through its lifecycle.
 enum QueueItemStatus {
-  pending,    // Waiting to be synced
-  syncing,    // Currently being sent
-  retrying,   // Failed, waiting for retry
-  failed,     // Exceeded max retries, moved to failed box
-  completed;  // Successfully synced
+  pending, // Waiting to be synced
+  syncing, // Currently being sent
+  retrying, // Failed, waiting for retry
+  failed, // Exceeded max retries, moved to failed box
+  completed; // Successfully synced
 }
 
 /// Conflict resolution strategies.
-enum ConflictStrategy { localWins, serverWins, merge, manual, smartMerge, manualReview }
+enum ConflictStrategy {
+  localWins,
+  serverWins,
+  merge,
+  manual,
+  smartMerge,
+  manualReview
+}
 
 /// Network state for UI display.
 enum NetworkStatus { online, offline, syncing }
@@ -75,7 +82,8 @@ class SyncQueueEntry {
 
   /// Whether this item is ready to be retried (backoff has elapsed).
   bool get isReadyForRetry {
-    if (status != QueueItemStatus.retrying) return status == QueueItemStatus.pending;
+    if (status != QueueItemStatus.retrying)
+      return status == QueueItemStatus.pending;
     if (lastAttemptAt == null) return true;
     final backoffIndex = min(retryCount, _backoffSeconds.length - 1);
     final backoffDuration = Duration(seconds: _backoffSeconds[backoffIndex]);
@@ -83,7 +91,8 @@ class SyncQueueEntry {
   }
 
   /// Whether this item has permanently failed.
-  bool get hasFailed => status == QueueItemStatus.failed || retryCount >= maxRetries;
+  bool get hasFailed =>
+      status == QueueItemStatus.failed || retryCount >= maxRetries;
 
   Duration get nextRetryDelay {
     final backoffIndex = min(retryCount, _backoffSeconds.length - 1);
@@ -181,10 +190,15 @@ class SyncItemResult {
       SyncItemResult._(entryId: id, success: true, serverData: data);
 
   factory SyncItemResult.duplicate(String id, [Map<String, dynamic>? data]) =>
-      SyncItemResult._(entryId: id, success: true, isDuplicate: true, serverData: data);
+      SyncItemResult._(
+          entryId: id, success: true, isDuplicate: true, serverData: data);
 
   factory SyncItemResult.conflict(String id, Map<String, dynamic> serverData) =>
-      SyncItemResult._(entryId: id, success: false, hasConflict: true, serverData: serverData);
+      SyncItemResult._(
+          entryId: id,
+          success: false,
+          hasConflict: true,
+          serverData: serverData);
 
   factory SyncItemResult.error(String id, String error) =>
       SyncItemResult._(entryId: id, success: false, error: error);
@@ -243,7 +257,8 @@ class QueueCounts {
   bool get hasActivity => syncing > 0;
 
   @override
-  String toString() => 'QueueCounts(pending=$pending, retrying=$retrying, syncing=$syncing, failed=$failed)';
+  String toString() =>
+      'QueueCounts(pending=$pending, retrying=$retrying, syncing=$syncing, failed=$failed)';
 }
 
 /// Result of a sync attempt (legacy offline manager).
@@ -272,7 +287,8 @@ class OfflineSyncResult {
   bool get isDuplicate => status == OfflineSyncStatus.duplicate;
 
   @override
-  String toString() => 'OfflineSyncResult($offlineId: $status${errorMessage != null ? ' - $errorMessage' : ''})';
+  String toString() =>
+      'OfflineSyncResult($offlineId: $status${errorMessage != null ? ' - $errorMessage' : ''})';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -283,14 +299,25 @@ class OfflineSyncResult {
 class FieldCategories {
   /// Fields where the client (field worker) always has the latest truth.
   static const fieldDataKeys = {
-    'data', 'gps_lat', 'gps_lng', 'gps_accuracy',
-    'photos', 'notes', 'submitted_at', 'device_id',
+    'data',
+    'gps_lat',
+    'gps_lng',
+    'gps_accuracy',
+    'photos',
+    'notes',
+    'submitted_at',
+    'device_id',
   };
 
   /// Fields managed by admin/server that should not be overwritten by client.
   static const adminKeys = {
-    'status', 'reviewed_by', 'reviewed_at', 'approved_by',
-    'approved_at', 'rejection_reason', 'admin_notes',
+    'status',
+    'reviewed_by',
+    'reviewed_at',
+    'approved_by',
+    'approved_at',
+    'rejection_reason',
+    'admin_notes',
   };
 
   static bool isFieldData(String key) => fieldDataKeys.contains(key);
@@ -325,7 +352,8 @@ class DataConflictV2 {
   List<String> get differingFields {
     final allKeys = {...localData.keys, ...serverData.keys};
     return allKeys.where((key) {
-      if (const {'updated_at', 'created_at', 'id', 'offline_id'}.contains(key)) return false;
+      if (const {'updated_at', 'created_at', 'id', 'offline_id'}.contains(key))
+        return false;
       return localData[key] != serverData[key];
     }).toList();
   }
@@ -350,7 +378,8 @@ class DataConflictV2 {
         serverData: Map<String, dynamic>.from(json['server_data'] as Map),
         detectedAt: DateTime.parse(json['detected_at'] as String),
         resolvedStrategy: json['resolved_strategy'] != null
-            ? ConflictStrategy.values.byName(json['resolved_strategy'] as String)
+            ? ConflictStrategy.values
+                .byName(json['resolved_strategy'] as String)
             : null,
         resolvedData: json['resolved_data'] != null
             ? Map<String, dynamic>.from(json['resolved_data'] as Map)
@@ -446,7 +475,13 @@ class ConflictResolver {
     Map<String, dynamic> a,
     Map<String, dynamic> b,
   ) {
-    const skipKeys = {'updated_at', 'created_at', 'id', 'offline_id', 'synced_at'};
+    const skipKeys = {
+      'updated_at',
+      'created_at',
+      'id',
+      'offline_id',
+      'synced_at'
+    };
     for (final key in a.keys) {
       if (skipKeys.contains(key)) continue;
       if (a[key] != b[key]) return true;
@@ -482,10 +517,9 @@ class NetworkSnapshot {
   bool get hasPending => pendingItems > 0;
   bool get hasFailed => failedItems > 0;
 
-  Duration? get offlineDuration =>
-      !isOnline && lastOnlineAt != null
-          ? DateTime.now().difference(lastOnlineAt!)
-          : null;
+  Duration? get offlineDuration => !isOnline && lastOnlineAt != null
+      ? DateTime.now().difference(lastOnlineAt!)
+      : null;
 
   /// Emoji indicator for simple UI
   String get indicator => switch (status) {

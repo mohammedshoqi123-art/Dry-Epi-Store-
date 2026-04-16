@@ -67,9 +67,9 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
     try {
       final cache = await ref.read(offlineDataCacheProvider.future).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => throw Exception('timeout'),
-      );
+            const Duration(seconds: 5),
+            onTimeout: () => throw Exception('timeout'),
+          );
       final cachedForms = cache.getCachedDataList('forms');
       if (cachedForms != null) {
         for (final f in cachedForms) {
@@ -83,9 +83,9 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       if (form == null) {
         final db = ref.read(databaseServiceProvider);
         form = await db.getForm(widget.formId).timeout(
-          const Duration(seconds: 15),
-          onTimeout: () => throw TimeoutException('Network timeout'),
-        );
+              const Duration(seconds: 15),
+              onTimeout: () => throw TimeoutException('Network timeout'),
+            );
         await cache.cacheFormData(widget.formId, form);
       }
 
@@ -104,7 +104,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       await _loadDraft();
     } on TimeoutException {
       setState(() => _isLoading = false);
-      if (mounted) context.showError('انتهت مهلة تحميل النموذج — تحقق من الاتصال');
+      if (mounted)
+        context.showError('انتهت مهلة تحميل النموذج — تحقق من الاتصال');
     } catch (e) {
       debugPrint('[FormFillScreen] Load form error: $e');
       setState(() => _isLoading = false);
@@ -273,7 +274,9 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) context.showError('تم رفض إذن الموقع نهائياً. يرجى تفعيله من الإعدادات');
+        if (mounted)
+          context
+              .showError('تم رفض إذن الموقع نهائياً. يرجى تفعيله من الإعدادات');
         setState(() => _isGettingLocation = false);
         return;
       }
@@ -292,7 +295,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       for (final field in _allFields) {
         if (field['type'] == 'gps') {
           final key = field['key'] as String;
-          _formData[key] = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+          _formData[key] =
+              '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
         }
       }
       _markChanged();
@@ -335,7 +339,9 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           break;
         case 'date':
         case 'time':
-          if (_formData[key] == null || (_formData[key] as String?)?.isEmpty == true) missingFields.add(label);
+          if (_formData[key] == null ||
+              (_formData[key] as String?)?.isEmpty == true)
+            missingFields.add(label);
           break;
         case 'gps':
           if (_gpsLat == null) missingFields.add(label);
@@ -399,20 +405,25 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       };
 
       await offline.addToSyncQueue(submissionData);
-      await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+      await offline.saveDraft(
+          widget.formId, Map<String, dynamic>.from(_formData));
 
       if (offline.isOnline) {
         ref.read(syncServiceProvider.future).then((syncService) async {
           try {
             final result = await syncService.sync();
             if (kDebugMode) {
-              print('[FormSubmit] Immediate sync: ${result.synced} synced, ${result.failed} failed');
+              print(
+                  '[FormSubmit] Immediate sync: ${result.synced} synced, ${result.failed} failed');
             }
             if (result.synced > 0) {
-              try { await offline.removeDraft(widget.formId); } catch (_) {}
+              try {
+                await offline.removeDraft(widget.formId);
+              } catch (_) {}
             }
           } catch (e) {
-            if (kDebugMode) print('[FormSubmit] Immediate sync failed (will retry): $e');
+            if (kDebugMode)
+              print('[FormSubmit] Immediate sync failed (will retry): $e');
           }
         }).catchError((e) {
           if (kDebugMode) print('[FormSubmit] SyncService not available: $e');
@@ -451,7 +462,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           throw TimeoutException('Offline storage not ready');
         },
       );
-      await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+      await offline.saveDraft(
+          widget.formId, Map<String, dynamic>.from(_formData));
       _hasUnsavedChanges = false;
       if (mounted) context.showSuccess(AppStrings.draftSaved);
     } on TimeoutException {
@@ -459,7 +471,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     } catch (e) {
       final errorMsg = e.toString();
       if (mounted) {
-        if (errorMsg.contains('LateInitializationError') || errorMsg.contains('Hive')) {
+        if (errorMsg.contains('LateInitializationError') ||
+            errorMsg.contains('Hive')) {
           context.showError('خطأ في التخزين المحلي. حاول إعادة فتح التطبيق.');
         } else {
           context.showError('فشل حفظ المسودة: $errorMsg');
@@ -481,7 +494,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           throw TimeoutException('Offline storage not ready for auto-save');
         },
       );
-      await offline.saveDraft(widget.formId, Map<String, dynamic>.from(_formData));
+      await offline.saveDraft(
+          widget.formId, Map<String, dynamic>.from(_formData));
       _hasUnsavedChanges = false;
       if (showFeedback && mounted) {
         context.showSuccess('تم الحفظ التلقائي');
@@ -506,16 +520,22 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           TextButton.icon(
             onPressed: _isSavingDraft ? null : _saveDraft,
             icon: _isSavingDraft
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.save, color: Colors.white, size: 20),
-            label: const Text('حفظ', style: TextStyle(color: Colors.white, fontFamily: 'Tajawal')),
+            label: const Text('حفظ',
+                style: TextStyle(color: Colors.white, fontFamily: 'Tajawal')),
           ),
         ],
       ),
       body: _isLoading && _formSchema == null
           ? const EpiLoading()
           : _allFields.isEmpty
-              ? const EpiEmptyState(icon: Icons.description, title: 'لا توجد حقول في النموذج')
+              ? const EpiEmptyState(
+                  icon: Icons.description, title: 'لا توجد حقول في النموذج')
               : Form(
                   key: _formKey,
                   child: ListView(
@@ -526,13 +546,16 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                           padding: const EdgeInsets.only(bottom: 16),
                           child: Text(
                             _formSchema!['description_ar'],
-                            style: const TextStyle(fontFamily: 'Tajawal', color: AppTheme.textSecondary),
+                            style: const TextStyle(
+                                fontFamily: 'Tajawal',
+                                color: AppTheme.textSecondary),
                           ),
                         ),
                       if (_sections.isNotEmpty)
                         ..._buildSections()
                       else
-                        ..._flatFields.map((field) => _buildField(field as Map<String, dynamic>)),
+                        ..._flatFields.map((field) =>
+                            _buildField(field as Map<String, dynamic>)),
                       const SizedBox(height: 24),
                       EpiButton(
                         text: AppStrings.submit,
@@ -551,11 +574,13 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     final widgets = <Widget>[];
 
     final sortedSections = List.from(_sections);
-    sortedSections.sort((a, b) => (a['order'] as int? ?? 0).compareTo(b['order'] as int? ?? 0));
+    sortedSections.sort(
+        (a, b) => (a['order'] as int? ?? 0).compareTo(b['order'] as int? ?? 0));
 
     for (final section in sortedSections) {
       final title = section['title_ar'] as String? ?? '';
-      final fields = (section['fields'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final fields =
+          (section['fields'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
       widgets.add(
         Container(
@@ -564,7 +589,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           decoration: BoxDecoration(
             color: AppTheme.primaryColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+            border:
+                Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -620,10 +646,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontFamily: 'Tajawal', fontWeight: FontWeight.w600),
                 ),
               ),
-              if (isRequired) const Text(' *', style: TextStyle(color: AppTheme.errorColor)),
+              if (isRequired)
+                const Text(' *', style: TextStyle(color: AppTheme.errorColor)),
             ],
           ),
           const SizedBox(height: 8),
@@ -633,26 +661,38 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
     );
   }
 
-  Widget _buildFieldInput(Map<String, dynamic> field, String key, String type, String? hint, bool isRequired) {
+  Widget _buildFieldInput(Map<String, dynamic> field, String key, String type,
+      String? hint, bool isRequired) {
     switch (type) {
       case 'text':
         return EpiTextField(
-          controller: _getController(key, initialValue: _formData[key]?.toString()),
+          controller:
+              _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
-          onChanged: (v) { _formData[key] = v; _markChanged(); },
-          validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
+          onChanged: (v) {
+            _formData[key] = v;
+            _markChanged();
+          },
+          validator: isRequired
+              ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null
+              : null,
         );
 
       case 'phone':
         return EpiTextField(
-          controller: _getController(key, initialValue: _formData[key]?.toString()),
+          controller:
+              _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint ?? '07XXXXXXXXX',
           keyboardType: TextInputType.phone,
-          onChanged: (v) { _formData[key] = v; _markChanged(); },
+          onChanged: (v) {
+            _formData[key] = v;
+            _markChanged();
+          },
           validator: isRequired
               ? (v) {
                   if (v == null || v.isEmpty) return AppStrings.required;
-                  if (!RegExp(r'^07\d{9}$').hasMatch(v)) return 'رقم الجوال غير صحيح';
+                  if (!RegExp(r'^07\d{9}$').hasMatch(v))
+                    return 'رقم الجوال غير صحيح';
                   return null;
                 }
               : null,
@@ -660,20 +700,32 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       case 'textarea':
         return EpiTextField(
-          controller: _getController(key, initialValue: _formData[key]?.toString()),
+          controller:
+              _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           maxLines: 4,
-          onChanged: (v) { _formData[key] = v; _markChanged(); },
-          validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
+          onChanged: (v) {
+            _formData[key] = v;
+            _markChanged();
+          },
+          validator: isRequired
+              ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null
+              : null,
         );
 
       case 'number':
         return EpiTextField(
-          controller: _getController(key, initialValue: _formData[key]?.toString()),
+          controller:
+              _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
           keyboardType: TextInputType.number,
-          onChanged: (v) { _formData[key] = num.tryParse(v); _markChanged(); },
-          validator: isRequired ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null : null,
+          onChanged: (v) {
+            _formData[key] = num.tryParse(v);
+            _markChanged();
+          },
+          validator: isRequired
+              ? (v) => (v == null || v.isEmpty) ? AppStrings.required : null
+              : null,
         );
 
       case 'select':
@@ -681,9 +733,18 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         return EpiDropdown<String>(
           hint: hint,
           value: _formData[key],
-          items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontFamily: 'Tajawal')))).toList(),
-          onChanged: (v) => setState(() { _formData[key] = v; _markChanged(); }),
-          validator: isRequired ? (v) => v == null ? AppStrings.required : null : null,
+          items: options
+              .map((o) => DropdownMenuItem(
+                  value: o,
+                  child:
+                      Text(o, style: const TextStyle(fontFamily: 'Tajawal'))))
+              .toList(),
+          onChanged: (v) => setState(() {
+            _formData[key] = v;
+            _markChanged();
+          }),
+          validator:
+              isRequired ? (v) => v == null ? AppStrings.required : null : null,
         );
 
       case 'multiselect':
@@ -725,20 +786,31 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
             children: [
               Expanded(
                 child: InkWell(
-                  onTap: () => setState(() { _formData[key] = true; _markChanged(); }),
-                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                  onTap: () => setState(() {
+                    _formData[key] = true;
+                    _markChanged();
+                  }),
+                  borderRadius:
+                      const BorderRadius.horizontal(right: Radius.circular(12)),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: currentValue == true ? AppTheme.successColor.withValues(alpha: 0.15) : null,
-                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(11)),
+                      color: currentValue == true
+                          ? AppTheme.successColor.withValues(alpha: 0.15)
+                          : null,
+                      borderRadius: const BorderRadius.horizontal(
+                          right: Radius.circular(11)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          currentValue == true ? Icons.check_circle : Icons.circle_outlined,
-                          color: currentValue == true ? AppTheme.successColor : Colors.grey,
+                          currentValue == true
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          color: currentValue == true
+                              ? AppTheme.successColor
+                              : Colors.grey,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -746,8 +818,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                           'نعم',
                           style: TextStyle(
                             fontFamily: 'Tajawal',
-                            fontWeight: currentValue == true ? FontWeight.bold : FontWeight.normal,
-                            color: currentValue == true ? AppTheme.successColor : Colors.grey.shade700,
+                            fontWeight: currentValue == true
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: currentValue == true
+                                ? AppTheme.successColor
+                                : Colors.grey.shade700,
                           ),
                         ),
                       ],
@@ -758,20 +834,31 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               Container(width: 1, height: 40, color: Colors.grey.shade300),
               Expanded(
                 child: InkWell(
-                  onTap: () => setState(() { _formData[key] = false; _markChanged(); }),
-                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                  onTap: () => setState(() {
+                    _formData[key] = false;
+                    _markChanged();
+                  }),
+                  borderRadius:
+                      const BorderRadius.horizontal(left: Radius.circular(12)),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
-                      color: currentValue == false ? AppTheme.errorColor.withValues(alpha: 0.15) : null,
-                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(11)),
+                      color: currentValue == false
+                          ? AppTheme.errorColor.withValues(alpha: 0.15)
+                          : null,
+                      borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(11)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          currentValue == false ? Icons.cancel : Icons.circle_outlined,
-                          color: currentValue == false ? AppTheme.errorColor : Colors.grey,
+                          currentValue == false
+                              ? Icons.cancel
+                              : Icons.circle_outlined,
+                          color: currentValue == false
+                              ? AppTheme.errorColor
+                              : Colors.grey,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -779,8 +866,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                           'لا',
                           style: TextStyle(
                             fontFamily: 'Tajawal',
-                            fontWeight: currentValue == false ? FontWeight.bold : FontWeight.normal,
-                            color: currentValue == false ? AppTheme.errorColor : Colors.grey.shade700,
+                            fontWeight: currentValue == false
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: currentValue == false
+                                ? AppTheme.errorColor
+                                : Colors.grey.shade700,
                           ),
                         ),
                       ],
@@ -804,14 +895,19 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               locale: const Locale('ar'),
             );
             if (date != null) {
-              setState(() { _formData[key] = date.toIso8601String().split('T')[0]; _markChanged(); });
+              setState(() {
+                _formData[key] = date.toIso8601String().split('T')[0];
+                _markChanged();
+              });
             }
           },
           child: InputDecorator(
             decoration: InputDecoration(
               hintText: hint ?? 'اختر التاريخ',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               suffixIcon: const Icon(Icons.calendar_today, size: 20),
             ),
             child: Text(
@@ -833,14 +929,20 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
               initialTime: TimeOfDay.now(),
             );
             if (time != null) {
-              setState(() { _formData[key] = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'; _markChanged(); });
+              setState(() {
+                _formData[key] =
+                    '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+                _markChanged();
+              });
             }
           },
           child: InputDecorator(
             decoration: InputDecoration(
               hintText: hint ?? 'اختر الوقت',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               suffixIcon: const Icon(Icons.access_time, size: 20),
             ),
             child: Text(
@@ -859,7 +961,8 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
           decoration: BoxDecoration(
             color: AppTheme.primarySurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
+            border:
+                Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -870,13 +973,18 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _gpsLat != null ? 'تم تحديد الموقع ✓' : 'انقر لتحديد الموقع',
+                      _gpsLat != null
+                          ? 'تم تحديد الموقع ✓'
+                          : 'انقر لتحديد الموقع',
                       style: const TextStyle(fontFamily: 'Tajawal'),
                     ),
                     if (_gpsLat != null)
                       Text(
                         '${_gpsLat!.toStringAsFixed(6)}, ${_gpsLng!.toStringAsFixed(6)}',
-                        style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary),
+                        style: const TextStyle(
+                            fontFamily: 'Tajawal',
+                            fontSize: 12,
+                            color: AppTheme.textSecondary),
                       ),
                   ],
                 ),
@@ -885,10 +993,12 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
                   ? const SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppTheme.primaryColor),
                     )
                   : IconButton(
-                      icon: const Icon(Icons.my_location, color: AppTheme.primaryColor),
+                      icon: const Icon(Icons.my_location,
+                          color: AppTheme.primaryColor),
                       onPressed: _getLocation,
                       tooltip: 'تحديد الموقع',
                     ),
@@ -912,7 +1022,10 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         return DistrictDropdown(
           governorateId: _formData['governorate_id'] as String?,
           value: _formData[key],
-          onChanged: (v) => setState(() { _formData[key] = v; _markChanged(); }),
+          onChanged: (v) => setState(() {
+            _formData[key] = v;
+            _markChanged();
+          }),
           isRequired: isRequired,
         );
 
@@ -920,7 +1033,10 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         return HealthFacilityDropdown(
           districtId: _formData['district_id'] as String?,
           value: _formData[key],
-          onChanged: (v) => setState(() { _formData[key] = v; _markChanged(); }),
+          onChanged: (v) => setState(() {
+            _formData[key] = v;
+            _markChanged();
+          }),
           isRequired: isRequired,
         );
 
@@ -942,9 +1058,13 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
 
       default:
         return EpiTextField(
-          controller: _getController(key, initialValue: _formData[key]?.toString()),
+          controller:
+              _getController(key, initialValue: _formData[key]?.toString()),
           hint: hint,
-          onChanged: (v) { _formData[key] = v; _markChanged(); },
+          onChanged: (v) {
+            _formData[key] = v;
+            _markChanged();
+          },
         );
     }
   }

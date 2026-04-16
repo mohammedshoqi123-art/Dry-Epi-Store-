@@ -34,7 +34,8 @@ void main() {
   });
 
   group('DistrictDropdown', () {
-    Widget buildDistDropdown({String? govId, String? value, bool isRequired = false}) {
+    Widget buildDistDropdown(
+        {String? govId, String? value, bool isRequired = false}) {
       return ProviderScope(
         child: MaterialApp(
           home: Scaffold(
@@ -49,14 +50,16 @@ void main() {
       );
     }
 
-    testWidgets('shows placeholder when no governorate selected', (tester) async {
+    testWidgets('shows placeholder when no governorate selected',
+        (tester) async {
       await tester.pumpWidget(buildDistDropdown(govId: null));
       await tester.pumpAndSettle();
 
       expect(find.text('اختر المحافظة أولاً'), findsOneWidget);
     });
 
-    testWidgets('renders without crashing when governorate selected', (tester) async {
+    testWidgets('renders without crashing when governorate selected',
+        (tester) async {
       await tester.pumpWidget(buildDistDropdown(govId: 'some-id'));
       // Should not crash even if providers can't load data
       expect(tester.takeException(), isNull);

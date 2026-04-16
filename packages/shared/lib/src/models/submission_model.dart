@@ -34,5 +34,6 @@ class SubmissionModel with _$SubmissionModel {
     Map<String, dynamic>? profiles,
   }) = _SubmissionModel;
 
-  factory SubmissionModel.fromJson(Map<String, dynamic> json) => _$SubmissionModelFromJson(json);
+  factory SubmissionModel.fromJson(Map<String, dynamic> json) =>
+      _$SubmissionModelFromJson(json);
 }

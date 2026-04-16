@@ -8,8 +8,7 @@ class EnvValidator {
       bool.fromEnvironment('OFFLINE_MODE', defaultValue: false);
 
   /// Whether the app is running in full offline mode
-  static bool get isOfflineMode =>
-      _offlineMode || SupabaseConfig.url.isEmpty;
+  static bool get isOfflineMode => _offlineMode || SupabaseConfig.url.isEmpty;
 
   /// Validate all required environment variables.
   /// In offline mode, Supabase checks are skipped entirely.
@@ -41,10 +40,8 @@ class EnvValidator {
     // Optional variables — warn but don't fail
     const geminiKey =
         String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
-    const sentryDsn =
-        String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-    const encKey =
-        String.fromEnvironment('ENCRYPTION_KEY', defaultValue: '');
+    const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+    const encKey = String.fromEnvironment('ENCRYPTION_KEY', defaultValue: '');
 
     if (kDebugMode) {
       if (geminiKey.isEmpty || _isPlaceholder(geminiKey)) {

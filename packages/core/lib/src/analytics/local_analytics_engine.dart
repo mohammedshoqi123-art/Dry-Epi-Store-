@@ -16,7 +16,8 @@ class LocalAnalyticsEngine {
   static double standardDeviation(List<num> data) {
     if (data.length < 2) return 0;
     final avg = mean(data);
-    final variance = data.fold(0.0, (sum, v) => sum + pow(v - avg, 2)) / (data.length - 1);
+    final variance =
+        data.fold(0.0, (sum, v) => sum + pow(v - avg, 2)) / (data.length - 1);
     return sqrt(variance);
   }
 
@@ -49,7 +50,8 @@ class LocalAnalyticsEngine {
 
   /// Detect sudden drops or spikes in time-series data.
   /// Returns indices where change exceeds the threshold.
-  static List<int> detectSuddenChanges(List<num> data, {double changeThreshold = 0.5}) {
+  static List<int> detectSuddenChanges(List<num> data,
+      {double changeThreshold = 0.5}) {
     if (data.length < 2) return [];
     final changes = <int>[];
 
@@ -68,7 +70,8 @@ class LocalAnalyticsEngine {
 
   /// Simple linear regression: returns slope and intercept.
   /// Positive slope = upward trend, negative = downward.
-  static ({double slope, double intercept, double r2}) linearRegression(List<num> y) {
+  static ({double slope, double intercept, double r2}) linearRegression(
+      List<num> y) {
     final n = y.length;
     if (n < 2) return (slope: 0.0, intercept: 0.0, r2: 0.0);
 
@@ -110,7 +113,8 @@ class LocalAnalyticsEngine {
   // ─── Pattern Detection ────────────────────────────────────────────────────
 
   /// Identify top-N categories by frequency from a list.
-  static List<MapEntry<String, int>> topCategories(List<String> data, {int topN = 5}) {
+  static List<MapEntry<String, int>> topCategories(List<String> data,
+      {int topN = 5}) {
     final freq = <String, int>{};
     for (final item in data) {
       freq[item] = (freq[item] ?? 0) + 1;
@@ -130,15 +134,18 @@ class LocalAnalyticsEngine {
     if (totalShortages == 0 && totalSubmissions == 0) return 50;
 
     // Resolution rate: 0-40 points
-    final resolutionRate = totalShortages > 0 ? resolvedShortages / totalShortages : 1.0;
+    final resolutionRate =
+        totalShortages > 0 ? resolvedShortages / totalShortages : 1.0;
     final resolutionScore = (resolutionRate * 40).round();
 
     // Critical penalty: 0-30 points lost
-    final criticalRatio = totalShortages > 0 ? criticalShortages / totalShortages : 0.0;
+    final criticalRatio =
+        totalShortages > 0 ? criticalShortages / totalShortages : 0.0;
     final criticalPenalty = (criticalRatio * 30).round();
 
     // Activity score: 0-30 points
-    final activityScore = totalSubmissions > 10 ? 30 : (totalSubmissions / 10 * 30).round();
+    final activityScore =
+        totalSubmissions > 10 ? 30 : (totalSubmissions / 10 * 30).round();
 
     return (resolutionScore + activityScore - criticalPenalty).clamp(0, 100);
   }

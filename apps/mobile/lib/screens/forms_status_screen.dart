@@ -42,7 +42,8 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.invalidate(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
+              ref.invalidate(submissionsProvider(SubmissionsFilter(
+                  campaignType: ref.read(campaignProvider).value)));
               ref.invalidate(formsProvider);
               setState(() {}); // Force stats rebuild
             },
@@ -70,8 +71,12 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
               indicatorSize: TabBarIndicatorSize.tab,
               labelColor: Colors.white,
               unselectedLabelColor: AppTheme.textSecondary,
-              labelStyle: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: const TextStyle(fontFamily: 'Tajawal', fontSize: 12),
+              labelStyle: const TextStyle(
+                  fontFamily: 'Tajawal',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
+              unselectedLabelStyle:
+                  const TextStyle(fontFamily: 'Tajawal', fontSize: 12),
               dividerHeight: 0,
               tabs: const [
                 Tab(text: 'المسودات'),
@@ -103,7 +108,8 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
     return FutureBuilder<Map<String, int>>(
       future: _loadStats(),
       builder: (context, snapshot) {
-        final stats = snapshot.data ?? {'drafts': 0, 'pending': 0, 'submitted': 0, 'total': 0};
+        final stats = snapshot.data ??
+            {'drafts': 0, 'pending': 0, 'submitted': 0, 'total': 0};
         return Container(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -168,9 +174,9 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
     int drafts = 0, pending = 0, total = 0;
     try {
       final offline = await ref.read(offlineManagerProvider.future).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => throw Exception('Offline init timeout'),
-      );
+            const Duration(seconds: 5),
+            onTimeout: () => throw Exception('Offline init timeout'),
+          );
       pending = offline.pendingCount;
 
       // Count drafts from cached forms (no network call)
@@ -179,9 +185,9 @@ class _FormsStatusScreenState extends ConsumerState<FormsStatusScreen>
 
       // Count cached submissions if available
       final cache = await ref.read(offlineDataCacheProvider.future).timeout(
-        const Duration(seconds: 3),
-        onTimeout: () => throw Exception('Cache init timeout'),
-      );
+            const Duration(seconds: 3),
+            onTimeout: () => throw Exception('Cache init timeout'),
+          );
       final cachedSubs = cache.getCachedDataList('submissions');
       total = drafts + pending + (cachedSubs?.length ?? 0);
     } catch (e) {
@@ -301,7 +307,8 @@ class _DraftsTab extends ConsumerWidget {
                 savedAt: draft['saved_at'] as String?,
                 fieldCount: draft['field_count'] as int? ?? 0,
                 onContinue: () => context.go('/forms/fill/${draft['form_id']}'),
-                onDelete: () => _deleteDraft(context, ref, draft['form_id'] as String),
+                onDelete: () =>
+                    _deleteDraft(context, ref, draft['form_id'] as String),
               );
             },
           ),
@@ -314,9 +321,9 @@ class _DraftsTab extends ConsumerWidget {
   Future<List<Map<String, dynamic>>> _loadDrafts(WidgetRef ref) async {
     try {
       final offline = await ref.read(offlineManagerProvider.future).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => throw Exception('timeout'),
-      );
+            const Duration(seconds: 5),
+            onTimeout: () => throw Exception('timeout'),
+          );
 
       // Get draft IDs from local storage
       final draftIds = offline.getDraftFormIds();
@@ -324,9 +331,9 @@ class _DraftsTab extends ConsumerWidget {
 
       // Try to get form titles from cache (no network call)
       final cache = await ref.read(offlineDataCacheProvider.future).timeout(
-        const Duration(seconds: 3),
-        onTimeout: () => throw Exception('timeout'),
-      );
+            const Duration(seconds: 3),
+            onTimeout: () => throw Exception('timeout'),
+          );
       final cachedForms = cache.getCachedDataList('forms') ?? [];
 
       for (final formId in draftIds) {
@@ -415,23 +422,25 @@ class _PendingSyncTabState extends ConsumerState<_PendingSyncTab> {
     setState(() => _isLoading = true);
     try {
       final offline = await ref.read(offlineManagerProvider.future).timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => throw Exception('timeout'),
-      );
+            const Duration(seconds: 5),
+            onTimeout: () => throw Exception('timeout'),
+          );
       final items = await offline.getPendingItems().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => <Map<String, dynamic>>[],
-      );
-      if (mounted) setState(() {
-        _pendingItems = items;
-        _isLoading = false;
-      });
+            const Duration(seconds: 5),
+            onTimeout: () => <Map<String, dynamic>>[],
+          );
+      if (mounted)
+        setState(() {
+          _pendingItems = items;
+          _isLoading = false;
+        });
     } catch (e) {
       debugPrint('[PendingSyncTab] Load error: $e');
-      if (mounted) setState(() {
-        _pendingItems = [];
-        _isLoading = false;
-      });
+      if (mounted)
+        setState(() {
+          _pendingItems = [];
+          _isLoading = false;
+        });
     }
   }
 
@@ -442,17 +451,19 @@ class _PendingSyncTabState extends ConsumerState<_PendingSyncTab> {
 
     try {
       final syncService = await ref.read(syncServiceProvider.future).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => throw Exception('انتهت مهلة تحميل خدمة المزامنة'),
-      );
+            const Duration(seconds: 10),
+            onTimeout: () => throw Exception('انتهت مهلة تحميل خدمة المزامنة'),
+          );
 
       final result = await syncService.sync().timeout(
-        const Duration(minutes: 2),
-        onTimeout: () => throw Exception('انتهت مهلة المزامنة - تحقق من الاتصال'),
-      );
+            const Duration(minutes: 2),
+            onTimeout: () =>
+                throw Exception('انتهت مهلة المزامنة - تحقق من الاتصال'),
+          );
 
       if (mounted) {
-        final msg = 'تمت المزامنة: ${result.synced} ناجح، ${result.failed} فاشل';
+        final msg =
+            'تمت المزامنة: ${result.synced} ناجح، ${result.failed} فاشل';
         context.showSuccess(msg);
         await _loadPending();
       }
@@ -499,11 +510,14 @@ class _PendingSyncTabState extends ConsumerState<_PendingSyncTab> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.sync, size: 20),
               label: Text(
-                _isSyncing ? 'جاري المزامنة...' : 'مزامنة الكل (${_pendingItems.length})',
+                _isSyncing
+                    ? 'جاري المزامنة...'
+                    : 'مزامنة الكل (${_pendingItems.length})',
                 style: const TextStyle(fontFamily: 'Tajawal'),
               ),
               style: ElevatedButton.styleFrom(
@@ -544,23 +558,27 @@ class _PendingSyncTabState extends ConsumerState<_PendingSyncTab> {
 class _SubmittedTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
+    final submissions = ref.watch(submissionsProvider(
+        SubmissionsFilter(campaignType: ref.read(campaignProvider).value)));
 
     return RefreshIndicator(
-      onRefresh: () async => ref.invalidate(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value))),
+      onRefresh: () async => ref.invalidate(submissionsProvider(
+          SubmissionsFilter(campaignType: ref.read(campaignProvider).value))),
       child: submissions.when(
         loading: () => const EpiLoading.shimmer(),
         error: (e, _) => EpiErrorWidget(
           message: e.toString(),
-          onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(campaignType: ref.read(campaignProvider).value))),
+          onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(
+              campaignType: ref.read(campaignProvider).value))),
         ),
         data: (data) {
-          final submitted = data.where((s) =>
-            s['status'] == 'submitted' ||
-            s['status'] == 'reviewed' ||
-            s['status'] == 'approved' ||
-            s['status'] == 'rejected'
-          ).toList();
+          final submitted = data
+              .where((s) =>
+                  s['status'] == 'submitted' ||
+                  s['status'] == 'reviewed' ||
+                  s['status'] == 'approved' ||
+                  s['status'] == 'rejected')
+              .toList();
 
           if (submitted.isEmpty) {
             return ListView(
@@ -586,7 +604,8 @@ class _SubmittedTab extends ConsumerWidget {
                 date: sub['submitted_at'] ?? sub['created_at'],
                 userName: sub['profiles']?['full_name'],
                 isOffline: sub['is_offline'] == true,
-                onTap: () => context.go('/forms/status/submission/${sub['id']}'),
+                onTap: () =>
+                    context.go('/forms/status/submission/${sub['id']}'),
               );
             },
           );
@@ -610,7 +629,9 @@ class _AllTabState extends ConsumerState<_AllTab> {
 
   @override
   Widget build(BuildContext context) {
-    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(status: _statusFilter, campaignType: ref.read(campaignProvider).value)));
+    final submissions = ref.watch(submissionsProvider(SubmissionsFilter(
+        status: _statusFilter,
+        campaignType: ref.read(campaignProvider).value)));
 
     return Column(
       children: [
@@ -620,29 +641,59 @@ class _AllTabState extends ConsumerState<_AllTab> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
-              _FilterChip(label: 'الكل', value: null, current: _statusFilter, onSelected: _onFilter),
+              _FilterChip(
+                  label: 'الكل',
+                  value: null,
+                  current: _statusFilter,
+                  onSelected: _onFilter),
               const SizedBox(width: 8),
-              _FilterChip(label: 'مسودة', value: 'draft', current: _statusFilter, onSelected: _onFilter),
+              _FilterChip(
+                  label: 'مسودة',
+                  value: 'draft',
+                  current: _statusFilter,
+                  onSelected: _onFilter),
               const SizedBox(width: 8),
-              _FilterChip(label: 'مُرسل', value: 'submitted', current: _statusFilter, onSelected: _onFilter),
+              _FilterChip(
+                  label: 'مُرسل',
+                  value: 'submitted',
+                  current: _statusFilter,
+                  onSelected: _onFilter),
               const SizedBox(width: 8),
-              _FilterChip(label: 'قيد المراجعة', value: 'reviewed', current: _statusFilter, onSelected: _onFilter),
+              _FilterChip(
+                  label: 'قيد المراجعة',
+                  value: 'reviewed',
+                  current: _statusFilter,
+                  onSelected: _onFilter),
               const SizedBox(width: 8),
-              _FilterChip(label: 'معتمد', value: 'approved', current: _statusFilter, onSelected: _onFilter),
+              _FilterChip(
+                  label: 'معتمد',
+                  value: 'approved',
+                  current: _statusFilter,
+                  onSelected: _onFilter),
               const SizedBox(width: 8),
-              _FilterChip(label: 'مرفوض', value: 'rejected', current: _statusFilter, onSelected: _onFilter),
+              _FilterChip(
+                  label: 'مرفوض',
+                  value: 'rejected',
+                  current: _statusFilter,
+                  onSelected: _onFilter),
             ],
           ),
         ),
         // List
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter, campaignType: ref.read(campaignProvider).value))),
+            onRefresh: () async => ref.invalidate(submissionsProvider(
+                SubmissionsFilter(
+                    status: _statusFilter,
+                    campaignType: ref.read(campaignProvider).value))),
             child: submissions.when(
               loading: () => const EpiLoading.shimmer(),
               error: (e, _) => EpiErrorWidget(
                 message: e.toString(),
-                onRetry: () => ref.invalidate(submissionsProvider(SubmissionsFilter(status: _statusFilter, campaignType: ref.read(campaignProvider).value))),
+                onRetry: () => ref.invalidate(submissionsProvider(
+                    SubmissionsFilter(
+                        status: _statusFilter,
+                        campaignType: ref.read(campaignProvider).value))),
               ),
               data: (data) {
                 if (data.isEmpty) {
@@ -669,7 +720,8 @@ class _AllTabState extends ConsumerState<_AllTab> {
                       date: sub['submitted_at'] ?? sub['created_at'],
                       userName: sub['profiles']?['full_name'],
                       isOffline: sub['is_offline'] == true,
-                      onTap: () => context.go('/forms/status/submission/${sub['id']}'),
+                      onTap: () =>
+                          context.go('/forms/status/submission/${sub['id']}'),
                     );
                   },
                 );
@@ -747,7 +799,8 @@ class _DraftTile extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.edit_note, color: Colors.white, size: 24),
+                child:
+                    const Icon(Icons.edit_note, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -767,7 +820,8 @@ class _DraftTile extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: AppTheme.warningColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
@@ -810,13 +864,15 @@ class _DraftTile extends StatelessWidget {
               Column(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.play_arrow, color: AppTheme.primaryColor),
+                    icon: const Icon(Icons.play_arrow,
+                        color: AppTheme.primaryColor),
                     onPressed: onContinue,
                     tooltip: 'متابعة التعبئة',
                     visualDensity: VisualDensity.compact,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, color: AppTheme.errorColor, size: 20),
+                    icon: const Icon(Icons.delete_outline,
+                        color: AppTheme.errorColor, size: 20),
                     onPressed: onDelete,
                     tooltip: 'حذف',
                     visualDensity: VisualDensity.compact,
@@ -893,7 +949,9 @@ class _PendingSyncTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withValues(alpha: 0.3),
+                    color:
+                        (hasErrors ? AppTheme.errorColor : AppTheme.infoColor)
+                            .withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   ),
@@ -922,17 +980,25 @@ class _PendingSyncTile extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withValues(alpha: 0.1),
+                          color: (hasErrors
+                                  ? AppTheme.errorColor
+                                  : AppTheme.infoColor)
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          hasErrors ? 'فشل ($retryCount محاولات)' : 'في الانتظار',
+                          hasErrors
+                              ? 'فشل ($retryCount محاولات)'
+                              : 'في الانتظار',
                           style: TextStyle(
                             fontFamily: 'Tajawal',
                             fontSize: 11,
-                            color: hasErrors ? AppTheme.errorColor : AppTheme.infoColor,
+                            color: hasErrors
+                                ? AppTheme.errorColor
+                                : AppTheme.infoColor,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -970,7 +1036,9 @@ class _PendingSyncTile extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: (hasErrors ? AppTheme.errorColor : AppTheme.infoColor).withValues(alpha: 0.4),
+                    color:
+                        (hasErrors ? AppTheme.errorColor : AppTheme.infoColor)
+                            .withValues(alpha: 0.4),
                     blurRadius: 6,
                     spreadRadius: 1,
                   ),
@@ -1026,7 +1094,8 @@ class _SubmittedTile extends StatelessWidget {
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: AppTheme.statusColor(status).withValues(alpha: 0.2)),
+        border: Border.all(
+            color: AppTheme.statusColor(status).withValues(alpha: 0.2)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -1067,7 +1136,8 @@ class _SubmittedTile extends StatelessWidget {
                         ),
                         if (isOffline)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.orange.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
@@ -1075,7 +1145,8 @@ class _SubmittedTile extends StatelessWidget {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.wifi_off, size: 10, color: Colors.orange),
+                                Icon(Icons.wifi_off,
+                                    size: 10, color: Colors.orange),
                                 SizedBox(width: 3),
                                 Text(
                                   'أوفلاين',
@@ -1126,7 +1197,8 @@ class _SubmittedTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.textHint),
+              const Icon(Icons.arrow_forward_ios,
+                  size: 14, color: AppTheme.textHint),
             ],
           ),
         ),
@@ -1136,12 +1208,18 @@ class _SubmittedTile extends StatelessWidget {
 
   IconData _statusIcon(String status) {
     switch (status) {
-      case 'approved': return Icons.check_circle;
-      case 'rejected': return Icons.cancel;
-      case 'submitted': return Icons.send;
-      case 'reviewed': return Icons.rate_review;
-      case 'draft': return Icons.edit_note;
-      default: return Icons.description;
+      case 'approved':
+        return Icons.check_circle;
+      case 'rejected':
+        return Icons.cancel;
+      case 'submitted':
+        return Icons.send;
+      case 'reviewed':
+        return Icons.rate_review;
+      case 'draft':
+        return Icons.edit_note;
+      default:
+        return Icons.description;
     }
   }
 

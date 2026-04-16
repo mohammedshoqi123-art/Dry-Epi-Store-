@@ -30,7 +30,8 @@ void main() {
 
     test('pagination settings are reasonable', () {
       expect(AppConfig.defaultPageSize, greaterThan(0));
-      expect(AppConfig.maxPageSize, greaterThanOrEqualTo(AppConfig.defaultPageSize));
+      expect(AppConfig.maxPageSize,
+          greaterThanOrEqualTo(AppConfig.defaultPageSize));
     });
 
     test('photo settings are reasonable', () {

@@ -13,8 +13,10 @@ class AppStrings {
   static const String password = 'كلمة المرور';
   static const String loginSuccess = 'تم تسجيل الدخول بنجاح';
   static const String loginFailed = 'فشل تسجيل الدخول';
-  static const String sessionExpired = 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى';
-  static const String invalidCredentials = 'بريد إلكتروني أو كلمة مرور غير صحيحة';
+  static const String sessionExpired =
+      'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى';
+  static const String invalidCredentials =
+      'بريد إلكتروني أو كلمة مرور غير صحيحة';
 
   // ─── Navigation ───────────────────────────────────────────────────────────
   static const String dashboard = 'الرئيسية';
@@ -47,7 +49,8 @@ class AppStrings {
   static const String submitForm = 'إرسال النموذج';
   static const String formSaved = 'تم حفظ المسودة';
   static const String formSubmitted = 'تم إرسال النموذج بنجاح';
-  static const String formSubmittedOffline = 'تم حفظ النموذج وسيُرسل عند الاتصال';
+  static const String formSubmittedOffline =
+      'تم حفظ النموذج وسيُرسل عند الاتصال';
   static const String gpsRequired = 'موقع GPS مطلوب';
   static const String captureLocation = 'التقاط الموقع';
   static const String addPhoto = 'إضافة صورة';
@@ -102,7 +105,8 @@ class AppStrings {
   static const String thisMonth = 'هذا الشهر';
 
   // ─── AI ───────────────────────────────────────────────────────────────────
-  static const String aiWelcome = 'مرحباً! أنا مساعدك الذكي لتحليل بيانات حملة التطعيم. كيف يمكنني مساعدتك؟';
+  static const String aiWelcome =
+      'مرحباً! أنا مساعدك الذكي لتحليل بيانات حملة التطعيم. كيف يمكنني مساعدتك؟';
   static const String aiTyping = 'جاري الكتابة...';
   static const String aiThinking = 'جاري التفكير...';
   static const String aiInputHint = 'اسألني عن البيانات والإحصائيات...';
@@ -184,11 +188,13 @@ class AppStrings {
   static const String location = 'الموقع';
 
   // ─── Errors ───────────────────────────────────────────────────────────────
-  static const String errorGeneral = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
+  static const String errorGeneral =
+      'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
   static const String errorNetwork = 'تأكد من اتصالك بالإنترنت.';
   static const String errorPermission = 'ليس لديك صلاحية القيام بهذا الإجراء.';
   static const String errorNotFound = 'السجل المطلوب غير موجود.';
   static const String errorValidation = 'يرجى التحقق من البيانات المدخلة.';
-  static const String errorGPS = 'تعذر الحصول على موقع GPS. تأكد من تفعيل الموقع.';
+  static const String errorGPS =
+      'تعذر الحصول على موقع GPS. تأكد من تفعيل الموقع.';
   static const String errorCamera = 'تعذر الوصول للكاميرا. يرجى منح الإذن.';
 }

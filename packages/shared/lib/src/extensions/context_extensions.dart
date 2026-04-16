@@ -146,14 +146,17 @@ extension ContextExtensions on BuildContext {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(cancelText, style: const TextStyle(fontFamily: 'Tajawal')),
+            child:
+                Text(cancelText, style: const TextStyle(fontFamily: 'Tajawal')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDangerous ? AppTheme.errorColor : AppTheme.primaryColor,
+              backgroundColor:
+                  isDangerous ? AppTheme.errorColor : AppTheme.primaryColor,
             ),
-            child: Text(confirmText, style: const TextStyle(fontFamily: 'Tajawal')),
+            child: Text(confirmText,
+                style: const TextStyle(fontFamily: 'Tajawal')),
           ),
         ],
       ),

@@ -52,7 +52,9 @@ class SyncStatusChip extends StatelessWidget {
                 fontFamily: 'Tajawal',
               ),
             ),
-            if (snapshot.hasPending && snapshot.isOnline && onSyncNow != null) ...[
+            if (snapshot.hasPending &&
+                snapshot.isOnline &&
+                onSyncNow != null) ...[
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: onSyncNow,
@@ -166,23 +168,30 @@ class SyncStatusBanner extends StatelessWidget {
           if (snapshot.hasPending && snapshot.isOnline && onSyncNow != null)
             TextButton.icon(
               onPressed: onSyncNow,
-              icon: const Icon(Icons.cloud_upload, size: 16, color: Colors.white),
-              label: const Text('مزامنة الآن', style: TextStyle(color: Colors.white, fontSize: 12)),
+              icon:
+                  const Icon(Icons.cloud_upload, size: 16, color: Colors.white),
+              label: const Text('مزامنة الآن',
+                  style: TextStyle(color: Colors.white, fontSize: 12)),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
               ),
             ),
           if (snapshot.hasFailed && onViewFailed != null)
             TextButton.icon(
               onPressed: onViewFailed,
               icon: const Icon(Icons.warning, size: 16, color: Colors.white),
-              label: const Text('عرض الفاشلة', style: TextStyle(color: Colors.white, fontSize: 12)),
+              label: const Text('عرض الفاشلة',
+                  style: TextStyle(color: Colors.white, fontSize: 12)),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 backgroundColor: Colors.white.withValues(alpha: 0.2),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
               ),
             ),
         ],

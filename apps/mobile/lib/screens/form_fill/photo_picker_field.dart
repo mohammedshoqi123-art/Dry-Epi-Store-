@@ -32,7 +32,8 @@ class PhotoPickerField extends StatelessWidget {
 
       // Compress the image
       final compressed = await _compressImage(picked);
-      final finalFile = compressed ?? picked; // Fallback to original if compression fails
+      final finalFile =
+          compressed ?? picked; // Fallback to original if compression fails
 
       final updated = List<XFile>.from(photos)..add(finalFile);
       onPhotosChanged(updated);
@@ -47,15 +48,17 @@ class PhotoPickerField extends StatelessWidget {
     try {
       final filePath = file.path;
       final lastIndex = filePath.lastIndexOf('.');
-      final ext = lastIndex != -1 ? filePath.substring(lastIndex).toLowerCase() : '.jpg';
+      final ext = lastIndex != -1
+          ? filePath.substring(lastIndex).toLowerCase()
+          : '.jpg';
       final targetPath = '${filePath}_compressed$ext';
 
       final result = await FlutterImageCompress.compressAndGetFile(
         filePath,
         targetPath,
-        quality: 75,         // 75% quality — good balance of size vs clarity
-        minWidth: 1024,      // Don't go below 1024px width
-        minHeight: 1024,     // Don't go below 1024px height
+        quality: 75, // 75% quality — good balance of size vs clarity
+        minWidth: 1024, // Don't go below 1024px width
+        minHeight: 1024, // Don't go below 1024px height
         format: ext.contains('png') ? CompressFormat.png : CompressFormat.jpeg,
       );
 
@@ -78,16 +81,20 @@ class PhotoPickerField extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppTheme.primaryColor),
-              title: const Text('الكاميرا', style: TextStyle(fontFamily: 'Tajawal')),
+              leading:
+                  const Icon(Icons.camera_alt, color: AppTheme.primaryColor),
+              title: const Text('الكاميرا',
+                  style: TextStyle(fontFamily: 'Tajawal')),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(context, ImageSource.camera);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppTheme.primaryColor),
-              title: const Text('المعرض', style: TextStyle(fontFamily: 'Tajawal')),
+              leading:
+                  const Icon(Icons.photo_library, color: AppTheme.primaryColor),
+              title:
+                  const Text('المعرض', style: TextStyle(fontFamily: 'Tajawal')),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(context, ImageSource.gallery);
@@ -130,7 +137,8 @@ class PhotoPickerField extends StatelessWidget {
                         right: 4,
                         child: GestureDetector(
                           onTap: () {
-                            final updated = List<XFile>.from(photos)..removeAt(index);
+                            final updated = List<XFile>.from(photos)
+                              ..removeAt(index);
                             onPhotosChanged(updated);
                           },
                           child: Container(
@@ -139,7 +147,8 @@ class PhotoPickerField extends StatelessWidget {
                               color: AppTheme.errorColor,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.close, size: 14, color: Colors.white),
+                            child: const Icon(Icons.close,
+                                size: 14, color: Colors.white),
                           ),
                         ),
                       ),

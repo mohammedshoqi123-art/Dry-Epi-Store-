@@ -6,9 +6,13 @@ import '../config/app_config.dart';
 import '../errors/app_exceptions.dart';
 import 'sync_queue_v2.dart';
 // Re-export models from sync_models.dart (already exported by sync_queue_v2.dart)
-export 'sync_models.dart' show
-    FieldCategories, DataConflictV2, ConflictResolver,
-    NetworkSnapshot, NetworkStatus;
+export 'sync_models.dart'
+    show
+        FieldCategories,
+        DataConflictV2,
+        ConflictResolver,
+        NetworkSnapshot,
+        NetworkStatus;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INTELLIGENT OFFLINE MANAGER
@@ -104,7 +108,8 @@ class IntelligentOfflineManager {
 
       // On reconnect: trigger immediate sync
       if (wasOffline && _isOnline) {
-        if (kDebugMode) print('[OfflineMgr] Connection restored — triggering sync');
+        if (kDebugMode)
+          print('[OfflineMgr] Connection restored — triggering sync');
         Future.delayed(const Duration(seconds: 3), () => syncNow());
       }
 
@@ -211,7 +216,8 @@ class IntelligentOfflineManager {
         batch = _queue.getBatch(batchSize);
         if (batch.isEmpty) break;
 
-        if (kDebugMode) print('[OfflineMgr] Syncing batch of ${batch.length} items');
+        if (kDebugMode)
+          print('[OfflineMgr] Syncing batch of ${batch.length} items');
 
         // Mark all as syncing
         for (final item in batch) {
@@ -324,7 +330,8 @@ class IntelligentOfflineManager {
     // Auto-resolve
     final resolved = ConflictResolver.resolve(conflict, strategy);
     if (kDebugMode) {
-      print('[OfflineMgr] Auto-resolved conflict for ${item.id} using ${strategy.name}');
+      print(
+          '[OfflineMgr] Auto-resolved conflict for ${item.id} using ${strategy.name}');
     }
     return resolved;
   }

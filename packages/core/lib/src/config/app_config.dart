@@ -19,6 +19,7 @@ class AppConfig {
   /// When offline, cached data is ALWAYS returned regardless of this value.
   static const Duration cacheExpiry = Duration(hours: 24);
   static const Duration shortCacheExpiry = Duration(hours: 6);
+
   /// Maximum offline retention — how long to keep cached data before purging.
   /// Set to 30 days for field work in areas with poor connectivity.
   static const Duration maxOfflineRetention = Duration(days: 30);
@@ -32,7 +33,12 @@ class AppConfig {
   // ─── File Upload ─────────────────────────────────────────────────────────
   static const int maxPhotoSizeMb = 5;
   static const int maxPhotosPerSubmission = 1;
-  static const List<String> allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+  static const List<String> allowedImageExtensions = [
+    'jpg',
+    'jpeg',
+    'png',
+    'webp'
+  ];
 
   // ─── GPS ─────────────────────────────────────────────────────────────────
   static const double gpsAccuracyMeters = 50.0;

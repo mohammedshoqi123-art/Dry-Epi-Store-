@@ -2,10 +2,10 @@
 library;
 
 enum UserRole {
-  admin,      // مدير النظام — full access
-  central,    // مشرف مركزي — sees all governorate submissions, edit own only
-  governorate,// مشرف محافظة — sees own governorate submissions, edit own only
-  district,   // مشرف مديرية — sees own district submissions, edit own only
+  admin, // مدير النظام — full access
+  central, // مشرف مركزي — sees all governorate submissions, edit own only
+  governorate, // مشرف محافظة — sees own governorate submissions, edit own only
+  district, // مشرف مديرية — sees own district submissions, edit own only
   data_entry; // مدخل بيانات — sees own submissions only, can edit them
 
   int get hierarchyLevel {
@@ -159,7 +159,8 @@ class AuthState {
   }
 
   @override
-  String toString() => 'AuthState(auth=$isAuthenticated, role=$role, user=$fullName)';
+  String toString() =>
+      'AuthState(auth=$isAuthenticated, role=$role, user=$fullName)';
 }
 
 extension AuthStateStreamX on AuthState {

@@ -24,7 +24,8 @@ class EpiErrorWidget extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: AppTheme.errorColor),
+                  const Icon(Icons.error_outline,
+                      size: 64, color: AppTheme.errorColor),
                   const SizedBox(height: 16),
                   Text(
                     'حدث خطأ',

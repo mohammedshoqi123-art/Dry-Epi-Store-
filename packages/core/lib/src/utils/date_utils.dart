@@ -5,7 +5,8 @@ class DateUtils {
   DateUtils._();
 
   static final DateFormat _arabicDate = DateFormat('dd MMMM yyyy', 'ar');
-  static final DateFormat _arabicDateTime = DateFormat('dd/MM/yyyy hh:mm a', 'ar');
+  static final DateFormat _arabicDateTime =
+      DateFormat('dd/MM/yyyy hh:mm a', 'ar');
   static final DateFormat _isoDate = DateFormat('yyyy-MM-dd');
   static final DateFormat _isoDateTime = DateFormat("yyyy-MM-dd'T'HH:mm:ss");
   static final DateFormat _shortDate = DateFormat('dd/MM/yyyy');

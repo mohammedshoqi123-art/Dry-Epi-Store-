@@ -55,7 +55,8 @@ class LocalAIEngine {
   String _recommend(Map<String, dynamic> d) =>
       LocalAnalyticsEngine.generateInsights(d).join('\n');
 
-  String _trend(Map<String, dynamic> d) => 'تحليل الاتجاه يتطلب بيانات تاريخية أكثر للتحليل.';
+  String _trend(Map<String, dynamic> d) =>
+      'تحليل الاتجاه يتطلب بيانات تاريخية أكثر للتحليل.';
 
   String _generalInsight(Map<String, dynamic> d) =>
       LocalAnalyticsEngine.generateInsights(d).firstOrNull ??

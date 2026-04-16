@@ -5,14 +5,14 @@ class AppTheme {
   AppTheme._();
 
   // ─── Brand Colors ─────────────────────────────────────────────────────────
-  static const Color primaryColor = Color(0xFF00897B);    // Teal 600
-  static const Color primaryDark = Color(0xFF00695C);     // Teal 800
-  static const Color primaryLight = Color(0xFF4DB6AC);    // Teal 300
-  static const Color primarySurface = Color(0xFFE0F2F1);  // Teal 50
+  static const Color primaryColor = Color(0xFF00897B); // Teal 600
+  static const Color primaryDark = Color(0xFF00695C); // Teal 800
+  static const Color primaryLight = Color(0xFF4DB6AC); // Teal 300
+  static const Color primarySurface = Color(0xFFE0F2F1); // Teal 50
 
-  static const Color secondaryColor = Color(0xFF5C6BC0);  // Indigo 400
-  static const Color secondaryDark = Color(0xFF3949AB);   // Indigo 600
-  static const Color secondaryLight = Color(0xFF9FA8DA);  // Indigo 200
+  static const Color secondaryColor = Color(0xFF5C6BC0); // Indigo 400
+  static const Color secondaryDark = Color(0xFF3949AB); // Indigo 600
+  static const Color secondaryLight = Color(0xFF9FA8DA); // Indigo 200
 
   // ─── Semantic Colors ──────────────────────────────────────────────────────
   static const Color successColor = Color(0xFF43A047);
@@ -73,10 +73,12 @@ class AppTheme {
 
   // ─── Border Radius ────────────────────────────────────────────────────────
   static const BorderRadius radiusSmall = BorderRadius.all(Radius.circular(8));
-  static const BorderRadius radiusMedium = BorderRadius.all(Radius.circular(12));
+  static const BorderRadius radiusMedium =
+      BorderRadius.all(Radius.circular(12));
   static const BorderRadius radiusLarge = BorderRadius.all(Radius.circular(16));
   static const BorderRadius radiusXL = BorderRadius.all(Radius.circular(24));
-  static const BorderRadius radiusCircle = BorderRadius.all(Radius.circular(1000));
+  static const BorderRadius radiusCircle =
+      BorderRadius.all(Radius.circular(1000));
 
   // ─── Glassmorphism ────────────────────────────────────────────────────────
   static BoxDecoration get glassmorphism => BoxDecoration(
@@ -230,7 +232,8 @@ class AppTheme {
         ),
         labelStyle: labelM,
         hintStyle: const TextStyle(fontFamily: fontSecondary, color: textHint),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       dividerTheme: const DividerThemeData(
         color: dividerColor,
@@ -247,7 +250,8 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
         selectedLabelStyle: TextStyle(fontFamily: fontSecondary, fontSize: 11),
-        unselectedLabelStyle: TextStyle(fontFamily: fontSecondary, fontSize: 11),
+        unselectedLabelStyle:
+            TextStyle(fontFamily: fontSecondary, fontSize: 11),
       ),
     );
   }

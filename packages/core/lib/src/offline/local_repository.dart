@@ -52,26 +52,33 @@ class LocalRepository {
 
   Future<List<Map<String, dynamic>>> getSubmissions() async {
     final box = Hive.box<String>(_subsBox);
-    return box.values.map((v) {
-      try {
-        return Map<String, dynamic>.from(jsonDecode(_enc.decrypt(v)));
-      } catch (_) {
-        return <String, dynamic>{};
-      }
-    }).where((s) => s.isNotEmpty).toList();
+    return box.values
+        .map((v) {
+          try {
+            return Map<String, dynamic>.from(jsonDecode(_enc.decrypt(v)));
+          } catch (_) {
+            return <String, dynamic>{};
+          }
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
   }
 
   // ─── Analytics (100% local) ───────────────────────────────────────────────
 
   /// Compute analytics entirely on-device, no server needed.
   Map<String, dynamic> computeLocalAnalytics() {
-    final subs = Hive.box<String>(_subsBox).values.map((v) {
-      try {
-        return Map<String, dynamic>.from(jsonDecode(_enc.decrypt(v)));
-      } catch (_) {
-        return <String, dynamic>{};
-      }
-    }).where((s) => s.isNotEmpty).toList();
+    final subs = Hive.box<String>(_subsBox)
+        .values
+        .map((v) {
+          try {
+            return Map<String, dynamic>.from(jsonDecode(_enc.decrypt(v)));
+          } catch (_) {
+            return <String, dynamic>{};
+          }
+        })
+        .where((s) => s.isNotEmpty)
+        .toList();
 
     final today = DateTime.now().toIso8601String().substring(0, 10);
 
@@ -84,7 +91,8 @@ class LocalRepository {
     return {
       'submissions': {
         'total': subs.length,
-        'today': subs.where((s) => (s['created_at'] ?? '').startsWith(today)).length,
+        'today':
+            subs.where((s) => (s['created_at'] ?? '').startsWith(today)).length,
         'byStatus': byStatus,
       },
     };

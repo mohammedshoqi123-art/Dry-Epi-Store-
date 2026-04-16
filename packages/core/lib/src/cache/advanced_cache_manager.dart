@@ -57,7 +57,8 @@ class CacheEntry {
         value: json['value'],
         expiry: DateTime.parse(json['expiry']),
         hash: json['hash'],
-        createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+        createdAt:
+            DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
         accessCount: json['access_count'] ?? 0,
         lastAccessed:
             DateTime.tryParse(json['last_accessed'] ?? '') ?? DateTime.now(),
@@ -151,10 +152,8 @@ class AdvancedCacheManager {
     // Check if we need to evict
     await _ensureCapacity(sizeBytes);
 
-    final hash = sha256
-        .convert(utf8.encode(jsonString))
-        .toString()
-        .substring(0, 16);
+    final hash =
+        sha256.convert(utf8.encode(jsonString)).toString().substring(0, 16);
 
     _cache[fullKey] = CacheEntry(
       value: value,
@@ -308,8 +307,7 @@ class AdvancedCacheManager {
   /// Get cache statistics
   CacheStats get stats => CacheStats(
         totalEntries: _cache.length,
-        totalSizeBytes:
-            _cache.values.fold(0, (sum, e) => sum + e.sizeBytes),
+        totalSizeBytes: _cache.values.fold(0, (sum, e) => sum + e.sizeBytes),
         hitCount: _hitCount,
         missCount: _missCount,
         evictionCount: _evictionCount,
@@ -350,9 +348,9 @@ class AdvancedCacheManager {
     }
 
     // Check total size
-    final currentSize =
-        _cache.values.fold(0, (sum, e) => sum + e.sizeBytes);
-    while (currentSize + newEntrySizeBytes > _maxSizeBytes && _cache.isNotEmpty) {
+    final currentSize = _cache.values.fold(0, (sum, e) => sum + e.sizeBytes);
+    while (
+        currentSize + newEntrySizeBytes > _maxSizeBytes && _cache.isNotEmpty) {
       _evictOne();
     }
   }

@@ -31,8 +31,7 @@ class PagesManagementScreen extends ConsumerStatefulWidget {
       _PagesManagementScreenState();
 }
 
-class _PagesManagementScreenState
-    extends ConsumerState<PagesManagementScreen> {
+class _PagesManagementScreenState extends ConsumerState<PagesManagementScreen> {
   String _searchQuery = '';
 
   @override
@@ -66,16 +65,16 @@ class _PagesManagementScreenState
                 textDirection: TextDirection.rtl,
                 decoration: InputDecoration(
                   hintText: 'بحث في الصفحات...',
-                  prefixIcon: const Icon(Icons.search,
-                      color: AppTheme.textSecondary),
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppTheme.textSecondary),
                   filled: true,
                   fillColor: AppTheme.backgroundLight,
                   border: OutlineInputBorder(
                     borderRadius: AppTheme.radiusMedium,
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
@@ -129,7 +128,8 @@ class _PagesManagementScreenState
             final filtered = _searchQuery.isEmpty
                 ? pages
                 : pages.where((p) {
-                    final title = (p['title_ar'] ?? '').toString().toLowerCase();
+                    final title =
+                        (p['title_ar'] ?? '').toString().toLowerCase();
                     return title.contains(_searchQuery.toLowerCase());
                   }).toList();
 
@@ -166,14 +166,14 @@ class _PagesManagementScreenState
               children: [
                 // Summary
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       Text(
                         '${filtered.length} صفحة',
-                        style: AppTheme.bodyM.copyWith(
-                            color: AppTheme.textSecondary),
+                        style: AppTheme.bodyM
+                            .copyWith(color: AppTheme.textSecondary),
                       ),
                       const Spacer(),
                       TextButton.icon(
@@ -235,13 +235,12 @@ class _PagesManagementScreenState
         rows: pages.map((page) {
           final isActive = page['is_active'] ?? true;
           final updatedAt = page['updated_at'] != null
-              ? DateFormat('d/M/yyyy').format(
-                  DateTime.parse(page['updated_at']))
+              ? DateFormat('d/M/yyyy')
+                  .format(DateTime.parse(page['updated_at']))
               : '—';
 
           return DataRow(cells: [
-            DataCell(Text(
-                '${page['sort_order'] ?? 0}',
+            DataCell(Text('${page['sort_order'] ?? 0}',
                 style: const TextStyle(
                     fontFamily: 'Cairo', fontWeight: FontWeight.w600))),
             DataCell(Row(
@@ -261,8 +260,7 @@ class _PagesManagementScreenState
                     color: AppTheme.textSecondary))),
             DataCell(_buildStatusChip(isActive)),
             DataCell(Text(updatedAt,
-                style: const TextStyle(
-                    fontFamily: 'Tajawal', fontSize: 12))),
+                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12))),
             DataCell(Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -280,8 +278,7 @@ class _PagesManagementScreenState
                         ? AppTheme.warningColor
                         : AppTheme.successColor,
                   ),
-                  onPressed: () =>
-                      _togglePageActive(page['id'], !isActive),
+                  onPressed: () => _togglePageActive(page['id'], !isActive),
                   tooltip: isActive ? 'إخفاء' : 'إظهار',
                 ),
                 IconButton(
@@ -311,8 +308,7 @@ class _PagesManagementScreenState
         return Card(
           key: ValueKey(page['id']),
           margin: const EdgeInsets.only(bottom: 8),
-          shape:
-              RoundedRectangleBorder(borderRadius: AppTheme.radiusMedium),
+          shape: RoundedRectangleBorder(borderRadius: AppTheme.radiusMedium),
           child: ListTile(
             leading: Container(
               padding: const EdgeInsets.all(10),
@@ -378,17 +374,28 @@ class _PagesManagementScreenState
 
   IconData _getPageIcon(String? iconName) {
     switch (iconName) {
-      case 'home': return Icons.home_rounded;
-      case 'description': return Icons.description_rounded;
-      case 'analytics': return Icons.analytics_rounded;
-      case 'map': return Icons.map_rounded;
-      case 'settings': return Icons.settings_rounded;
-      case 'people': return Icons.people_rounded;
-      case 'notifications': return Icons.notifications_rounded;
-      case 'info': return Icons.info_outline;
-      case 'help': return Icons.help_outline;
-      case 'book': return Icons.book_outlined;
-      default: return Icons.web_outlined;
+      case 'home':
+        return Icons.home_rounded;
+      case 'description':
+        return Icons.description_rounded;
+      case 'analytics':
+        return Icons.analytics_rounded;
+      case 'map':
+        return Icons.map_rounded;
+      case 'settings':
+        return Icons.settings_rounded;
+      case 'people':
+        return Icons.people_rounded;
+      case 'notifications':
+        return Icons.notifications_rounded;
+      case 'info':
+        return Icons.info_outline;
+      case 'help':
+        return Icons.help_outline;
+      case 'book':
+        return Icons.book_outlined;
+      default:
+        return Icons.web_outlined;
     }
   }
 
@@ -398,8 +405,7 @@ class _PagesManagementScreenState
     final isEdit = page != null;
     final titleController =
         TextEditingController(text: page?['title_ar'] ?? '');
-    final slugController =
-        TextEditingController(text: page?['slug'] ?? '');
+    final slugController = TextEditingController(text: page?['slug'] ?? '');
     final contentController =
         TextEditingController(text: page?['content'] ?? '');
     final iconController =
@@ -428,8 +434,7 @@ class _PagesManagementScreenState
           return Directionality(
             textDirection: TextDirection.rtl,
             child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: AppTheme.radiusLarge),
+              shape: RoundedRectangleBorder(borderRadius: AppTheme.radiusLarge),
               title: Text(
                 isEdit ? 'تعديل الصفحة' : 'إنشاء صفحة جديدة',
                 style: const TextStyle(fontFamily: 'Cairo'),
@@ -515,8 +520,7 @@ class _PagesManagementScreenState
                             style: TextStyle(fontFamily: 'Tajawal')),
                         value: isActive,
                         activeColor: AppTheme.primaryColor,
-                        onChanged: (v) =>
-                            setDialogState(() => isActive = v),
+                        onChanged: (v) => setDialogState(() => isActive = v),
                         contentPadding: EdgeInsets.zero,
                       ),
                     ],
@@ -594,10 +598,8 @@ class _PagesManagementScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              pageId != null
-                  ? 'تم تحديث الصفحة'
-                  : 'تم إنشاء الصفحة',
-              style: const TextStyle(fontFamily: 'Tajawal')),
+                pageId != null ? 'تم تحديث الصفحة' : 'تم إنشاء الصفحة',
+                style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
           ),
         );
@@ -606,8 +608,8 @@ class _PagesManagementScreenState
       if (ctx.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل: $e',
-                style: const TextStyle(fontFamily: 'Tajawal')),
+            content:
+                Text('فشل: $e', style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -636,14 +638,13 @@ class _PagesManagementScreenState
     if (confirmed != true) return;
 
     try {
-      await Supabase.instance.client
-          .from('pages').delete().eq('id', id);
+      await Supabase.instance.client.from('pages').delete().eq('id', id);
       ref.invalidate(pagesListProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم حذف الصفحة',
-                style: TextStyle(fontFamily: 'Tajawal')),
+            content:
+                Text('تم حذف الصفحة', style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
           ),
         );

@@ -39,10 +39,13 @@ class ReportGenerator {
 
     final pdf = pw.Document();
     final now = DateTime.now();
-    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
-    final submissions = analyticsData['submissions'] as Map<String, dynamic>? ?? {};
+    final submissions =
+        analyticsData['submissions'] as Map<String, dynamic>? ?? {};
     final shortages = analyticsData['shortages'] as Map<String, dynamic>? ?? {};
     final total = submissions['total'] as int? ?? 0;
     final today = submissions['today'] as int? ?? 0;
@@ -57,7 +60,9 @@ class ReportGenerator {
     final pending = byStatus['submitted'] as int? ?? 0;
     final draft = byStatus['draft'] as int? ?? 0;
     final completionRate = total > 0 ? ((approved / total) * 100).round() : 0;
-    final shortageRate = totalShortages > 0 ? ((resolvedShortages / totalShortages) * 100).round() : 0;
+    final shortageRate = totalShortages > 0
+        ? ((resolvedShortages / totalShortages) * 100).round()
+        : 0;
 
     // ═══ Page 1: Cover Page ═══
     pdf.addPage(
@@ -69,7 +74,9 @@ class ReportGenerator {
           children: [
             // Background gradient header
             pw.Positioned(
-              top: 0, left: 0, right: 0,
+              top: 0,
+              left: 0,
+              right: 0,
               child: pw.Container(
                 height: 280,
                 decoration: const pw.BoxDecoration(
@@ -87,7 +94,8 @@ class ReportGenerator {
                 pw.SizedBox(height: 60),
                 // Logo area
                 pw.Container(
-                  width: 80, height: 80,
+                  width: 80,
+                  height: 80,
                   decoration: const pw.BoxDecoration(
                     color: PdfColors.white,
                     shape: pw.BoxShape.circle,
@@ -100,13 +108,17 @@ class ReportGenerator {
                 pw.Text(
                   'منصة مشرف EPI',
                   textDirection: pw.TextDirection.rtl,
-                  style: pw.TextStyle(font: _boldFont, fontSize: 28, color: PdfColors.white),
+                  style: pw.TextStyle(
+                      font: _boldFont, fontSize: 28, color: PdfColors.white),
                 ),
                 pw.SizedBox(height: 6),
                 pw.Text(
                   'نظام الإشراف الميداني لحملات التطعيم',
                   textDirection: pw.TextDirection.rtl,
-                  style: pw.TextStyle(font: _lightFont, fontSize: 14, color: PdfColor.fromInt(0xB3FFFFFF)),
+                  style: pw.TextStyle(
+                      font: _lightFont,
+                      fontSize: 14,
+                      color: PdfColor.fromInt(0xB3FFFFFF)),
                 ),
                 pw.SizedBox(height: 40),
                 // Report card
@@ -117,30 +129,40 @@ class ReportGenerator {
                     color: PdfColors.white,
                     borderRadius: pw.BorderRadius.circular(16),
                     boxShadow: [
-                      pw.BoxShadow(color: PdfColor.fromInt(0x1A000000), blurRadius: 20, offset: const PdfPoint(0, 4)),
+                      pw.BoxShadow(
+                          color: PdfColor.fromInt(0x1A000000),
+                          blurRadius: 20,
+                          offset: const PdfPoint(0, 4)),
                     ],
                   ),
                   child: pw.Column(
                     children: [
                       pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
                         decoration: pw.BoxDecoration(
                           color: _primaryColor,
                           borderRadius: pw.BorderRadius.circular(20),
                         ),
-                        child: pw.Text('تقرير', style: pw.TextStyle(font: _boldFont, fontSize: 12, color: PdfColors.white)),
+                        child: pw.Text('تقرير',
+                            style: pw.TextStyle(
+                                font: _boldFont,
+                                fontSize: 12,
+                                color: PdfColors.white)),
                       ),
                       pw.SizedBox(height: 16),
                       pw.Text(
                         title,
                         textDirection: pw.TextDirection.rtl,
-                        style: pw.TextStyle(font: _boldFont, fontSize: 22, color: _textDark),
+                        style: pw.TextStyle(
+                            font: _boldFont, fontSize: 22, color: _textDark),
                       ),
                       pw.SizedBox(height: 8),
                       pw.Text(
                         subtitle,
                         textDirection: pw.TextDirection.rtl,
-                        style: pw.TextStyle(font: _font, fontSize: 13, color: _textMuted),
+                        style: pw.TextStyle(
+                            font: _font, fontSize: 13, color: _textMuted),
                       ),
                       pw.SizedBox(height: 20),
                       pw.Divider(color: PdfColor.fromInt(0xFFE0E0E0)),
@@ -165,9 +187,15 @@ class ReportGenerator {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('تاريخ الإنشاء: $dateStr  $timeStr',
-                        style: pw.TextStyle(font: _lightFont, fontSize: 9, color: _textMuted)),
+                          style: pw.TextStyle(
+                              font: _lightFont,
+                              fontSize: 9,
+                              color: _textMuted)),
                       pw.Text('EPI Supervisor v2.1.0',
-                        style: pw.TextStyle(font: _lightFont, fontSize: 9, color: _textMuted)),
+                          style: pw.TextStyle(
+                              font: _lightFont,
+                              fontSize: 9,
+                              color: _textMuted)),
                     ],
                   ),
                 ),
@@ -205,7 +233,8 @@ class ReportGenerator {
               _kpiCard('نسبة القبول', '$completionRate%', _successColor),
               _kpiCard('النواقص', '$totalShortages', _warningColor),
               _kpiCard('نواقص محلولة', '$resolvedShortages', _successColor),
-              _kpiCard('نواقص معلقة', '${totalShortages - resolvedShortages}', _accentColor),
+              _kpiCard('نواقص معلقة', '${totalShortages - resolvedShortages}',
+                  _accentColor),
             ],
           ),
           pw.SizedBox(height: 24),
@@ -290,12 +319,13 @@ class ReportGenerator {
     return pw.Column(
       children: [
         pw.Text(value,
-          textDirection: pw.TextDirection.rtl,
-          style: pw.TextStyle(font: _boldFont, fontSize: 16, color: _primaryColor)),
+            textDirection: pw.TextDirection.rtl,
+            style: pw.TextStyle(
+                font: _boldFont, fontSize: 16, color: _primaryColor)),
         pw.SizedBox(height: 4),
         pw.Text(label,
-          textDirection: pw.TextDirection.rtl,
-          style: pw.TextStyle(font: font, fontSize: 10, color: _textMuted)),
+            textDirection: pw.TextDirection.rtl,
+            style: pw.TextStyle(font: font, fontSize: 10, color: _textMuted)),
       ],
     );
   }
@@ -304,18 +334,20 @@ class ReportGenerator {
     return pw.Container(
       padding: const pw.EdgeInsets.only(bottom: 8),
       decoration: const pw.BoxDecoration(
-        border: pw.Border(bottom: pw.BorderSide(color: _primaryColor, width: 2)),
+        border:
+            pw.Border(bottom: pw.BorderSide(color: _primaryColor, width: 2)),
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text('EPI Supervisor',
-            style: pw.TextStyle(font: _boldFont, fontSize: 9, color: _primaryColor)),
+              style: pw.TextStyle(
+                  font: _boldFont, fontSize: 9, color: _primaryColor)),
           pw.Text(title,
-            textDirection: pw.TextDirection.rtl,
-            style: pw.TextStyle(font: _font, fontSize: 9, color: _textMuted)),
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(font: _font, fontSize: 9, color: _textMuted)),
           pw.Text(date,
-            style: pw.TextStyle(font: _font, fontSize: 9, color: _textMuted)),
+              style: pw.TextStyle(font: _font, fontSize: 9, color: _textMuted)),
         ],
       ),
     );
@@ -325,16 +357,19 @@ class ReportGenerator {
     return pw.Container(
       padding: const pw.EdgeInsets.only(top: 8),
       decoration: const pw.BoxDecoration(
-        border: pw.Border(top: pw.BorderSide(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5)),
+        border: pw.Border(
+            top:
+                pw.BorderSide(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5)),
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text('منصة مشرف EPI — تقرير سري',
-            textDirection: pw.TextDirection.rtl,
-            style: pw.TextStyle(font: _lightFont, fontSize: 8, color: _textMuted)),
+              textDirection: pw.TextDirection.rtl,
+              style: pw.TextStyle(
+                  font: _lightFont, fontSize: 8, color: _textMuted)),
           pw.Text('صفحة ${ctx.pageNumber} من ${ctx.pagesCount}',
-            style: pw.TextStyle(font: _font, fontSize: 8, color: _textMuted)),
+              style: pw.TextStyle(font: _font, fontSize: 8, color: _textMuted)),
         ],
       ),
     );
@@ -346,11 +381,12 @@ class ReportGenerator {
       decoration: pw.BoxDecoration(
         color: _bgLight,
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border(right: const pw.BorderSide(color: _primaryColor, width: 3)),
+        border: pw.Border(
+            right: const pw.BorderSide(color: _primaryColor, width: 3)),
       ),
       child: pw.Text(title,
-        textDirection: pw.TextDirection.rtl,
-        style: pw.TextStyle(font: _boldFont, fontSize: 14, color: _textDark)),
+          textDirection: pw.TextDirection.rtl,
+          style: pw.TextStyle(font: _boldFont, fontSize: 14, color: _textDark)),
     );
   }
 
@@ -363,33 +399,39 @@ class ReportGenerator {
         borderRadius: pw.BorderRadius.circular(10),
         border: pw.Border.all(color: PdfColor.fromInt(0xFFE0E0E0)),
         boxShadow: [
-          pw.BoxShadow(color: PdfColor.fromInt(0x0A000000), blurRadius: 4, offset: const PdfPoint(0, 2)),
+          pw.BoxShadow(
+              color: PdfColor.fromInt(0x0A000000),
+              blurRadius: 4,
+              offset: const PdfPoint(0, 2)),
         ],
       ),
       child: pw.Column(
         children: [
           pw.Container(
-            width: 40, height: 40,
+            width: 40,
+            height: 40,
             decoration: pw.BoxDecoration(
               color: color,
               borderRadius: pw.BorderRadius.circular(10),
             ),
             child: pw.Center(
               child: pw.Text(value,
-                style: pw.TextStyle(font: _boldFont, fontSize: 14, color: PdfColors.white)),
+                  style: pw.TextStyle(
+                      font: _boldFont, fontSize: 14, color: PdfColors.white)),
             ),
           ),
           pw.SizedBox(height: 8),
           pw.Text(label,
-            textDirection: pw.TextDirection.rtl,
-            textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(font: _font, fontSize: 9, color: _textMuted)),
+              textDirection: pw.TextDirection.rtl,
+              textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(font: _font, fontSize: 9, color: _textMuted)),
         ],
       ),
     );
   }
 
-  static pw.Widget _buildStatusDistributionTable(Map<String, dynamic> byStatus, int total) {
+  static pw.Widget _buildStatusDistributionTable(
+      Map<String, dynamic> byStatus, int total) {
     final statusLabels = {
       'approved': 'مقبول',
       'submitted': 'قيد المراجعة',
@@ -420,7 +462,8 @@ class ReportGenerator {
             color: statusColors[entry.key] ?? PdfColors.grey400,
             child: pw.Center(
               child: pw.Text('$count',
-                style: pw.TextStyle(font: _boldFont, fontSize: 9, color: PdfColors.white)),
+                  style: pw.TextStyle(
+                      font: _boldFont, fontSize: 9, color: PdfColors.white)),
             ),
           ),
         ),
@@ -431,13 +474,17 @@ class ReportGenerator {
       children: [
         // Table
         pw.TableHelper.fromTextArray(
-          border: pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
-          headerStyle: pw.TextStyle(font: _boldFont, fontSize: 11, color: PdfColors.white),
+          border: pw.TableBorder.all(
+              color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
+          headerStyle: pw.TextStyle(
+              font: _boldFont, fontSize: 11, color: PdfColors.white),
           headerDecoration: const pw.BoxDecoration(color: _primaryColor),
           cellStyle: pw.TextStyle(font: _font, fontSize: 10),
           cellAlignment: pw.Alignment.centerRight,
-          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          headerPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          cellPadding:
+              const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          headerPadding:
+              const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           headers: ['الحالة', 'العدد', 'النسبة'],
           data: rows,
         ),
@@ -456,28 +503,34 @@ class ReportGenerator {
 
   static pw.Widget _buildDailyActivityTable(Map<String, dynamic> byDay) {
     final entries = byDay.entries.toList();
-    final maxCount = entries.fold<int>(0, (max, e) => (e.value as int) > max ? (e.value as int) : max);
+    final maxCount = entries.fold<int>(
+        0, (max, e) => (e.value as int) > max ? (e.value as int) : max);
 
     final rows = entries.map((e) {
       final count = e.value as int;
-      final barWidth = maxCount > 0 ? (count / maxCount * 100).toStringAsFixed(0) : '0';
+      final barWidth =
+          maxCount > 0 ? (count / maxCount * 100).toStringAsFixed(0) : '0';
       return [e.key, '$count', '$barWidth%'];
     }).toList();
 
     return pw.TableHelper.fromTextArray(
-      border: pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
-      headerStyle: pw.TextStyle(font: _boldFont, fontSize: 11, color: PdfColors.white),
+      border:
+          pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
+      headerStyle:
+          pw.TextStyle(font: _boldFont, fontSize: 11, color: PdfColors.white),
       headerDecoration: const pw.BoxDecoration(color: PdfColors.blue700),
       cellStyle: pw.TextStyle(font: _font, fontSize: 10),
       cellAlignment: pw.Alignment.centerRight,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      headerPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      headerPadding:
+          const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       headers: ['اليوم', 'عدد الإرساليات', 'النسبة'],
       data: rows,
     );
   }
 
-  static pw.Widget _buildSeverityTable(Map<String, dynamic> bySeverity, int total) {
+  static pw.Widget _buildSeverityTable(
+      Map<String, dynamic> bySeverity, int total) {
     final severityLabels = {
       'critical': '🔴 حرج',
       'high': '🟠 عالي',
@@ -494,13 +547,16 @@ class ReportGenerator {
     }
 
     return pw.TableHelper.fromTextArray(
-      border: pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
-      headerStyle: pw.TextStyle(font: _boldFont, fontSize: 11, color: PdfColors.white),
+      border:
+          pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
+      headerStyle:
+          pw.TextStyle(font: _boldFont, fontSize: 11, color: PdfColors.white),
       headerDecoration: const pw.BoxDecoration(color: _accentColor),
       cellStyle: pw.TextStyle(font: _font, fontSize: 10),
       cellAlignment: pw.Alignment.centerRight,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      headerPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      headerPadding:
+          const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       headers: ['مستوى الخطورة', 'العدد', 'النسبة'],
       data: rows,
     );
@@ -517,13 +573,16 @@ class ReportGenerator {
     }).toList();
 
     return pw.TableHelper.fromTextArray(
-      border: pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
-      headerStyle: pw.TextStyle(font: _boldFont, fontSize: 11, color: PdfColors.white),
+      border:
+          pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
+      headerStyle:
+          pw.TextStyle(font: _boldFont, fontSize: 11, color: PdfColors.white),
       headerDecoration: const pw.BoxDecoration(color: _primaryColor),
       cellStyle: pw.TextStyle(font: _font, fontSize: 10),
       cellAlignment: pw.Alignment.centerRight,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      headerPadding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      headerPadding:
+          const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       headers: ['المحافظة', 'الإجمالي', 'مقبول', 'نسبة القبول'],
       data: rows,
     );
@@ -548,8 +607,10 @@ class ReportGenerator {
     }).toList();
 
     return pw.TableHelper.fromTextArray(
-      border: pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
-      headerStyle: pw.TextStyle(font: _boldFont, fontSize: 9, color: PdfColors.white),
+      border:
+          pw.TableBorder.all(color: PdfColor.fromInt(0xFFE0E0E0), width: 0.5),
+      headerStyle:
+          pw.TextStyle(font: _boldFont, fontSize: 9, color: PdfColors.white),
       headerDecoration: const pw.BoxDecoration(color: _warningColor),
       cellStyle: pw.TextStyle(font: _font, fontSize: 8),
       cellAlignment: pw.Alignment.centerRight,
@@ -567,7 +628,8 @@ class ReportGenerator {
   static Future<void> _loadFonts() async {
     if (_font != null) return;
     try {
-      final regularData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
+      final regularData =
+          await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
       final boldData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
       _font = pw.Font.ttf(regularData);
       _boldFont = pw.Font.ttf(boldData);

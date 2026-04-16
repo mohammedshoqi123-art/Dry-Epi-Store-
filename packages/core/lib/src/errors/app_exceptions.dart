@@ -11,7 +11,8 @@ class AppException implements Exception {
   const AppException(this.message, {this.code, this.details});
 
   @override
-  String toString() => 'AppException: $message${code != null ? ' [$code]' : ''}';
+  String toString() =>
+      'AppException: $message${code != null ? ' [$code]' : ''}';
 }
 
 // ─── API Exceptions ────────────────────────────────────────────────────────

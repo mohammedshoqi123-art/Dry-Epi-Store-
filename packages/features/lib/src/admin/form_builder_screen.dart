@@ -275,8 +275,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen> {
       body: Row(
         children: [
           // Field type palette
-          if (MediaQuery.of(context).size.width > 900)
-            _buildFieldPalette(),
+          if (MediaQuery.of(context).size.width > 900) _buildFieldPalette(),
 
           // Form editor
           Expanded(
@@ -378,7 +377,8 @@ class _FormBuilderScreenState extends State<FormBuilderScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
+        side: BorderSide(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -630,7 +630,8 @@ class _FormBuilderScreenState extends State<FormBuilderScreen> {
                       fontSize: 20, fontWeight: FontWeight.bold)),
               if (_formDescription.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text(_formDescription, style: TextStyle(color: Colors.grey[600])),
+                Text(_formDescription,
+                    style: TextStyle(color: Colors.grey[600])),
               ],
               const Divider(),
               const SizedBox(height: 16),
@@ -829,7 +830,8 @@ class _FieldEditDialogState extends State<_FieldEditDialog> {
             widget.onSave(widget.field.copyWith(
               label: _labelController.text,
               name: _nameController.text,
-              helpText: _helpController.text.isEmpty ? null : _helpController.text,
+              helpText:
+                  _helpController.text.isEmpty ? null : _helpController.text,
               required: _required,
               options: _options.isNotEmpty ? {'items': _options} : {},
             ));
@@ -849,5 +851,3 @@ class _FieldEditDialogState extends State<_FieldEditDialog> {
     super.dispose();
   }
 }
-
-

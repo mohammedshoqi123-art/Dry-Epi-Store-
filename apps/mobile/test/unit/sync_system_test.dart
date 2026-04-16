@@ -8,7 +8,8 @@ import 'package:epi_core/src/security/encryption_service.dart';
 
 /// Simple mock encryption that passes data through (for testing only).
 class MockEncryptionService extends EncryptionService {
-  MockEncryptionService() : super(overrideKey: 'MOCK_TEST_KEY_32_CHARS_MINIMUM________');
+  MockEncryptionService()
+      : super(overrideKey: 'MOCK_TEST_KEY_32_CHARS_MINIMUM________');
 
   @override
   String encrypt(String plaintext) => 'enc:$plaintext';
@@ -32,7 +33,10 @@ void main() {
       final entry = SyncQueueEntry(
         id: 'test-id-1',
         type: 'form_submission',
-        payload: {'form_id': 'f1', 'data': {'name': 'test'}},
+        payload: {
+          'form_id': 'f1',
+          'data': {'name': 'test'}
+        },
         priority: SyncPriority.critical,
         status: QueueItemStatus.retrying,
         createdAt: DateTime(2026, 4, 14, 10, 30),
@@ -151,8 +155,14 @@ void main() {
       final result = ConflictResolver.detect(
         entityType: 'form_submission',
         entityId: 'id-1',
-        localData: {'name': 'local-value', 'updated_at': '2026-04-14T12:00:00Z'},
-        serverData: {'name': 'server-value', 'updated_at': '2026-04-14T11:00:00Z'},
+        localData: {
+          'name': 'local-value',
+          'updated_at': '2026-04-14T12:00:00Z'
+        },
+        serverData: {
+          'name': 'server-value',
+          'updated_at': '2026-04-14T11:00:00Z'
+        },
         localBaseTimestamp: DateTime.parse('2026-04-14T09:00:00Z'),
       );
       // Server updated at 11:00 which is AFTER our base at 09:00, and data differs
@@ -170,7 +180,8 @@ void main() {
         detectedAt: DateTime.now(),
       );
 
-      final resolved = ConflictResolver.resolve(conflict, ConflictStrategy.serverWins);
+      final resolved =
+          ConflictResolver.resolve(conflict, ConflictStrategy.serverWins);
       expect(resolved['name'], equals('server'));
       expect(resolved['status'], equals('approved'));
     });
@@ -185,12 +196,14 @@ void main() {
         detectedAt: DateTime.now(),
       );
 
-      final resolved = ConflictResolver.resolve(conflict, ConflictStrategy.localWins);
+      final resolved =
+          ConflictResolver.resolve(conflict, ConflictStrategy.localWins);
       expect(resolved['name'], equals('local'));
       expect(resolved['status'], equals('submitted'));
     });
 
-    test('smartMerge keeps admin fields from server, field data from local', () {
+    test('smartMerge keeps admin fields from server, field data from local',
+        () {
       final conflict = DataConflictV2(
         id: 'c1',
         entityType: 'form_submission',
@@ -198,14 +211,14 @@ void main() {
         localData: {
           'data': {'patient': 'Ahmed'},
           'gps_lat': 33.3,
-          'status': 'submitted',       // local changed this
+          'status': 'submitted', // local changed this
           'notes': 'field note',
           'photos': ['img1.jpg'],
         },
         serverData: {
           'data': {'patient': 'Ahmed Updated'}, // admin changed
           'gps_lat': 33.3,
-          'status': 'approved',                  // server approved
+          'status': 'approved', // server approved
           'notes': 'field note',
           'photos': ['img1.jpg'],
           'reviewed_by': 'admin-1',
@@ -214,7 +227,8 @@ void main() {
         detectedAt: DateTime.now(),
       );
 
-      final resolved = ConflictResolver.resolve(conflict, ConflictStrategy.smartMerge);
+      final resolved =
+          ConflictResolver.resolve(conflict, ConflictStrategy.smartMerge);
 
       // Field data should come from LOCAL
       expect(resolved['data'], equals({'patient': 'Ahmed'}));
@@ -242,7 +256,8 @@ void main() {
         equals('🟢'),
       );
       expect(
-        const NetworkSnapshot(status: NetworkStatus.online, pendingItems: 5).indicator,
+        const NetworkSnapshot(status: NetworkStatus.online, pendingItems: 5)
+            .indicator,
         equals('🟡'),
       );
       expect(
@@ -281,13 +296,16 @@ void main() {
   group('Critical Scenarios', () {
     test('Scenario 1: Network drops during sync — items remain in queue', () {
       // Simulate: 5 items in queue, network drops mid-sync
-      final entries = List.generate(5, (i) => SyncQueueEntry(
-        id: 'item-$i',
-        type: 'form_submission',
-        payload: {'data': 'test-$i'},
-        createdAt: DateTime.now().subtract(Duration(seconds: 5 - i)),
-        status: i < 2 ? QueueItemStatus.syncing : QueueItemStatus.pending,
-      ));
+      final entries = List.generate(
+          5,
+          (i) => SyncQueueEntry(
+                id: 'item-$i',
+                type: 'form_submission',
+                payload: {'data': 'test-$i'},
+                createdAt: DateTime.now().subtract(Duration(seconds: 5 - i)),
+                status:
+                    i < 2 ? QueueItemStatus.syncing : QueueItemStatus.pending,
+              ));
 
       // After network drop, syncing items should be back to retrying
       // (this is handled by the manager, but the model supports it)
@@ -323,7 +341,8 @@ void main() {
       expect(conflict!.differingFields, contains('data'));
 
       // Smart merge resolves it
-      final resolved = ConflictResolver.resolve(conflict, ConflictStrategy.smartMerge);
+      final resolved =
+          ConflictResolver.resolve(conflict, ConflictStrategy.smartMerge);
       expect(resolved, isNotNull);
     });
 
@@ -356,12 +375,15 @@ void main() {
       expect(items.first.priority, equals(SyncPriority.critical));
 
       // Critical items should come before normal
-      final firstNormal = items.indexWhere((e) => e.priority == SyncPriority.normal);
-      final lastCritical = items.lastIndexWhere((e) => e.priority == SyncPriority.critical);
+      final firstNormal =
+          items.indexWhere((e) => e.priority == SyncPriority.normal);
+      final lastCritical =
+          items.lastIndexWhere((e) => e.priority == SyncPriority.critical);
       expect(lastCritical, lessThan(firstNormal));
     });
 
-    test('Scenario 4: Max retries exceeded — item marked as permanently failed', () {
+    test('Scenario 4: Max retries exceeded — item marked as permanently failed',
+        () {
       var entry = SyncQueueEntry(
         id: 'flaky-item',
         type: 'form_submission',
@@ -389,14 +411,17 @@ void main() {
 
     test('Scenario 5: Offline for hours then reconnect — immediate sync', () {
       // Simulate: user works offline for 3 hours, collects 20 records
-      final offlineRecords = List.generate(20, (i) => SyncQueueEntry(
-        id: 'offline-$i',
-        type: 'form_submission',
-        payload: {'patient': 'patient-$i', 'vaccine': 'OPV'},
-        priority: SyncPriority.critical,
-        createdAt: DateTime.now().subtract(Duration(minutes: 180 - i * 9)),
-        status: QueueItemStatus.pending,
-      ));
+      final offlineRecords = List.generate(
+          20,
+          (i) => SyncQueueEntry(
+                id: 'offline-$i',
+                type: 'form_submission',
+                payload: {'patient': 'patient-$i', 'vaccine': 'OPV'},
+                priority: SyncPriority.critical,
+                createdAt:
+                    DateTime.now().subtract(Duration(minutes: 180 - i * 9)),
+                status: QueueItemStatus.pending,
+              ));
 
       // All records should be ready
       final ready = offlineRecords.where((e) => e.isReadyForRetry).toList();
@@ -429,13 +454,15 @@ void main() {
 
   group('Data Optimization', () {
     test('batch submission groups items correctly', () {
-      final items = List.generate(75, (i) => SyncQueueEntry(
-        id: 'item-$i',
-        type: 'form_submission',
-        payload: {'data': 'x' * 100},
-        createdAt: DateTime.now(),
-        status: QueueItemStatus.pending,
-      ));
+      final items = List.generate(
+          75,
+          (i) => SyncQueueEntry(
+                id: 'item-$i',
+                type: 'form_submission',
+                payload: {'data': 'x' * 100},
+                createdAt: DateTime.now(),
+                status: QueueItemStatus.pending,
+              ));
 
       const batchSize = 50;
       final batch1 = items.take(batchSize).toList();

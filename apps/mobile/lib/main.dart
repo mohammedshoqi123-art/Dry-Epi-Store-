@@ -46,7 +46,10 @@ Future<void> main() async {
               Text(
                 details.exceptionAsString(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: Color(0xFF666666)),
+                style: const TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 12,
+                    color: Color(0xFF666666)),
                 maxLines: 5,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -82,7 +85,10 @@ Future<void> main() async {
                 const SizedBox(height: 16),
                 const Text(
                   'خطأ في الإعدادات',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Cairo'),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -175,7 +181,8 @@ Future<void> main() async {
   // Initialize Sentry with centralized config — with timeout to prevent blocking
   try {
     await SentryConfig.init(
-      appRunner: () async => runApp(const ProviderScope(child: EpiSupervisorApp())),
+      appRunner: () async =>
+          runApp(const ProviderScope(child: EpiSupervisorApp())),
     ).timeout(
       const Duration(seconds: 10),
       onTimeout: () {
@@ -219,10 +226,9 @@ class EpiSupervisorApp extends ConsumerWidget {
             // Allow accessibility text scaling up to 1.3x for readability
             data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(
-                MediaQuery.of(context).textScaler.scale(1.0) > 2.0
-                  ? 2.0
-                  : MediaQuery.of(context).textScaler.scale(1.0)
-              ),
+                  MediaQuery.of(context).textScaler.scale(1.0) > 2.0
+                      ? 2.0
+                      : MediaQuery.of(context).textScaler.scale(1.0)),
             ),
             child: child!,
           ),

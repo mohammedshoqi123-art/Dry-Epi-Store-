@@ -7,7 +7,8 @@ void main() {
     late EncryptionService service;
 
     setUp(() {
-      service = EncryptionService(overrideKey: 'EPI_SUPERVISOR_TEST_KEY_32_CHARS_MINIMUM');
+      service = EncryptionService(
+          overrideKey: 'EPI_SUPERVISOR_TEST_KEY_32_CHARS_MINIMUM');
     });
 
     test('encrypt produces non-empty base64 output', () {

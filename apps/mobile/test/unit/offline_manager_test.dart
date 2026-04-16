@@ -41,7 +41,10 @@ void main() {
   group('OfflineManager - Queue Management', () {
     test('idempotency key is set on submission', () {
       // This test verifies the offline_id is used as idempotency key
-      final submission = {'form_id': 'test', 'data': {'field': 'value'}};
+      final submission = {
+        'form_id': 'test',
+        'data': {'field': 'value'}
+      };
 
       // Simulate what addToSyncQueue does
       const offlineId = 'test-uuid-123';

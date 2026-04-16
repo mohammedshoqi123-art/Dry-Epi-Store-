@@ -49,7 +49,9 @@ class GeoUtils {
   }
 
   /// Generic: Check if point is within a country bounding box
-  static bool isWithinBounds(double lat, double lng, {
+  static bool isWithinBounds(
+    double lat,
+    double lng, {
     required double minLat,
     required double maxLat,
     required double minLng,
@@ -90,8 +92,8 @@ class GeoUtils {
   /// Parse PostGIS POINT string to lat/lng
   static (double lat, double lng)? fromPostGISPoint(String? point) {
     if (point == null) return null;
-    final match = RegExp(r'POINT\(([+-]?\d+\.?\d*) ([+-]?\d+\.?\d*)\)')
-        .firstMatch(point);
+    final match =
+        RegExp(r'POINT\(([+-]?\d+\.?\d*) ([+-]?\d+\.?\d*)\)').firstMatch(point);
     if (match == null) return null;
     final lng = double.tryParse(match.group(1) ?? '');
     final lat = double.tryParse(match.group(2) ?? '');

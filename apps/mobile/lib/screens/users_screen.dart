@@ -34,7 +34,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   Future<void> _loadAll() async {
-    setState(() { _isLoading = true; _error = null; });
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
     try {
       final client = Supabase.instance.client;
       // Load users
@@ -42,15 +45,27 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           .from('profiles')
           .select('*, governorates(name_ar), districts(name_ar)');
       if (_searchController.text.isNotEmpty) {
-        query = query.or('full_name.ilike.%${_searchController.text}%,email.ilike.%${_searchController.text}%');
+        query = query.or(
+            'full_name.ilike.%${_searchController.text}%,email.ilike.%${_searchController.text}%');
       }
       if (_filterRole != null) query = query.eq('role', _filterRole!);
       if (_filterActive != null) query = query.eq('is_active', _filterActive!);
-      final response = await query.order('created_at', ascending: false).limit(200);
+      final response =
+          await query.order('created_at', ascending: false).limit(200);
 
       // Load governorates for the form
-      final govs = await client.from('governorates').select('id, name_ar').eq('is_active', true).isFilter('deleted_at', null).order('name_ar');
-      final districts = await client.from('districts').select('id, name_ar, governorate_id').eq('is_active', true).isFilter('deleted_at', null).order('name_ar');
+      final govs = await client
+          .from('governorates')
+          .select('id, name_ar')
+          .eq('is_active', true)
+          .isFilter('deleted_at', null)
+          .order('name_ar');
+      final districts = await client
+          .from('districts')
+          .select('id, name_ar, governorate_id')
+          .eq('is_active', true)
+          .isFilter('deleted_at', null)
+          .order('name_ar');
 
       setState(() {
         _users = (response as List<dynamic>).cast<Map<String, dynamic>>();
@@ -59,7 +74,10 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() { _error = e.toString(); _isLoading = false; });
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -70,7 +88,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => _UserFormSheet(
         governorates: _governorates,
         districts: _districts,
@@ -97,13 +116,19 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       _loadAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إضافة المستخدم بنجاح ✅', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.successColor),
+          const SnackBar(
+              content: Text('تم إضافة المستخدم بنجاح ✅',
+                  style: TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: AppTheme.successColor),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل الإضافة: $e', style: const TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.errorColor),
+          SnackBar(
+              content: Text('فشل الإضافة: $e',
+                  style: const TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: AppTheme.errorColor),
         );
       }
     }
@@ -116,7 +141,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => _UserFormSheet(
         governorates: _governorates,
         districts: _districts,
@@ -140,13 +166,19 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       _loadAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تحديث المستخدم ✅', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.successColor),
+          const SnackBar(
+              content: Text('تم تحديث المستخدم ✅',
+                  style: TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: AppTheme.successColor),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل التحديث: $e', style: const TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.errorColor),
+          SnackBar(
+              content: Text('فشل التحديث: $e',
+                  style: const TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: AppTheme.errorColor),
         );
       }
     }
@@ -161,21 +193,30 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       builder: (ctx) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: AppTheme.errorColor),
               SizedBox(width: 8),
-              Text('حذف المستخدم', style: TextStyle(fontFamily: 'Cairo', fontSize: 18)),
+              Text('حذف المستخدم',
+                  style: TextStyle(fontFamily: 'Cairo', fontSize: 18)),
             ],
           ),
-          content: Text('هل أنت متأكد من حذف "${user['full_name']}"؟\nلا يمكن التراجع عن هذا الإجراء.', style: const TextStyle(fontFamily: 'Tajawal')),
+          content: Text(
+              'هل أنت متأكد من حذف "${user['full_name']}"؟\nلا يمكن التراجع عن هذا الإجراء.',
+              style: const TextStyle(fontFamily: 'Tajawal')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء', style: TextStyle(fontFamily: 'Tajawal'))),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('إلغاء',
+                    style: TextStyle(fontFamily: 'Tajawal'))),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorColor),
-              child: const Text('حذف', style: TextStyle(fontFamily: 'Tajawal', color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.errorColor),
+              child: const Text('حذف',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white)),
             ),
           ],
         ),
@@ -186,17 +227,26 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     try {
       final client = Supabase.instance.client;
       // Soft delete
-      await client.from('profiles').update({'deleted_at': DateTime.now().toIso8601String()}).eq('id', user['id']);
+      await client
+          .from('profiles')
+          .update({'deleted_at': DateTime.now().toIso8601String()}).eq(
+              'id', user['id']);
       _loadAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم حذف المستخدم ✅', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.successColor),
+          const SnackBar(
+              content: Text('تم حذف المستخدم ✅',
+                  style: TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: AppTheme.successColor),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل الحذف: $e', style: const TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.errorColor),
+          SnackBar(
+              content: Text('فشل الحذف: $e',
+                  style: const TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: AppTheme.errorColor),
         );
       }
     }
@@ -209,17 +259,25 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     try {
       final client = Supabase.instance.client;
       final newStatus = !(user['is_active'] as bool? ?? true);
-      await client.from('profiles').update({'is_active': newStatus}).eq('id', user['id']);
+      await client
+          .from('profiles')
+          .update({'is_active': newStatus}).eq('id', user['id']);
       _loadAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(newStatus ? 'تم تفعيل المستخدم ✅' : 'تم تعطيل المستخدم ⚠️', style: const TextStyle(fontFamily: 'Tajawal'))),
+          SnackBar(
+              content: Text(
+                  newStatus ? 'تم تفعيل المستخدم ✅' : 'تم تعطيل المستخدم ⚠️',
+                  style: const TextStyle(fontFamily: 'Tajawal'))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e', style: const TextStyle(fontFamily: 'Tajawal')), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('خطأ: $e',
+                  style: const TextStyle(fontFamily: 'Tajawal')),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -229,17 +287,24 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إدارة المستخدمين', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700)),
+        title: const Text('إدارة المستخدمين',
+            style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700)),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.filter_list_rounded), onPressed: _showFilterSheet),
+          IconButton(
+              icon: const Icon(Icons.filter_list_rounded),
+              onPressed: _showFilterSheet),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addUser,
         backgroundColor: AppTheme.primaryColor,
         icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-        label: const Text('إضافة', style: TextStyle(fontFamily: 'Tajawal', color: Colors.white, fontWeight: FontWeight.w600)),
+        label: const Text('إضافة',
+            style: TextStyle(
+                fontFamily: 'Tajawal',
+                color: Colors.white,
+                fontWeight: FontWeight.w600)),
       ),
       body: Column(
         children: [
@@ -252,11 +317,18 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 hintText: 'بحث بالاسم أو البريد...',
                 hintStyle: const TextStyle(fontFamily: 'Tajawal'),
                 prefixIcon: const Icon(Icons.search_rounded),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none),
                 filled: true,
                 fillColor: Colors.grey.shade100,
                 suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchController.clear(); _loadAll(); })
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _loadAll();
+                        })
                     : null,
               ),
               onChanged: (_) => _loadAll(),
@@ -271,16 +343,28 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                 children: [
                   if (_filterRole != null)
                     Chip(
-                      label: Text(_roleNameAr(_filterRole!), style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12)),
-                      onDeleted: () { setState(() => _filterRole = null); _loadAll(); },
-                      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      label: Text(_roleNameAr(_filterRole!),
+                          style: const TextStyle(
+                              fontFamily: 'Tajawal', fontSize: 12)),
+                      onDeleted: () {
+                        setState(() => _filterRole = null);
+                        _loadAll();
+                      },
+                      backgroundColor:
+                          AppTheme.primaryColor.withValues(alpha: 0.1),
                     ),
                   const SizedBox(width: 8),
                   if (_filterActive != null)
                     Chip(
-                      label: Text(_filterActive! ? 'مفعل' : 'معطل', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12)),
-                      onDeleted: () { setState(() => _filterActive = null); _loadAll(); },
-                      backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      label: Text(_filterActive! ? 'مفعل' : 'معطل',
+                          style: const TextStyle(
+                              fontFamily: 'Tajawal', fontSize: 12)),
+                      onDeleted: () {
+                        setState(() => _filterActive = null);
+                        _loadAll();
+                      },
+                      backgroundColor:
+                          AppTheme.primaryColor.withValues(alpha: 0.1),
                     ),
                 ],
               ),
@@ -290,7 +374,11 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               children: [
-                Text('إجمالي: ${_users.length} مستخدم', style: TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: Colors.grey.shade600)),
+                Text('إجمالي: ${_users.length} مستخدم',
+                    style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        color: Colors.grey.shade600)),
               ],
             ),
           ),
@@ -304,13 +392,16 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   Widget _buildContent() {
     if (_isLoading) return const Center(child: EpiLoading.shimmer());
-    if (_error != null) return Center(child: EpiErrorWidget(message: _error!, onRetry: _loadAll));
-    if (_users.isEmpty) return Center(child: EpiEmptyState(
-      icon: Icons.people_outline_rounded,
-      title: 'لا توجد مستخدمين',
-      actionText: 'إعادة تحميل',
-      onAction: _loadAll,
-    ));
+    if (_error != null)
+      return Center(child: EpiErrorWidget(message: _error!, onRetry: _loadAll));
+    if (_users.isEmpty)
+      return Center(
+          child: EpiEmptyState(
+        icon: Icons.people_outline_rounded,
+        title: 'لا توجد مستخدمين',
+        actionText: 'إعادة تحميل',
+        onAction: _loadAll,
+      ));
 
     return RefreshIndicator(
       onRefresh: _loadAll,
@@ -340,10 +431,16 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             children: [
               CircleAvatar(
                 radius: 26,
-                backgroundColor: isActive ? AppTheme.primaryColor.withValues(alpha: 0.1) : Colors.grey.shade200,
+                backgroundColor: isActive
+                    ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                    : Colors.grey.shade200,
                 child: Text(
                   (user['full_name'] ?? 'م')[0],
-                  style: TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700, color: isActive ? AppTheme.primaryColor : Colors.grey),
+                  style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? AppTheme.primaryColor : Colors.grey),
                 ),
               ),
               const SizedBox(width: 14),
@@ -353,26 +450,58 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(user['full_name'] ?? '—', style: TextStyle(fontFamily: 'Cairo', fontSize: 15, fontWeight: FontWeight.w600, color: isActive ? null : Colors.grey))),
+                        Expanded(
+                            child: Text(user['full_name'] ?? '—',
+                                style: TextStyle(
+                                    fontFamily: 'Cairo',
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: isActive ? null : Colors.grey))),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: _roleColor(role).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: Text(_roleNameAr(role), style: TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: _roleColor(role), fontWeight: FontWeight.w600)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                              color: _roleColor(role).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Text(_roleNameAr(role),
+                              style: TextStyle(
+                                  fontFamily: 'Tajawal',
+                                  fontSize: 11,
+                                  color: _roleColor(role),
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(user['email'] ?? '', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary)),
+                    Text(user['email'] ?? '',
+                        style: const TextStyle(
+                            fontFamily: 'Tajawal',
+                            fontSize: 12,
+                            color: AppTheme.textSecondary)),
                     if (gov != null)
-                      Text('${gov['name_ar']}${dist != null ? ' — ${dist['name_ar']}' : ''}', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint)),
+                      Text(
+                          '${gov['name_ar']}${dist != null ? ' — ${dist['name_ar']}' : ''}',
+                          style: const TextStyle(
+                              fontFamily: 'Tajawal',
+                              fontSize: 11,
+                              color: AppTheme.textHint)),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               Column(
                 children: [
-                  Switch(value: isActive, onChanged: (_) => _toggleUserActive(user), activeColor: AppTheme.successColor),
-                  Text(isActive ? 'مفعل' : 'معطل', style: TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: isActive ? AppTheme.successColor : AppTheme.errorColor)),
+                  Switch(
+                      value: isActive,
+                      onChanged: (_) => _toggleUserActive(user),
+                      activeColor: AppTheme.successColor),
+                  Text(isActive ? 'مفعل' : 'معطل',
+                      style: TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 10,
+                          color: isActive
+                              ? AppTheme.successColor
+                              : AppTheme.errorColor)),
                 ],
               ),
             ],
@@ -385,27 +514,63 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   void _showUserActions(Map<String, dynamic> user) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 16),
             CircleAvatar(
               radius: 32,
               backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-              child: Text((user['full_name'] ?? 'م')[0], style: const TextStyle(fontFamily: 'Cairo', fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.primaryColor)),
+              child: Text((user['full_name'] ?? 'م')[0],
+                  style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryColor)),
             ),
             const SizedBox(height: 8),
-            Text(user['full_name'] ?? '—', style: const TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w700)),
-            Text(user['email'] ?? '', style: const TextStyle(fontFamily: 'Tajawal', fontSize: 13, color: AppTheme.textSecondary)),
+            Text(user['full_name'] ?? '—',
+                style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
+            Text(user['email'] ?? '',
+                style: const TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 13,
+                    color: AppTheme.textSecondary)),
             const SizedBox(height: 16),
             const Divider(),
-            _actionTile(Icons.edit_rounded, 'تعديل البيانات', AppTheme.primaryColor, () { Navigator.pop(ctx); _editUser(user); }),
-            _actionTile(Icons.toggle_on_rounded, (user['is_active'] as bool? ?? true) ? 'تعطيل الحساب' : 'تفعيل الحساب', AppTheme.warningColor, () { Navigator.pop(ctx); _toggleUserActive(user); }),
-            _actionTile(Icons.delete_forever_rounded, 'حذف المستخدم', AppTheme.errorColor, () { Navigator.pop(ctx); _deleteUser(user); }),
+            _actionTile(
+                Icons.edit_rounded, 'تعديل البيانات', AppTheme.primaryColor,
+                () {
+              Navigator.pop(ctx);
+              _editUser(user);
+            }),
+            _actionTile(
+                Icons.toggle_on_rounded,
+                (user['is_active'] as bool? ?? true)
+                    ? 'تعطيل الحساب'
+                    : 'تفعيل الحساب',
+                AppTheme.warningColor, () {
+              Navigator.pop(ctx);
+              _toggleUserActive(user);
+            }),
+            _actionTile(Icons.delete_forever_rounded, 'حذف المستخدم',
+                AppTheme.errorColor, () {
+              Navigator.pop(ctx);
+              _deleteUser(user);
+            }),
             const SizedBox(height: 12),
           ],
         ),
@@ -413,10 +578,20 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     );
   }
 
-  Widget _actionTile(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _actionTile(
+      IconData icon, String title, Color color, VoidCallback onTap) {
     return ListTile(
-      leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 22)),
-      title: Text(title, style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w500, color: color)),
+      leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10)),
+          child: Icon(icon, color: color, size: 22)),
+      title: Text(title,
+          style: TextStyle(
+              fontFamily: 'Tajawal',
+              fontWeight: FontWeight.w500,
+              color: color)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onTap: onTap,
     );
@@ -425,39 +600,70 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('تصفية', style: TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w700)),
+            const Text('تصفية',
+                style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
-            const Text('الدور:', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600)),
+            const Text('الدور:',
+                style: TextStyle(
+                    fontFamily: 'Tajawal', fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: [null, 'admin', 'central', 'governorate', 'district', 'data_entry'].map((r) {
+              children: [
+                null,
+                'admin',
+                'central',
+                'governorate',
+                'district',
+                'data_entry'
+              ].map((r) {
                 final selected = _filterRole == r;
                 return ChoiceChip(
-                  label: Text(r == null ? 'الكل' : _roleNameAr(r), style: const TextStyle(fontFamily: 'Tajawal')),
+                  label: Text(r == null ? 'الكل' : _roleNameAr(r),
+                      style: const TextStyle(fontFamily: 'Tajawal')),
                   selected: selected,
-                  onSelected: (_) { setState(() => _filterRole = r); Navigator.pop(ctx); _loadAll(); },
+                  onSelected: (_) {
+                    setState(() => _filterRole = r);
+                    Navigator.pop(ctx);
+                    _loadAll();
+                  },
                 );
               }).toList(),
             ),
             const SizedBox(height: 16),
-            const Text('الحالة:', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600)),
+            const Text('الحالة:',
+                style: TextStyle(
+                    fontFamily: 'Tajawal', fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               children: [null, true, false].map((v) {
                 final selected = _filterActive == v;
                 return ChoiceChip(
-                  label: Text(v == null ? 'الكل' : v ? 'مفعل' : 'معطل', style: const TextStyle(fontFamily: 'Tajawal')),
+                  label: Text(
+                      v == null
+                          ? 'الكل'
+                          : v
+                              ? 'مفعل'
+                              : 'معطل',
+                      style: const TextStyle(fontFamily: 'Tajawal')),
                   selected: selected,
-                  onSelected: (_) { setState(() => _filterActive = v); Navigator.pop(ctx); _loadAll(); },
+                  onSelected: (_) {
+                    setState(() => _filterActive = v);
+                    Navigator.pop(ctx);
+                    _loadAll();
+                  },
                 );
               }).toList(),
             ),
@@ -469,12 +675,24 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
   }
 
   String _roleNameAr(String role) {
-    const roles = {'admin': 'مدير النظام', 'central': 'مركزي', 'governorate': 'محافظة', 'district': 'مديرية', 'data_entry': 'إدخال بيانات'};
+    const roles = {
+      'admin': 'مدير النظام',
+      'central': 'مركزي',
+      'governorate': 'محافظة',
+      'district': 'مديرية',
+      'data_entry': 'إدخال بيانات'
+    };
     return roles[role] ?? role;
   }
 
   Color _roleColor(String role) {
-    const colors = {'admin': Color(0xFFD32F2F), 'central': Color(0xFF7B1FA2), 'governorate': Color(0xFF1565C0), 'district': Color(0xFF00838F), 'data_entry': Color(0xFF43A047)};
+    const colors = {
+      'admin': Color(0xFFD32F2F),
+      'central': Color(0xFF7B1FA2),
+      'governorate': Color(0xFF1565C0),
+      'district': Color(0xFF00838F),
+      'data_entry': Color(0xFF43A047)
+    };
     return colors[role] ?? Colors.grey;
   }
 }
@@ -540,7 +758,9 @@ class _UserFormSheetState extends State<_UserFormSheet> {
 
   List<Map<String, dynamic>> get _filteredDistricts {
     if (_selectedGovernorateId == null) return [];
-    return widget.districts.where((d) => d['governorate_id'] == _selectedGovernorateId).toList();
+    return widget.districts
+        .where((d) => d['governorate_id'] == _selectedGovernorateId)
+        .toList();
   }
 
   void _submit() {
@@ -563,7 +783,9 @@ class _UserFormSheetState extends State<_UserFormSheet> {
       textDirection: TextDirection.rtl,
       child: Padding(
         padding: EdgeInsets.only(
-          left: 24, right: 24, top: 24,
+          left: 24,
+          right: 24,
+          top: 24,
           bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
         child: SingleChildScrollView(
@@ -573,16 +795,28 @@ class _UserFormSheetState extends State<_UserFormSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                Center(
+                    child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
-                Text(widget.title, style: const TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700)),
+                Text(widget.title,
+                    style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700)),
                 const SizedBox(height: 20),
 
                 // Full Name
                 TextFormField(
                   controller: _nameController,
-                  decoration: _inputDecoration('الاسم الكامل', Icons.person_rounded),
-                  validator: (v) => (v == null || v.trim().length < 2) ? 'الاسم مطلوب' : null,
+                  decoration:
+                      _inputDecoration('الاسم الكامل', Icons.person_rounded),
+                  validator: (v) =>
+                      (v == null || v.trim().length < 2) ? 'الاسم مطلوب' : null,
                   style: const TextStyle(fontFamily: 'Tajawal'),
                 ),
                 const SizedBox(height: 14),
@@ -591,11 +825,13 @@ class _UserFormSheetState extends State<_UserFormSheet> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: _inputDecoration('البريد الإلكتروني', Icons.email_rounded),
+                  decoration: _inputDecoration(
+                      'البريد الإلكتروني', Icons.email_rounded),
                   enabled: !_isEditing, // Can't change email when editing
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'البريد مطلوب';
-                    if (!RegExp(r'^[\w.+-]+@[\w-]+\.[\w.]+$').hasMatch(v.trim())) return 'البريد غير صحيح';
+                    if (!RegExp(r'^[\w.+-]+@[\w-]+\.[\w.]+$')
+                        .hasMatch(v.trim())) return 'البريد غير صحيح';
                     return null;
                   },
                   style: const TextStyle(fontFamily: 'Tajawal'),
@@ -611,12 +847,18 @@ class _UserFormSheetState extends State<_UserFormSheet> {
                       labelText: 'كلمة المرور',
                       prefixIcon: const Icon(Icons.lock_rounded),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        icon: Icon(_obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                       ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    validator: (v) => (v == null || v.length < 8) ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' : null,
+                    validator: (v) => (v == null || v.length < 8)
+                        ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'
+                        : null,
                     style: const TextStyle(fontFamily: 'Tajawal'),
                   ),
                   const SizedBox(height: 14),
@@ -626,9 +868,13 @@ class _UserFormSheetState extends State<_UserFormSheet> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: _inputDecoration('رقم الجوال', Icons.phone_rounded),
+                  decoration:
+                      _inputDecoration('رقم الجوال', Icons.phone_rounded),
                   validator: (v) {
-                    if (v != null && v.isNotEmpty && !RegExp(r'^07\d{9}$').hasMatch(v)) return 'رقم غير صحيح (07XXXXXXXXX)';
+                    if (v != null &&
+                        v.isNotEmpty &&
+                        !RegExp(r'^07\d{9}$').hasMatch(v))
+                      return 'رقم غير صحيح (07XXXXXXXXX)';
                     return null;
                   },
                   style: const TextStyle(fontFamily: 'Tajawal'),
@@ -638,7 +884,8 @@ class _UserFormSheetState extends State<_UserFormSheet> {
                 // National ID
                 TextFormField(
                   controller: _nationalIdController,
-                  decoration: _inputDecoration('الرقم الوطني (اختياري)', Icons.badge_rounded),
+                  decoration: _inputDecoration(
+                      'الرقم الوطني (اختياري)', Icons.badge_rounded),
                   style: const TextStyle(fontFamily: 'Tajawal'),
                 ),
                 const SizedBox(height: 14),
@@ -646,29 +893,58 @@ class _UserFormSheetState extends State<_UserFormSheet> {
                 // Role
                 DropdownButtonFormField<String>(
                   value: _selectedRole,
-                  decoration: _inputDecoration('الدور', Icons.admin_panel_settings_rounded),
+                  decoration: _inputDecoration(
+                      'الدور', Icons.admin_panel_settings_rounded),
                   items: const [
-                    DropdownMenuItem(value: 'data_entry', child: Text('إدخال بيانات', style: TextStyle(fontFamily: 'Tajawal'))),
-                    DropdownMenuItem(value: 'district', child: Text('مديرية', style: TextStyle(fontFamily: 'Tajawal'))),
-                    DropdownMenuItem(value: 'governorate', child: Text('محافظة', style: TextStyle(fontFamily: 'Tajawal'))),
-                    DropdownMenuItem(value: 'central', child: Text('مركزي', style: TextStyle(fontFamily: 'Tajawal'))),
-                    DropdownMenuItem(value: 'admin', child: Text('مدير النظام', style: TextStyle(fontFamily: 'Tajawal'))),
+                    DropdownMenuItem(
+                        value: 'data_entry',
+                        child: Text('إدخال بيانات',
+                            style: TextStyle(fontFamily: 'Tajawal'))),
+                    DropdownMenuItem(
+                        value: 'district',
+                        child: Text('مديرية',
+                            style: TextStyle(fontFamily: 'Tajawal'))),
+                    DropdownMenuItem(
+                        value: 'governorate',
+                        child: Text('محافظة',
+                            style: TextStyle(fontFamily: 'Tajawal'))),
+                    DropdownMenuItem(
+                        value: 'central',
+                        child: Text('مركزي',
+                            style: TextStyle(fontFamily: 'Tajawal'))),
+                    DropdownMenuItem(
+                        value: 'admin',
+                        child: Text('مدير النظام',
+                            style: TextStyle(fontFamily: 'Tajawal'))),
                   ],
-                  onChanged: (v) => setState(() => _selectedRole = v ?? 'data_entry'),
-                  style: const TextStyle(fontFamily: 'Tajawal', color: Colors.black87),
+                  onChanged: (v) =>
+                      setState(() => _selectedRole = v ?? 'data_entry'),
+                  style: const TextStyle(
+                      fontFamily: 'Tajawal', color: Colors.black87),
                 ),
                 const SizedBox(height: 14),
 
                 // Governorate
                 DropdownButtonFormField<String>(
                   value: _selectedGovernorateId,
-                  decoration: _inputDecoration('المحافظة (اختياري)', Icons.location_city_rounded),
+                  decoration: _inputDecoration(
+                      'المحافظة (اختياري)', Icons.location_city_rounded),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text('— بدون —', style: TextStyle(fontFamily: 'Tajawal'))),
-                    ...widget.governorates.map((g) => DropdownMenuItem(value: g['id'] as String, child: Text(g['name_ar'], style: const TextStyle(fontFamily: 'Tajawal')))),
+                    const DropdownMenuItem(
+                        value: null,
+                        child: Text('— بدون —',
+                            style: TextStyle(fontFamily: 'Tajawal'))),
+                    ...widget.governorates.map((g) => DropdownMenuItem(
+                        value: g['id'] as String,
+                        child: Text(g['name_ar'],
+                            style: const TextStyle(fontFamily: 'Tajawal')))),
                   ],
-                  onChanged: (v) => setState(() { _selectedGovernorateId = v; _selectedDistrictId = null; }),
-                  style: const TextStyle(fontFamily: 'Tajawal', color: Colors.black87),
+                  onChanged: (v) => setState(() {
+                    _selectedGovernorateId = v;
+                    _selectedDistrictId = null;
+                  }),
+                  style: const TextStyle(
+                      fontFamily: 'Tajawal', color: Colors.black87),
                 ),
                 const SizedBox(height: 14),
 
@@ -676,13 +952,21 @@ class _UserFormSheetState extends State<_UserFormSheet> {
                 if (_selectedGovernorateId != null) ...[
                   DropdownButtonFormField<String>(
                     value: _selectedDistrictId,
-                    decoration: _inputDecoration('المديرية (اختياري)', Icons.location_on_rounded),
+                    decoration: _inputDecoration(
+                        'المديرية (اختياري)', Icons.location_on_rounded),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('— بدون —', style: TextStyle(fontFamily: 'Tajawal'))),
-                      ..._filteredDistricts.map((d) => DropdownMenuItem(value: d['id'] as String, child: Text(d['name_ar'], style: const TextStyle(fontFamily: 'Tajawal')))),
+                      const DropdownMenuItem(
+                          value: null,
+                          child: Text('— بدون —',
+                              style: TextStyle(fontFamily: 'Tajawal'))),
+                      ..._filteredDistricts.map((d) => DropdownMenuItem(
+                          value: d['id'] as String,
+                          child: Text(d['name_ar'],
+                              style: const TextStyle(fontFamily: 'Tajawal')))),
                     ],
                     onChanged: (v) => setState(() => _selectedDistrictId = v),
-                    style: const TextStyle(fontFamily: 'Tajawal', color: Colors.black87),
+                    style: const TextStyle(
+                        fontFamily: 'Tajawal', color: Colors.black87),
                   ),
                   const SizedBox(height: 14),
                 ],
@@ -693,9 +977,20 @@ class _UserFormSheetState extends State<_UserFormSheet> {
                   height: 50,
                   child: ElevatedButton.icon(
                     onPressed: _submit,
-                    icon: Icon(_isEditing ? Icons.save_rounded : Icons.person_add_rounded, color: Colors.white),
-                    label: Text(_isEditing ? 'حفظ التعديلات' : 'إضافة المستخدم', style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600, color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                    icon: Icon(
+                        _isEditing
+                            ? Icons.save_rounded
+                            : Icons.person_add_rounded,
+                        color: Colors.white),
+                    label: Text(_isEditing ? 'حفظ التعديلات' : 'إضافة المستخدم',
+                        style: const TextStyle(
+                            fontFamily: 'Tajawal',
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14))),
                   ),
                 ),
                 const SizedBox(height: 16),

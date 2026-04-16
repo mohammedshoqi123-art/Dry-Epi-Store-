@@ -20,15 +20,20 @@ class NetworkState {
     this.lastSync,
   });
 
-  Duration? get offlineDuration =>
-      !isOnline && lastOnline != null ? DateTime.now().difference(lastOnline!) : null;
+  Duration? get offlineDuration => !isOnline && lastOnline != null
+      ? DateTime.now().difference(lastOnline!)
+      : null;
 
   String get qualityText {
     switch (quality) {
-      case ConnectionQuality.excellent: return 'ممتاز';
-      case ConnectionQuality.good: return 'جيد';
-      case ConnectionQuality.poor: return 'ضعيف';
-      case ConnectionQuality.offline: return 'غير متصل';
+      case ConnectionQuality.excellent:
+        return 'ممتاز';
+      case ConnectionQuality.good:
+        return 'جيد';
+      case ConnectionQuality.poor:
+        return 'ضعيف';
+      case ConnectionQuality.offline:
+        return 'غير متصل';
     }
   }
 
@@ -111,7 +116,8 @@ class ConnectionStatusWidget extends ConsumerWidget {
                       _formatDuration(state.offlineDuration!),
                       style: TextStyle(
                         fontSize: 10,
-                        color: _textColor(isOnline, hasPending).withValues(alpha: 0.7),
+                        color: _textColor(isOnline, hasPending)
+                            .withValues(alpha: 0.7),
                       ),
                     ),
                 ],
@@ -142,7 +148,8 @@ class ConnectionStatusWidget extends ConsumerWidget {
   }
 
   Widget _buildConnectionIcon(bool isOnline, bool hasPending) {
-    if (!isOnline) return const Icon(Icons.wifi_off, size: 16, color: Colors.orange);
+    if (!isOnline)
+      return const Icon(Icons.wifi_off, size: 16, color: Colors.orange);
     if (hasPending) {
       return SizedBox(
         width: 16,
@@ -200,7 +207,9 @@ class ConnectionStatusWidget extends ConsumerWidget {
 
   String _statusText(bool isOnline, bool hasPending) {
     if (!isOnline) {
-      return hasPending ? 'غير متصل - ${state.pendingItems} عنصر معلق' : 'غير متصل';
+      return hasPending
+          ? 'غير متصل - ${state.pendingItems} عنصر معلق'
+          : 'غير متصل';
     }
     if (hasPending) return 'مزامنة ${state.pendingItems} عنصر...';
     return 'متصل (${state.qualityText})';
@@ -227,7 +236,8 @@ class FloatingConnectionIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.isOnline && state.pendingItems == 0) return const SizedBox.shrink();
+    if (state.isOnline && state.pendingItems == 0)
+      return const SizedBox.shrink();
     return Positioned(
       top: MediaQuery.of(context).padding.top + 4,
       right: 8,

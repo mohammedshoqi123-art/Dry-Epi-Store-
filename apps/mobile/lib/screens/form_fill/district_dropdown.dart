@@ -39,7 +39,8 @@ class DistrictDropdown extends ConsumerWidget {
 
     return districtsAsync.when(
       loading: () => const LinearProgressIndicator(),
-      error: (e, _) => Text('خطأ: $e', style: const TextStyle(color: Colors.red)),
+      error: (e, _) =>
+          Text('خطأ: $e', style: const TextStyle(color: Colors.red)),
       data: (districts) {
         return EpiDropdown<String>(
           hint: 'اختر المديرية',
@@ -47,11 +48,13 @@ class DistrictDropdown extends ConsumerWidget {
           items: districts.map((d) {
             return DropdownMenuItem(
               value: d['id'] as String,
-              child: Text(d['name_ar'] as String, style: const TextStyle(fontFamily: 'Tajawal')),
+              child: Text(d['name_ar'] as String,
+                  style: const TextStyle(fontFamily: 'Tajawal')),
             );
           }).toList(),
           onChanged: onChanged,
-          validator: isRequired ? (v) => v == null ? AppStrings.required : null : null,
+          validator:
+              isRequired ? (v) => v == null ? AppStrings.required : null : null,
         );
       },
     );

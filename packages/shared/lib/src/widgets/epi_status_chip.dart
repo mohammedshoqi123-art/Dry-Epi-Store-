@@ -42,16 +42,26 @@ class EpiStatusChip extends StatelessWidget {
 
   String _getStatusLabel(String status) {
     switch (status) {
-      case 'draft': return 'مسودة';
-      case 'submitted': return 'مرسل';
-      case 'reviewed': return 'قيد المراجعة';
-      case 'approved': return 'معتمد';
-      case 'rejected': return 'مرفوض';
-      case 'critical': return 'حرج';
-      case 'high': return 'عالي';
-      case 'medium': return 'متوسط';
-      case 'low': return 'منخفض';
-      default: return status;
+      case 'draft':
+        return 'مسودة';
+      case 'submitted':
+        return 'مرسل';
+      case 'reviewed':
+        return 'قيد المراجعة';
+      case 'approved':
+        return 'معتمد';
+      case 'rejected':
+        return 'مرفوض';
+      case 'critical':
+        return 'حرج';
+      case 'high':
+        return 'عالي';
+      case 'medium':
+        return 'متوسط';
+      case 'low':
+        return 'منخفض';
+      default:
+        return status;
     }
   }
 }

@@ -146,10 +146,30 @@ class ReportTemplates {
             type: SectionType.kpiCards,
             config: {
               'kpis': [
-                {'name': 'نسبة التغطية', 'field': 'coverage_rate', 'unit': '%', 'target': 95},
-                {'name': 'معدل الانسحاب', 'field': 'dropout_rate', 'unit': '%', 'target': 5},
-                {'name': 'الإرساليات اليوم', 'field': 'daily_submissions', 'unit': '', 'target': 100},
-                {'name': 'النواقص الحرجة', 'field': 'critical_shortages', 'unit': '', 'target': 0},
+                {
+                  'name': 'نسبة التغطية',
+                  'field': 'coverage_rate',
+                  'unit': '%',
+                  'target': 95
+                },
+                {
+                  'name': 'معدل الانسحاب',
+                  'field': 'dropout_rate',
+                  'unit': '%',
+                  'target': 5
+                },
+                {
+                  'name': 'الإرساليات اليوم',
+                  'field': 'daily_submissions',
+                  'unit': '',
+                  'target': 100
+                },
+                {
+                  'name': 'النواقص الحرجة',
+                  'field': 'critical_shortages',
+                  'unit': '',
+                  'target': 0
+                },
               ],
             },
           ),

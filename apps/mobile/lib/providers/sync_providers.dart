@@ -8,7 +8,8 @@ import 'app_providers.dart';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// The production sync queue (v2) with priority ordering and dead-letter box.
-final productionSyncQueueProvider = FutureProvider<ProductionSyncQueue>((ref) async {
+final productionSyncQueueProvider =
+    FutureProvider<ProductionSyncQueue>((ref) async {
   final encryption = ref.read(encryptionServiceProvider);
   final queue = ProductionSyncQueue(encryption);
   await queue.init();
@@ -35,11 +36,13 @@ final intelligentOfflineManagerProvider =
       final response = await api.callFunction(
         SupabaseConfig.fnSyncOffline,
         {
-          'items': items.map((item) => {
-            ...item.payload,
-            'offline_id': item.id,
-            'entity_type': item.type,
-          }).toList(),
+          'items': items
+              .map((item) => {
+                    ...item.payload,
+                    'offline_id': item.id,
+                    'entity_type': item.type,
+                  })
+              .toList(),
         },
       );
 
@@ -52,9 +55,9 @@ final intelligentOfflineManagerProvider =
 
         // Find matching result by offline_id
         final match = results.cast<Map<String, dynamic>>().firstWhere(
-          (r) => r['offline_id'] == item.id,
-          orElse: () => <String, dynamic>{},
-        );
+              (r) => r['offline_id'] == item.id,
+              orElse: () => <String, dynamic>{},
+            );
 
         if (match.isNotEmpty) {
           final status = match['status'] as String? ?? 'error';
@@ -69,14 +72,15 @@ final intelligentOfflineManagerProvider =
                 Map<String, dynamic>.from(match['server_data'] ?? {}),
               ));
             default:
-              itemResults.add(SyncItemResult.error(item.id, match['error'] ?? 'Unknown'));
+              itemResults.add(
+                  SyncItemResult.error(item.id, match['error'] ?? 'Unknown'));
           }
         } else {
           // Check if there's an error for this item
           final errMatch = serverErrors.cast<Map<String, dynamic>>().firstWhere(
-            (e) => e['offline_id'] == item.id,
-            orElse: () => <String, dynamic>{},
-          );
+                (e) => e['offline_id'] == item.id,
+                orElse: () => <String, dynamic>{},
+              );
           itemResults.add(SyncItemResult.error(
             item.id,
             errMatch['error'] ?? 'No response for item',
@@ -86,7 +90,9 @@ final intelligentOfflineManagerProvider =
       return itemResults;
     } catch (e) {
       // Batch-level failure: return error for all items
-      return items.map((item) => SyncItemResult.error(item.id, e.toString())).toList();
+      return items
+          .map((item) => SyncItemResult.error(item.id, e.toString()))
+          .toList();
     }
   };
 

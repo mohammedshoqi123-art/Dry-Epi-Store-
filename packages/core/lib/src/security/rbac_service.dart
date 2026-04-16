@@ -4,7 +4,8 @@ import '../errors/app_exceptions.dart';
 class RBACService {
   // Role hierarchy: admin(5) > central(4) > governorate(3) > district(2) > data_entry(1)
 
-  static bool canAccessResource(UserRole? role, {
+  static bool canAccessResource(
+    UserRole? role, {
     required String resourceOwnerId,
     required String currentUserId,
     String? resourceGovernorateId,

@@ -6,7 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///  الإعدادات — Settings Screen
 /// ═══════════════════════════════════════════════════════════════════
 
-final settingsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+final settingsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final client = Supabase.instance.client;
   final response = await client.functions.invoke('manage-data', body: {
     'resource': 'settings',
@@ -83,28 +84,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFFB8C00).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFB8C00).withOpacity(0.3)),
+              border:
+                  Border.all(color: const Color(0xFFFB8C00).withOpacity(0.3)),
             ),
             child: Row(
               children: [
                 const Icon(Icons.info_rounded, color: Color(0xFFFB8C00)),
                 const SizedBox(width: 12),
-                const Text('لديك تغييرات غير محفوظة', style: TextStyle(fontFamily: 'Tajawal')),
+                const Text('لديك تغييرات غير محفوظة',
+                    style: TextStyle(fontFamily: 'Tajawal')),
                 const Spacer(),
-                TextButton(onPressed: () => _resetChanges(settings), child: const Text('إلغاء')),
+                TextButton(
+                    onPressed: () => _resetChanges(settings),
+                    child: const Text('إلغاء')),
                 const SizedBox(width: 8),
-                ElevatedButton(onPressed: () => _saveSettings(), child: const Text('حفظ')),
+                ElevatedButton(
+                    onPressed: () => _saveSettings(), child: const Text('حفظ')),
               ],
             ),
           ),
         Expanded(
           child: SingleChildScrollView(
             child: Column(
-              children: categories.entries.map((entry) => _buildCategoryCard(
-                _categoryLabel(entry.key),
-                _categoryIcon(entry.key),
-                entry.value,
-              )).toList(),
+              children: categories.entries
+                  .map((entry) => _buildCategoryCard(
+                        _categoryLabel(entry.key),
+                        _categoryIcon(entry.key),
+                        entry.value,
+                      ))
+                  .toList(),
             ),
           ),
         ),
@@ -112,13 +120,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildCategoryCard(String title, IconData icon, List<Map<String, dynamic>> items) {
+  Widget _buildCategoryCard(
+      String title, IconData icon, List<Map<String, dynamic>> items) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +140,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 Icon(icon, color: const Color(0xFF00897B)),
                 const SizedBox(width: 10),
-                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Cairo')),
               ],
             ),
           ),
@@ -167,8 +182,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             ),
             onChanged: (_) => setState(() => _hasChanges = true),
           ),
@@ -193,8 +210,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: TextField(
                 controller: _controllers[key],
                 decoration: InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 ),
                 onChanged: (_) => setState(() => _hasChanges = true),
               ),
@@ -208,8 +227,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: TextField(
             controller: _controllers[key],
             decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             onChanged: (_) => setState(() => _hasChanges = true),
           ),
@@ -224,8 +245,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 14, fontFamily: 'Tajawal')),
-                Text(key, style: TextStyle(fontSize: 11, color: Colors.grey[400])),
+                Text(label,
+                    style:
+                        const TextStyle(fontSize: 14, fontFamily: 'Tajawal')),
+                Text(key,
+                    style: TextStyle(fontSize: 11, color: Colors.grey[400])),
               ],
             ),
           ),
@@ -247,30 +271,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   String _categoryLabel(String cat) {
     switch (cat) {
-      case 'branding': return 'العلامة التجارية';
-      case 'security': return 'الأمان';
-      case 'offline': return 'وضع عدم الاتصال';
-      case 'sync': return 'المزامنة';
-      case 'ai': return 'الذكاء الاصطناعي';
-      case 'notifications': return 'الإشعارات';
-      case 'uploads': return 'الرفع';
-      case 'workflow': return 'سير العمل';
-      case 'general': return 'عام';
-      default: return cat;
+      case 'branding':
+        return 'العلامة التجارية';
+      case 'security':
+        return 'الأمان';
+      case 'offline':
+        return 'وضع عدم الاتصال';
+      case 'sync':
+        return 'المزامنة';
+      case 'ai':
+        return 'الذكاء الاصطناعي';
+      case 'notifications':
+        return 'الإشعارات';
+      case 'uploads':
+        return 'الرفع';
+      case 'workflow':
+        return 'سير العمل';
+      case 'general':
+        return 'عام';
+      default:
+        return cat;
     }
   }
 
   IconData _categoryIcon(String cat) {
     switch (cat) {
-      case 'branding': return Icons.palette_rounded;
-      case 'security': return Icons.security_rounded;
-      case 'offline': return Icons.cloud_off_rounded;
-      case 'sync': return Icons.sync_rounded;
-      case 'ai': return Icons.smart_toy_rounded;
-      case 'notifications': return Icons.notifications_rounded;
-      case 'uploads': return Icons.upload_rounded;
-      case 'workflow': return Icons.work_rounded;
-      default: return Icons.settings_rounded;
+      case 'branding':
+        return Icons.palette_rounded;
+      case 'security':
+        return Icons.security_rounded;
+      case 'offline':
+        return Icons.cloud_off_rounded;
+      case 'sync':
+        return Icons.sync_rounded;
+      case 'ai':
+        return Icons.smart_toy_rounded;
+      case 'notifications':
+        return Icons.notifications_rounded;
+      case 'uploads':
+        return Icons.upload_rounded;
+      case 'workflow':
+        return Icons.work_rounded;
+      default:
+        return Icons.settings_rounded;
     }
   }
 
@@ -305,7 +348,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }

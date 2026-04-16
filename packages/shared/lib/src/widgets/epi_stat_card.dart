@@ -59,7 +59,9 @@ class EpiStatCard extends StatelessWidget {
                     children: [
                       Icon(
                         trendUp ? Icons.trending_up : Icons.trending_down,
-                        color: trendUp ? AppTheme.successColor : AppTheme.errorColor,
+                        color: trendUp
+                            ? AppTheme.successColor
+                            : AppTheme.errorColor,
                         size: 16,
                       ),
                       const SizedBox(width: 4),
@@ -68,7 +70,9 @@ class EpiStatCard extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Tajawal',
                           fontSize: 12,
-                          color: trendUp ? AppTheme.successColor : AppTheme.errorColor,
+                          color: trendUp
+                              ? AppTheme.successColor
+                              : AppTheme.errorColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

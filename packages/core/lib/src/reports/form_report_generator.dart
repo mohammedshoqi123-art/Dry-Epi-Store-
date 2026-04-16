@@ -18,8 +18,7 @@ class FormReportGenerator {
     // Load Arabic fonts
     final arabicFontData =
         await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-    final boldFontData =
-        await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
+    final boldFontData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
     final arabicFont = pw.Font.ttf(arabicFontData);
     final boldFont = pw.Font.ttf(boldFontData);
 
@@ -87,8 +86,7 @@ class FormReportGenerator {
     final pdf = pw.Document();
     final arabicFontData =
         await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-    final boldFontData =
-        await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
+    final boldFontData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
     final arabicFont = pw.Font.ttf(arabicFontData);
     final boldFont = pw.Font.ttf(boldFontData);
 
@@ -128,8 +126,7 @@ class FormReportGenerator {
         _statCard('إرسالاليات اليوم', '${stats['today']}', font, boldFont),
         _statCard(
             'نسبة الإنجاز', '${stats['completionRate']}%', font, boldFont),
-        _statCard(
-            'مرفوضة', '${stats['rejected']}', font, boldFont),
+        _statCard('مرفوضة', '${stats['rejected']}', font, boldFont),
       ],
     );
   }
@@ -175,21 +172,17 @@ class FormReportGenerator {
     );
   }
 
-  static Map<String, dynamic> _computeStats(
-      List<Map<String, dynamic>> subs) {
+  static Map<String, dynamic> _computeStats(List<Map<String, dynamic>> subs) {
     final today = DateTime.now().toIso8601String().substring(0, 10);
     final todayCount =
         subs.where((s) => (s['created_at'] ?? '').startsWith(today)).length;
-    final submitted =
-        subs.where((s) => s['status'] == 'submitted').length;
-    final rejected =
-        subs.where((s) => s['status'] == 'rejected').length;
+    final submitted = subs.where((s) => s['status'] == 'submitted').length;
+    final rejected = subs.where((s) => s['status'] == 'rejected').length;
 
     return {
       'total': subs.length,
       'today': todayCount,
-      'completionRate':
-          subs.isEmpty ? 0 : (submitted * 100 ~/ subs.length),
+      'completionRate': subs.isEmpty ? 0 : (submitted * 100 ~/ subs.length),
       'rejected': rejected,
     };
   }

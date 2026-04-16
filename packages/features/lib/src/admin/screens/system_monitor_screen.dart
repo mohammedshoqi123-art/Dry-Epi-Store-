@@ -6,8 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///  مراقبة النظام — System Monitor
 /// ═══════════════════════════════════════════════════════════════════
 
-final systemHealthProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-  final response = await Supabase.instance.client.functions.invoke('system-monitor', body: {
+final systemHealthProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final response =
+      await Supabase.instance.client.functions.invoke('system-monitor', body: {
     'action': 'health',
   });
   if (response.status != 200) throw Exception('فشل تحميل حالة النظام');
@@ -18,7 +20,8 @@ class SystemMonitorScreen extends ConsumerStatefulWidget {
   const SystemMonitorScreen({super.key});
 
   @override
-  ConsumerState<SystemMonitorScreen> createState() => _SystemMonitorScreenState();
+  ConsumerState<SystemMonitorScreen> createState() =>
+      _SystemMonitorScreenState();
 }
 
 class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
@@ -43,7 +46,8 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
                 Expanded(child: _buildDatabaseStatus(health)),
                 const SizedBox(width: 16),
                 // Sync status + actions
-                Expanded(child: Column(
+                Expanded(
+                    child: Column(
                   children: [
                     _buildSyncStatus(health),
                     const SizedBox(height: 16),
@@ -83,7 +87,9 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
           title: 'المزامنة',
           value: '${sync['pending_offline'] ?? 0}',
           subtitle: 'معلق • ${sync['failed_sync'] ?? 0} فاشل',
-          color: sync['status'] == 'healthy' ? const Color(0xFF43A047) : const Color(0xFFFB8C00),
+          color: sync['status'] == 'healthy'
+              ? const Color(0xFF43A047)
+              : const Color(0xFFFB8C00),
           status: sync['status'] == 'healthy' ? 'سليم' : 'تحذير',
         ),
         const SizedBox(width: 12),
@@ -120,7 +126,9 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +139,11 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
               children: [
                 Icon(Icons.storage_rounded, color: Color(0xFF00897B), size: 22),
                 SizedBox(width: 10),
-                Text('حالة قاعدة البيانات', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+                Text('حالة قاعدة البيانات',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Cairo')),
               ],
             ),
           ),
@@ -146,12 +158,16 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
               dense: true,
               leading: Icon(
                 isHealthy ? Icons.check_circle_rounded : Icons.error_rounded,
-                color: isHealthy ? const Color(0xFF43A047) : const Color(0xFFE53935),
+                color: isHealthy
+                    ? const Color(0xFF43A047)
+                    : const Color(0xFFE53935),
                 size: 20,
               ),
-              title: Text(entry.value, style: const TextStyle(fontSize: 14, fontFamily: 'Tajawal')),
+              title: Text(entry.value,
+                  style: const TextStyle(fontSize: 14, fontFamily: 'Tajawal')),
               trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
@@ -161,7 +177,8 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: count >= 0 ? Colors.grey[700] : const Color(0xFFE53935),
+                    color:
+                        count >= 0 ? Colors.grey[700] : const Color(0xFFE53935),
                     fontFamily: 'Tajawal',
                   ),
                 ),
@@ -182,7 +199,9 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,14 +210,24 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
             children: [
               Icon(Icons.sync_rounded, color: Color(0xFF00897B), size: 22),
               SizedBox(width: 10),
-              Text('حالة المزامنة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+              Text('حالة المزامنة',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Cairo')),
             ],
           ),
           const SizedBox(height: 16),
-          _syncRow('في الانتظار', '${sync['pending_offline'] ?? 0}', const Color(0xFFFB8C00)),
-          _syncRow('فاشلة', '${sync['failed_sync'] ?? 0}', const Color(0xFFE53935)),
-          _syncRow('الحالة', sync['status'] == 'healthy' ? 'سليم' : 'تحذير',
-            sync['status'] == 'healthy' ? const Color(0xFF43A047) : const Color(0xFFFB8C00)),
+          _syncRow('في الانتظار', '${sync['pending_offline'] ?? 0}',
+              const Color(0xFFFB8C00)),
+          _syncRow(
+              'فاشلة', '${sync['failed_sync'] ?? 0}', const Color(0xFFE53935)),
+          _syncRow(
+              'الحالة',
+              sync['status'] == 'healthy' ? 'سليم' : 'تحذير',
+              sync['status'] == 'healthy'
+                  ? const Color(0xFF43A047)
+                  : const Color(0xFFFB8C00)),
         ],
       ),
     );
@@ -215,9 +244,15 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontSize: 14, fontFamily: 'Tajawal')),
+          Text(label,
+              style: const TextStyle(fontSize: 14, fontFamily: 'Tajawal')),
           const Spacer(),
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color, fontFamily: 'Cairo')),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  fontFamily: 'Cairo')),
         ],
       ),
     );
@@ -229,7 +264,9 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,25 +275,35 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
             children: [
               Icon(Icons.flash_on_rounded, color: Color(0xFF00897B), size: 22),
               SizedBox(width: 10),
-              Text('إجراءات النظام', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+              Text('إجراءات النظام',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Cairo')),
             ],
           ),
           const SizedBox(height: 16),
-          _actionButton(Icons.refresh_rounded, 'تحديث الحالة', const Color(0xFF00897B), () {
+          _actionButton(
+              Icons.refresh_rounded, 'تحديث الحالة', const Color(0xFF00897B),
+              () {
             ref.invalidate(systemHealthProvider);
           }),
           const SizedBox(height: 8),
-          _actionButton(Icons.backup_rounded, 'نسخ احتياطي', const Color(0xFF1E88E5), _createBackup),
+          _actionButton(Icons.backup_rounded, 'نسخ احتياطي',
+              const Color(0xFF1E88E5), _createBackup),
           const SizedBox(height: 8),
-          _actionButton(Icons.cleaning_services_rounded, 'تنظيف البيانات', const Color(0xFFFB8C00), _cleanupData),
+          _actionButton(Icons.cleaning_services_rounded, 'تنظيف البيانات',
+              const Color(0xFFFB8C00), _cleanupData),
           const SizedBox(height: 8),
-          _actionButton(Icons.refresh_rounded, 'إعادة ضبط الإعدادات', const Color(0xFFE53935), _resetSettings),
+          _actionButton(Icons.refresh_rounded, 'إعادة ضبط الإعدادات',
+              const Color(0xFFE53935), _resetSettings),
         ],
       ),
     );
   }
 
-  Widget _actionButton(IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _actionButton(
+      IconData icon, String label, Color color, VoidCallback onTap) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
@@ -265,7 +312,8 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
         label: Text(label, style: TextStyle(color: color)),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: color.withOpacity(0.3)),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           padding: const EdgeInsets.symmetric(vertical: 12),
         ),
       ),
@@ -279,7 +327,9 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +340,11 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
               children: [
                 Icon(Icons.history_rounded, color: Color(0xFF00897B), size: 22),
                 SizedBox(width: 10),
-                Text('سجل النسخ الاحتياطية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Cairo')),
+                Text('سجل النسخ الاحتياطية',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Cairo')),
               ],
             ),
           ),
@@ -302,24 +356,32 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
             )
           else
             ...backups.map((b) => ListTile(
-              leading: const Icon(Icons.backup_rounded, color: Color(0xFF1E88E5)),
-              title: Text(b['backup_type'] ?? '', style: const TextStyle(fontFamily: 'Tajawal')),
-              subtitle: Text(b['started_at'] ?? ''),
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: (b['status'] == 'completed' ? const Color(0xFF43A047) : const Color(0xFFFB8C00)).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  b['status'] == 'completed' ? 'مكتمل' : 'قيد التنفيذ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: b['status'] == 'completed' ? const Color(0xFF43A047) : const Color(0xFFFB8C00),
+                  leading: const Icon(Icons.backup_rounded,
+                      color: Color(0xFF1E88E5)),
+                  title: Text(b['backup_type'] ?? '',
+                      style: const TextStyle(fontFamily: 'Tajawal')),
+                  subtitle: Text(b['started_at'] ?? ''),
+                  trailing: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: (b['status'] == 'completed'
+                              ? const Color(0xFF43A047)
+                              : const Color(0xFFFB8C00))
+                          .withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      b['status'] == 'completed' ? 'مكتمل' : 'قيد التنفيذ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: b['status'] == 'completed'
+                            ? const Color(0xFF43A047)
+                            : const Color(0xFFFB8C00),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            )),
+                )),
           const SizedBox(height: 8),
         ],
       ),
@@ -339,7 +401,8 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }
@@ -349,14 +412,17 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('تنظيف البيانات'),
-        content: const Text('سيتم حذف البيانات القديمة (أكثر من 90 يوم). هل تريد المتابعة؟'),
+        content: const Text(
+            'سيتم حذف البيانات القديمة (أكثر من 90 يوم). هل تريد المتابعة؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                await Supabase.instance.client.functions.invoke('system-monitor', body: {
+                await Supabase.instance.client.functions
+                    .invoke('system-monitor', body: {
                   'action': 'cleanup',
                   'days': 90,
                 });
@@ -368,7 +434,8 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text('خطأ: $e')));
                 }
               }
             },
@@ -384,9 +451,11 @@ class _SystemMonitorScreenState extends ConsumerState<SystemMonitorScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('إعادة ضبط الإعدادات'),
-        content: const Text('سيتم إعادة جميع الإعدادات للقيم الافتراضية. هل تريد المتابعة؟'),
+        content: const Text(
+            'سيتم إعادة جميع الإعدادات للقيم الافتراضية. هل تريد المتابعة؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
@@ -429,7 +498,9 @@ class _OverviewCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withOpacity(0.2)),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(color: color.withOpacity(0.05), blurRadius: 10)
+          ],
         ),
         child: Row(
           children: [
@@ -448,20 +519,36 @@ class _OverviewCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontFamily: 'Tajawal', fontWeight: FontWeight.w600))),
+                      Expanded(
+                          child: Text(title,
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'Tajawal',
+                                  fontWeight: FontWeight.w600))),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(status, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+                        child: Text(status,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: color,
+                                fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color, fontFamily: 'Cairo')),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                  Text(value,
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                          fontFamily: 'Cairo')),
+                  Text(subtitle,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                 ],
               ),
             ),

@@ -63,7 +63,12 @@ class AnalyticsService {
       if (campaignFormIds.isEmpty) {
         return {
           'submissions': {'total': 0, 'today': 0, 'byStatus': {}, 'byDay': {}},
-          'shortages': {'total': 0, 'resolved': 0, 'pending': 0, 'bySeverity': {}},
+          'shortages': {
+            'total': 0,
+            'resolved': 0,
+            'pending': 0,
+            'bySeverity': {}
+          },
         };
       }
     }
@@ -83,13 +88,16 @@ class AnalyticsService {
 
     // Filter by campaign form IDs locally
     if (campaignFormIds != null) {
-      submissions = submissions.where((s) => campaignFormIds!.contains(s['form_id'])).toList();
+      submissions = submissions
+          .where((s) => campaignFormIds!.contains(s['form_id']))
+          .toList();
     }
 
     // Shortages — filter via submission_id if campaign is set
     List<String>? submissionIdsForCampaign;
     if (campaignFormIds != null) {
-      submissionIdsForCampaign = submissions.map((s) => s['id'] as String).toSet().toList();
+      submissionIdsForCampaign =
+          submissions.map((s) => s['id'] as String).toSet().toList();
     }
 
     var shortages = await _api.select(
@@ -124,7 +132,8 @@ class AnalyticsService {
       bySeverity[sev] = (bySeverity[sev] ?? 0) + 1;
     }
 
-    final resolvedCount = shortages.where((s) => s['is_resolved'] == true).length;
+    final resolvedCount =
+        shortages.where((s) => s['is_resolved'] == true).length;
 
     // Submissions by day (last 7 days)
     final byDay = _groupByDay(submissions, 7);
@@ -134,9 +143,7 @@ class AnalyticsService {
         'total': submissions.length,
         'byStatus': byStatus,
         'byDay': byDay,
-        'today': submissions
-            .where((s) => _isToday(s['created_at']))
-            .length,
+        'today': submissions.where((s) => _isToday(s['created_at'])).length,
       },
       'shortages': {
         'total': shortages.length,
@@ -170,14 +177,16 @@ class AnalyticsService {
     final grouped = <String, int>{};
     for (var i = 0; i < days; i++) {
       final date = startDate.add(Duration(days: i));
-      final key = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final key =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
       grouped[key] = 0;
     }
 
     for (final s in submissions) {
       final createdAt = DateTime.tryParse(s['created_at'] as String? ?? '');
       if (createdAt == null || createdAt.isBefore(startDate)) continue;
-      final key = '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
+      final key =
+          '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}';
       grouped[key] = (grouped[key] ?? 0) + 1;
     }
 
@@ -241,6 +250,8 @@ class AnalyticsService {
     final date = DateTime.tryParse(dateStr.toString());
     if (date == null) return false;
     final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 }

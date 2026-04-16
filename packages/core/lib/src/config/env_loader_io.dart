@@ -41,6 +41,7 @@ Future<Map<String, String>> loadEnvFile() async {
     }
   }
 
-  if (kDebugMode) print('ℹ️ No .env file found — using compile-time or empty values');
+  if (kDebugMode)
+    print('ℹ️ No .env file found — using compile-time or empty values');
   return {};
 }

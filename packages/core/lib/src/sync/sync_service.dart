@@ -53,7 +53,9 @@ class SyncService {
       final cache = _dataCache;
       if (cache != null) {
         await cache.invalidateAll();
-        if (kDebugMode) print('[SyncService] All caches cleared — next fetch will get fresh data');
+        if (kDebugMode)
+          print(
+              '[SyncService] All caches cleared — next fetch will get fresh data');
       }
     } catch (e) {
       if (kDebugMode) print('[SyncService] forceRefreshAll error: $e');
@@ -93,7 +95,8 @@ class SyncService {
     if (_isSyncing) {
       // ═══ FIX: إذا في sync شغال، ننتظره بدل ما نتجاوزه ═══
       if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
-        if (kDebugMode) print('[SyncService] Waiting for active sync ($trigger)');
+        if (kDebugMode)
+          print('[SyncService] Waiting for active sync ($trigger)');
         await _activeCompleter!.future;
       }
       return;
@@ -103,7 +106,8 @@ class SyncService {
     final pending = _offline.pendingCount;
     if (pending == 0) return;
 
-    if (kDebugMode) print('[SyncService] Triggered by $trigger ($pending items)');
+    if (kDebugMode)
+      print('[SyncService] Triggered by $trigger ($pending items)');
     await sync();
   }
 
@@ -116,7 +120,8 @@ class SyncService {
           : 0;
 
       if (lockAge > _staleLockSeconds) {
-        if (kDebugMode) print('[SyncService] Stale lock (${lockAge}s), resetting');
+        if (kDebugMode)
+          print('[SyncService] Stale lock (${lockAge}s), resetting');
         _isSyncing = false;
         _activeCompleter?.complete(SyncCycleResult.empty());
         _activeCompleter = null;
@@ -154,11 +159,15 @@ class SyncService {
 
     try {
       // ═══ معالجة العناصر دفعات ═══
-      for (int offset = 0; offset < uniqueItems.length; offset += _maxBatchSize) {
+      for (int offset = 0;
+          offset < uniqueItems.length;
+          offset += _maxBatchSize) {
         final batchEnd = (offset + _maxBatchSize).clamp(0, uniqueItems.length);
         final batch = uniqueItems.sublist(offset, batchEnd);
 
-        if (kDebugMode) print('[SyncService] Batch: ${batch.length} items ($offset/${uniqueItems.length})');
+        if (kDebugMode)
+          print(
+              '[SyncService] Batch: ${batch.length} items ($offset/${uniqueItems.length})');
 
         // ═══ FIX: تصفية العناصر التي تجاوزت الحد الأقصى ═══
         final toRetry = <Map<String, dynamic>>[];
@@ -177,7 +186,8 @@ class SyncService {
         for (final item in toArchive) {
           final offlineId = item['offline_id'] as String? ?? '';
           await _offline.removeFromQueue(offlineId);
-          if (kDebugMode) print('[SyncService] Archived failed item: $offlineId');
+          if (kDebugMode)
+            print('[SyncService] Archived failed item: $offlineId');
           result.archived++;
           result.errors.add(SyncError(
             offlineId: offlineId,
@@ -214,9 +224,9 @@ class SyncService {
             final offlineId = item['offline_id'] as String? ?? '';
 
             final match = serverResults.cast<Map<String, dynamic>>().firstWhere(
-              (r) => r['offline_id'] == offlineId,
-              orElse: () => <String, dynamic>{},
-            );
+                  (r) => r['offline_id'] == offlineId,
+                  orElse: () => <String, dynamic>{},
+                );
 
             if (match.isNotEmpty) {
               final status = match['status'] as String? ?? 'error';
@@ -231,36 +241,42 @@ class SyncService {
                   await _offline.saveConflict(item, match);
                   await _offline.removeFromQueue(offlineId);
                   result.conflicts++;
-                  result.conflictDetails.add(OfflineSyncResult.conflict(offlineId, match));
+                  result.conflictDetails
+                      .add(OfflineSyncResult.conflict(offlineId, match));
                 default:
                   // ═══ FIX: backoff تدريجي ═══
                   final retryCount = (item['retry_count'] ?? 0) as int;
                   final backoffSeconds = _calculateBackoff(retryCount);
                   item['retry_count'] = retryCount + 1;
                   item['last_retry_at'] = DateTime.now().toIso8601String();
-                  item['next_retry_at'] =
-                      DateTime.now().add(Duration(seconds: backoffSeconds)).toIso8601String();
+                  item['next_retry_at'] = DateTime.now()
+                      .add(Duration(seconds: backoffSeconds))
+                      .toIso8601String();
                   result.failed++;
                   result.errors.add(SyncError(
                     offlineId: offlineId,
-                    error: match['error'] ?? 'Unknown error (retry ${retryCount + 1}/$_maxRetries in ${backoffSeconds}s)',
+                    error: match['error'] ??
+                        'Unknown error (retry ${retryCount + 1}/$_maxRetries in ${backoffSeconds}s)',
                   ));
               }
             } else {
-              final errMatch = serverErrors.cast<Map<String, dynamic>>().firstWhere(
-                (e) => e['offline_id'] == offlineId,
-                orElse: () => <String, dynamic>{},
-              );
+              final errMatch =
+                  serverErrors.cast<Map<String, dynamic>>().firstWhere(
+                        (e) => e['offline_id'] == offlineId,
+                        orElse: () => <String, dynamic>{},
+                      );
               final retryCount = (item['retry_count'] ?? 0) as int;
               final backoffSeconds = _calculateBackoff(retryCount);
               item['retry_count'] = retryCount + 1;
               item['last_retry_at'] = DateTime.now().toIso8601String();
-              item['next_retry_at'] =
-                  DateTime.now().add(Duration(seconds: backoffSeconds)).toIso8601String();
+              item['next_retry_at'] = DateTime.now()
+                  .add(Duration(seconds: backoffSeconds))
+                  .toIso8601String();
               result.failed++;
               result.errors.add(SyncError(
                 offlineId: offlineId,
-                error: errMatch['error'] ?? 'No response (retry ${retryCount + 1}/$_maxRetries)',
+                error: errMatch['error'] ??
+                    'No response (retry ${retryCount + 1}/$_maxRetries)',
               ));
             }
           }
@@ -326,8 +342,9 @@ class SyncService {
       final backoffSeconds = _calculateBackoff(retryCount);
       item['retry_count'] = retryCount + 1;
       item['last_retry_at'] = DateTime.now().toIso8601String();
-      item['next_retry_at'] =
-          DateTime.now().add(Duration(seconds: backoffSeconds)).toIso8601String();
+      item['next_retry_at'] = DateTime.now()
+          .add(Duration(seconds: backoffSeconds))
+          .toIso8601String();
       result.failed++;
       result.errors.add(SyncError(
         offlineId: item['offline_id'] as String? ?? '',
@@ -340,7 +357,8 @@ class SyncService {
     return _offline.getUnresolvedConflicts();
   }
 
-  Future<void> resolveConflict(String offlineId, {bool useLocal = false}) async {
+  Future<void> resolveConflict(String offlineId,
+      {bool useLocal = false}) async {
     await _offline.resolveConflict(offlineId, useLocal: useLocal);
   }
 

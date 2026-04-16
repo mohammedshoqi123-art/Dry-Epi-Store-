@@ -106,13 +106,15 @@ final manualSyncProvider = Provider<Future<SyncCycleResult> Function()>((ref) {
 
 /// ═══ Force-refresh helper: clears specific cache key then invalidates provider ═══
 /// Use for pull-to-refresh to ensure fresh data from server.
-final forceRefreshProvider = Provider<Future<void> Function(String cacheKey)>((ref) {
+final forceRefreshProvider =
+    Provider<Future<void> Function(String cacheKey)>((ref) {
   return (String cacheKey) async {
     try {
       final cache = await ref.read(offlineDataCacheProvider.future);
       await cache.forceInvalidate(cacheKey);
     } catch (e) {
-      debugPrint('[forceRefreshProvider] Error clearing cache for $cacheKey: $e');
+      debugPrint(
+          '[forceRefreshProvider] Error clearing cache for $cacheKey: $e');
     }
   };
 });
@@ -125,7 +127,8 @@ final syncPendingCountProvider = StreamProvider<int>((ref) async* {
   yield offline.pendingCount;
   // ═══ FIX: Poll every 60s instead of 30s — reduces PBKDF2 decrypt overhead ═══
   // The count is not time-critical; 60s is responsive enough for UI badges
-  yield* Stream.periodic(const Duration(seconds: 60), (_) => offline.pendingCount);
+  yield* Stream.periodic(
+      const Duration(seconds: 60), (_) => offline.pendingCount);
 });
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -175,7 +178,8 @@ class SubmissionsFilter {
           offset == other.offset;
 
   @override
-  int get hashCode => Object.hash(status, formId, governorateId, districtId, campaignType, limit, offset);
+  int get hashCode => Object.hash(
+      status, formId, governorateId, districtId, campaignType, limit, offset);
 
   String get cacheKey {
     final parts = <String>['submissions'];
@@ -199,7 +203,8 @@ class SubmissionsFilter {
 //   4. If offline: return cached data (even stale)
 //   5. If offline + no cache: show empty with retry option
 
-final governoratesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final governoratesProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final cache = await ref.watch(offlineDataCacheProvider.future);
   return cache.getList(
     'governorates',
@@ -208,25 +213,32 @@ final governoratesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) as
   );
 });
 
-final districtsProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>(
+final districtsProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String?>(
   (ref, governorateId) async {
     final cache = await ref.watch(offlineDataCacheProvider.future);
-    final cacheKey = governorateId != null ? 'districts_$governorateId' : 'districts_all';
+    final cacheKey =
+        governorateId != null ? 'districts_$governorateId' : 'districts_all';
     return cache.getList(
       cacheKey,
-      () => ref.read(databaseServiceProvider).getDistricts(governorateId: governorateId),
+      () => ref
+          .read(databaseServiceProvider)
+          .getDistricts(governorateId: governorateId),
       maxAge: const Duration(hours: 24),
     );
   },
 );
 
-final healthFacilitiesProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>(
+final healthFacilitiesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String?>(
   (ref, districtId) async {
     if (districtId == null) return [];
     final cache = await ref.watch(offlineDataCacheProvider.future);
     return cache.getList(
       'facilities_$districtId',
-      () => ref.read(databaseServiceProvider).getHealthFacilities(districtId: districtId),
+      () => ref
+          .read(databaseServiceProvider)
+          .getHealthFacilities(districtId: districtId),
       maxAge: const Duration(hours: 24),
     );
   },
@@ -255,7 +267,8 @@ class CampaignNotifier extends StateNotifier<CampaignType> {
         },
         maxAge: const Duration(days: 30),
       );
-      state = CampaignType.fromString(cached['campaign'] as String? ?? 'polio_campaign');
+      state = CampaignType.fromString(
+          cached['campaign'] as String? ?? 'polio_campaign');
     } catch (_) {
       // Default to polio campaign if loading fails
     }
@@ -296,7 +309,9 @@ final formsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final cache = await ref.watch(offlineDataCacheProvider.future);
   return cache.getList(
     'forms_${campaign.value}',
-    () => ref.read(databaseServiceProvider).getForms(campaignType: campaign.value),
+    () => ref
+        .read(databaseServiceProvider)
+        .getForms(campaignType: campaign.value),
     maxAge: const Duration(hours: 24), // Forms change rarely — cache 24h
   );
 });
@@ -316,7 +331,8 @@ final submissionsProvider =
             limit: filter.limit,
             offset: filter.offset,
           ),
-      maxAge: const Duration(hours: 2), // Submissions cached 2h for offline access
+      maxAge:
+          const Duration(hours: 2), // Submissions cached 2h for offline access
     );
   },
 );
@@ -352,7 +368,8 @@ class AnalyticsFilter {
           endDate == other.endDate;
 
   @override
-  int get hashCode => Object.hash(governorateId, districtId, formId, campaignType, startDate, endDate);
+  int get hashCode => Object.hash(
+      governorateId, districtId, formId, campaignType, startDate, endDate);
 
   String get cacheKey {
     final parts = ['dashboard_analytics'];
@@ -385,7 +402,8 @@ final dashboardAnalyticsProvider =
   },
 );
 
-final shortagesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final shortagesProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final cache = await ref.watch(offlineDataCacheProvider.future);
   return cache.getList(
     'shortages',

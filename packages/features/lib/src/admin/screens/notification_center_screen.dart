@@ -6,7 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///  مركز الإشعارات — Notification Center
 /// ═══════════════════════════════════════════════════════════════════
 
-final notificationsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+final notificationsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final client = Supabase.instance.client;
   final response = await client.functions.invoke('manage-notifications', body: {
     'action': 'list',
@@ -20,10 +21,12 @@ class NotificationCenterScreen extends ConsumerStatefulWidget {
   const NotificationCenterScreen({super.key});
 
   @override
-  ConsumerState<NotificationCenterScreen> createState() => _NotificationCenterScreenState();
+  ConsumerState<NotificationCenterScreen> createState() =>
+      _NotificationCenterScreenState();
 }
 
-class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScreen> {
+class _NotificationCenterScreenState
+    extends ConsumerState<NotificationCenterScreen> {
   String _filter = 'all';
 
   @override
@@ -50,21 +53,23 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: Row(
         children: [
           // Filter chips
           ...['all', 'unread', 'info', 'success', 'error'].map((f) => Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: FilterChip(
-              label: Text(_filterLabel(f)),
-              selected: _filter == f,
-              onSelected: (_) => setState(() => _filter = f),
-              selectedColor: const Color(0xFF00897B).withOpacity(0.15),
-              checkmarkColor: const Color(0xFF00897B),
-            ),
-          )),
+                padding: const EdgeInsets.only(left: 8),
+                child: FilterChip(
+                  label: Text(_filterLabel(f)),
+                  selected: _filter == f,
+                  onSelected: (_) => setState(() => _filter = f),
+                  selectedColor: const Color(0xFF00897B).withOpacity(0.15),
+                  checkmarkColor: const Color(0xFF00897B),
+                ),
+              )),
           const Spacer(),
           // Mark all read
           OutlinedButton.icon(
@@ -81,7 +86,8 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00897B),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
@@ -101,7 +107,9 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: filtered.isEmpty
           ? const Center(child: Text('لا توجد إشعارات'))
@@ -120,10 +128,21 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
     IconData icon;
     Color color;
     switch (type) {
-      case 'success': icon = Icons.check_circle_rounded; color = const Color(0xFF43A047); break;
-      case 'error': icon = Icons.error_rounded; color = const Color(0xFFE53935); break;
-      case 'warning': icon = Icons.warning_rounded; color = const Color(0xFFFB8C00); break;
-      default: icon = Icons.info_rounded; color = const Color(0xFF1E88E5);
+      case 'success':
+        icon = Icons.check_circle_rounded;
+        color = const Color(0xFF43A047);
+        break;
+      case 'error':
+        icon = Icons.error_rounded;
+        color = const Color(0xFFE53935);
+        break;
+      case 'warning':
+        icon = Icons.warning_rounded;
+        color = const Color(0xFFFB8C00);
+        break;
+      default:
+        icon = Icons.info_rounded;
+        color = const Color(0xFF1E88E5);
     }
 
     return ListTile(
@@ -146,7 +165,8 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
         notif['body'] ?? '',
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 13, color: Colors.grey[600], fontFamily: 'Tajawal'),
+        style: TextStyle(
+            fontSize: 13, color: Colors.grey[600], fontFamily: 'Tajawal'),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -174,12 +194,18 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
 
   String _filterLabel(String f) {
     switch (f) {
-      case 'all': return 'الكل';
-      case 'unread': return 'غير مقروء';
-      case 'info': return 'معلومات';
-      case 'success': return 'نجاح';
-      case 'error': return 'خطأ';
-      default: return f;
+      case 'all':
+        return 'الكل';
+      case 'unread':
+        return 'غير مقروء';
+      case 'info':
+        return 'معلومات';
+      case 'success':
+        return 'نجاح';
+      case 'error':
+        return 'خطأ';
+      default:
+        return f;
     }
   }
 
@@ -195,7 +221,8 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
 
   void _markRead(List<String> ids) async {
     try {
-      await Supabase.instance.client.functions.invoke('manage-notifications', body: {
+      await Supabase.instance.client.functions
+          .invoke('manage-notifications', body: {
         'action': 'mark_read',
         'notification_ids': ids,
       });
@@ -205,7 +232,8 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
 
   void _markAllRead() async {
     try {
-      await Supabase.instance.client.functions.invoke('manage-notifications', body: {
+      await Supabase.instance.client.functions
+          .invoke('manage-notifications', body: {
         'action': 'mark_all_read',
       });
       ref.invalidate(notificationsProvider);
@@ -219,7 +247,8 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
 
   void _deleteNotif(String id) async {
     try {
-      await Supabase.instance.client.functions.invoke('manage-notifications', body: {
+      await Supabase.instance.client.functions
+          .invoke('manage-notifications', body: {
         'action': 'delete',
         'notification_ids': [id],
       });
@@ -266,11 +295,15 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: notifType,
-                        decoration: const InputDecoration(labelText: 'النوع', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                            labelText: 'النوع', border: OutlineInputBorder()),
                         items: const [
-                          DropdownMenuItem(value: 'info', child: Text('معلومات')),
-                          DropdownMenuItem(value: 'success', child: Text('نجاح')),
-                          DropdownMenuItem(value: 'warning', child: Text('تحذير')),
+                          DropdownMenuItem(
+                              value: 'info', child: Text('معلومات')),
+                          DropdownMenuItem(
+                              value: 'success', child: Text('نجاح')),
+                          DropdownMenuItem(
+                              value: 'warning', child: Text('تحذير')),
                           DropdownMenuItem(value: 'error', child: Text('خطأ')),
                         ],
                         onChanged: (v) => setDialogState(() => notifType = v!),
@@ -280,14 +313,21 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: targetType,
-                        decoration: const InputDecoration(labelText: 'إلى', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                            labelText: 'إلى', border: OutlineInputBorder()),
                         items: const [
                           DropdownMenuItem(value: 'all', child: Text('الجميع')),
-                          DropdownMenuItem(value: 'admin', child: Text('المسؤولين')),
-                          DropdownMenuItem(value: 'central', child: Text('المركزيين')),
-                          DropdownMenuItem(value: 'governorate', child: Text('المحافظات')),
-                          DropdownMenuItem(value: 'district', child: Text('المديريات')),
-                          DropdownMenuItem(value: 'data_entry', child: Text('إدخال البيانات')),
+                          DropdownMenuItem(
+                              value: 'admin', child: Text('المسؤولين')),
+                          DropdownMenuItem(
+                              value: 'central', child: Text('المركزيين')),
+                          DropdownMenuItem(
+                              value: 'governorate', child: Text('المحافظات')),
+                          DropdownMenuItem(
+                              value: 'district', child: Text('المديريات')),
+                          DropdownMenuItem(
+                              value: 'data_entry',
+                              child: Text('إدخال البيانات')),
                         ],
                         onChanged: (v) => setDialogState(() => targetType = v!),
                       ),
@@ -298,13 +338,18 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إلغاء')),
             FilledButton(
               onPressed: () async {
                 if (titleCtrl.text.isEmpty || bodyCtrl.text.isEmpty) return;
                 try {
-                  final target = targetType == 'all' ? <String, dynamic>{} : {'role': targetType};
-                  await Supabase.instance.client.functions.invoke('manage-notifications', body: {
+                  final target = targetType == 'all'
+                      ? <String, dynamic>{}
+                      : {'role': targetType};
+                  await Supabase.instance.client.functions
+                      .invoke('manage-notifications', body: {
                     'action': 'send',
                     'title': titleCtrl.text,
                     'body': bodyCtrl.text,
@@ -320,7 +365,8 @@ class _NotificationCenterScreenState extends ConsumerState<NotificationCenterScr
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('خطأ: $e')));
                   }
                 }
               },

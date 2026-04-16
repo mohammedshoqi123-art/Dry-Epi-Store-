@@ -89,16 +89,16 @@ class _ReferencesManagementScreenState
               textDirection: TextDirection.rtl,
               decoration: InputDecoration(
                 hintText: 'بحث في المراجع...',
-                prefixIcon: const Icon(Icons.search,
-                    color: AppTheme.textSecondary),
+                prefixIcon:
+                    const Icon(Icons.search, color: AppTheme.textSecondary),
                 filled: true,
                 fillColor: AppTheme.backgroundLight,
                 border: OutlineInputBorder(
                   borderRadius: AppTheme.radiusMedium,
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),
@@ -108,8 +108,7 @@ class _ReferencesManagementScreenState
             width: 180,
             child: DropdownButtonFormField<String?>(
               value: _selectedCategory,
-              onChanged: (v) =>
-                  setState(() => _selectedCategory = v),
+              onChanged: (v) => setState(() => _selectedCategory = v),
               decoration: InputDecoration(
                 hintText: 'التصنيف',
                 filled: true,
@@ -118,14 +117,14 @@ class _ReferencesManagementScreenState
                   borderRadius: AppTheme.radiusMedium,
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
               items: [
                 const DropdownMenuItem(
                     value: null, child: Text('كل التصنيفات')),
-                ...categories.entries.map((e) => DropdownMenuItem(
-                    value: e.key, child: Text(e.value))),
+                ...categories.entries.map((e) =>
+                    DropdownMenuItem(value: e.key, child: Text(e.value))),
               ],
             ),
           ),
@@ -165,8 +164,7 @@ class _ReferencesManagementScreenState
                     style: TextStyle(fontFamily: 'Tajawal')),
                 const SizedBox(height: 8),
                 ElevatedButton.icon(
-                  onPressed: () =>
-                      ref.invalidate(referencesListProvider),
+                  onPressed: () => ref.invalidate(referencesListProvider),
                   icon: const Icon(Icons.refresh),
                   label: const Text('إعادة المحاولة'),
                 ),
@@ -178,8 +176,9 @@ class _ReferencesManagementScreenState
             var filtered = refs;
             if (_searchQuery.isNotEmpty) {
               filtered = filtered.where((r) {
-                final title =
-                    (r['title_ar'] ?? r['title'] ?? '').toString().toLowerCase();
+                final title = (r['title_ar'] ?? r['title'] ?? '')
+                    .toString()
+                    .toLowerCase();
                 return title.contains(_searchQuery.toLowerCase());
               }).toList();
             }
@@ -221,14 +220,14 @@ class _ReferencesManagementScreenState
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       Text(
                         '${filtered.length} مرجع',
-                        style: AppTheme.bodyM.copyWith(
-                            color: AppTheme.textSecondary),
+                        style: AppTheme.bodyM
+                            .copyWith(color: AppTheme.textSecondary),
                       ),
                       const Spacer(),
                       TextButton.icon(
@@ -264,8 +263,7 @@ class _ReferencesManagementScreenState
     final catColor = _categoryColor(category);
     final isActive = ref['is_active'] ?? true;
     final createdAt = ref['created_at'] != null
-        ? DateFormat('d/M/yyyy')
-            .format(DateTime.parse(ref['created_at']))
+        ? DateFormat('d/M/yyyy').format(DateTime.parse(ref['created_at']))
         : '—';
 
     return Card(
@@ -408,8 +406,7 @@ class _ReferencesManagementScreenState
                         ? AppTheme.warningColor
                         : AppTheme.successColor,
                   ),
-                  onPressed: () =>
-                      _toggleReference(ref['id'], !isActive),
+                  onPressed: () => _toggleReference(ref['id'], !isActive),
                   tooltip: isActive ? 'إخفاء' : 'إظهار',
                 ),
                 IconButton(
@@ -428,25 +425,39 @@ class _ReferencesManagementScreenState
 
   Color _categoryColor(String category) {
     switch (category) {
-      case 'manual': return AppTheme.primaryColor;
-      case 'guide': return AppTheme.secondaryColor;
-      case 'protocol': return AppTheme.infoColor;
-      case 'report': return AppTheme.warningColor;
-      case 'policy': return AppTheme.errorColor;
-      case 'training': return AppTheme.successColor;
-      default: return AppTheme.textSecondary;
+      case 'manual':
+        return AppTheme.primaryColor;
+      case 'guide':
+        return AppTheme.secondaryColor;
+      case 'protocol':
+        return AppTheme.infoColor;
+      case 'report':
+        return AppTheme.warningColor;
+      case 'policy':
+        return AppTheme.errorColor;
+      case 'training':
+        return AppTheme.successColor;
+      default:
+        return AppTheme.textSecondary;
     }
   }
 
   IconData _categoryIcon(String category) {
     switch (category) {
-      case 'manual': return Icons.menu_book_outlined;
-      case 'guide': return Icons.explore_outlined;
-      case 'protocol': return Icons.science_outlined;
-      case 'report': return Icons.assessment_outlined;
-      case 'policy': return Icons.gavel_outlined;
-      case 'training': return Icons.school_outlined;
-      default: return Icons.folder_outlined;
+      case 'manual':
+        return Icons.menu_book_outlined;
+      case 'guide':
+        return Icons.explore_outlined;
+      case 'protocol':
+        return Icons.science_outlined;
+      case 'report':
+        return Icons.assessment_outlined;
+      case 'policy':
+        return Icons.gavel_outlined;
+      case 'training':
+        return Icons.school_outlined;
+      default:
+        return Icons.folder_outlined;
     }
   }
 
@@ -458,10 +469,8 @@ class _ReferencesManagementScreenState
         TextEditingController(text: ref?['title_ar'] ?? ref?['title'] ?? '');
     final descController =
         TextEditingController(text: ref?['description'] ?? '');
-    final authorController =
-        TextEditingController(text: ref?['author'] ?? '');
-    final urlController =
-        TextEditingController(text: ref?['file_url'] ?? '');
+    final authorController = TextEditingController(text: ref?['author'] ?? '');
+    final urlController = TextEditingController(text: ref?['file_url'] ?? '');
     String selectedCategory = ref?['category'] ?? 'other';
     bool isActive = ref?['is_active'] ?? true;
 
@@ -472,8 +481,7 @@ class _ReferencesManagementScreenState
           return Directionality(
             textDirection: TextDirection.rtl,
             child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: AppTheme.radiusLarge),
+              shape: RoundedRectangleBorder(borderRadius: AppTheme.radiusLarge),
               title: Text(
                 isEdit ? 'تعديل المرجع' : 'إضافة مرجع جديد',
                 style: const TextStyle(fontFamily: 'Cairo'),
@@ -494,8 +502,8 @@ class _ReferencesManagementScreenState
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: selectedCategory,
-                        onChanged: (v) => setDialogState(
-                            () => selectedCategory = v!),
+                        onChanged: (v) =>
+                            setDialogState(() => selectedCategory = v!),
                         decoration: const InputDecoration(
                           labelText: 'التصنيف',
                           prefixIcon: Icon(Icons.category_outlined),
@@ -538,8 +546,7 @@ class _ReferencesManagementScreenState
                             style: TextStyle(fontFamily: 'Tajawal')),
                         value: isActive,
                         activeColor: AppTheme.primaryColor,
-                        onChanged: (v) =>
-                            setDialogState(() => isActive = v),
+                        onChanged: (v) => setDialogState(() => isActive = v),
                         contentPadding: EdgeInsets.zero,
                       ),
                     ],
@@ -586,8 +593,8 @@ class _ReferencesManagementScreenState
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('العنوان مطلوب',
-              style: TextStyle(fontFamily: 'Tajawal')),
+          content:
+              Text('العنوان مطلوب', style: TextStyle(fontFamily: 'Tajawal')),
           backgroundColor: AppTheme.errorColor,
         ),
       );
@@ -619,9 +626,8 @@ class _ReferencesManagementScreenState
         ref.invalidate(referencesListProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              refId != null ? 'تم تحديث المرجع' : 'تمت الإضافة',
-              style: const TextStyle(fontFamily: 'Tajawal')),
+            content: Text(refId != null ? 'تم تحديث المرجع' : 'تمت الإضافة',
+                style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
           ),
         );
@@ -630,8 +636,8 @@ class _ReferencesManagementScreenState
       if (ctx.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل: $e',
-                style: const TextStyle(fontFamily: 'Tajawal')),
+            content:
+                Text('فشل: $e', style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -661,13 +667,15 @@ class _ReferencesManagementScreenState
 
     try {
       await Supabase.instance.client
-          .from('doc_references').delete().eq('id', id);
+          .from('doc_references')
+          .delete()
+          .eq('id', id);
       ref.invalidate(referencesListProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم حذف المرجع',
-                style: TextStyle(fontFamily: 'Tajawal')),
+            content:
+                Text('تم حذف المرجع', style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
           ),
         );

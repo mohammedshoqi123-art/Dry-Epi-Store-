@@ -59,7 +59,8 @@ class DatabaseService {
 
   // ===== DISTRICTS =====
 
-  Future<List<Map<String, dynamic>>> getDistricts({String? governorateId}) async {
+  Future<List<Map<String, dynamic>>> getDistricts(
+      {String? governorateId}) async {
     final filters = <String, dynamic>{
       'deleted_at': ApiClient.isNull,
       'is_active': true,
@@ -75,7 +76,8 @@ class DatabaseService {
 
   // ===== HEALTH FACILITIES =====
 
-  Future<List<Map<String, dynamic>>> getHealthFacilities({String? districtId}) async {
+  Future<List<Map<String, dynamic>>> getHealthFacilities(
+      {String? districtId}) async {
     final filters = <String, dynamic>{
       'deleted_at': ApiClient.isNull,
       'is_active': true,
@@ -90,7 +92,8 @@ class DatabaseService {
 
   // ===== FORMS =====
 
-  Future<List<Map<String, dynamic>>> getForms({bool activeOnly = true, String? campaignType}) async {
+  Future<List<Map<String, dynamic>>> getForms(
+      {bool activeOnly = true, String? campaignType}) async {
     final filters = <String, dynamic>{
       'deleted_at': ApiClient.isNull, // exclude soft-deleted forms
     };
@@ -172,7 +175,8 @@ class DatabaseService {
 
         final results = await _api.select(
           'form_submissions',
-          select: '*, forms!form_id(title_ar, title_en, campaign_type), profiles!submitted_by(full_name, email)',
+          select:
+              '*, forms!form_id(title_ar, title_en, campaign_type), profiles!submitted_by(full_name, email)',
           filters: filters,
           orderBy: orderBy ?? 'created_at',
           ascending: ascending,
@@ -206,7 +210,8 @@ class DatabaseService {
 
     return _api.select(
       'form_submissions',
-      select: '*, forms!form_id(title_ar, title_en, campaign_type), profiles!submitted_by(full_name, email)',
+      select:
+          '*, forms!form_id(title_ar, title_en, campaign_type), profiles!submitted_by(full_name, email)',
       filters: filters,
       orderBy: orderBy ?? 'created_at',
       ascending: ascending,
@@ -218,7 +223,8 @@ class DatabaseService {
   Future<Map<String, dynamic>> getSubmission(String id) async {
     return _api.selectOne(
       'form_submissions',
-      select: '*, forms(title_ar, title_en, schema), profiles!submitted_by(full_name, email)',
+      select:
+          '*, forms(title_ar, title_en, schema), profiles!submitted_by(full_name, email)',
       filters: {'id': id},
     );
   }
@@ -282,7 +288,8 @@ class DatabaseService {
 
       final allShortages = await _api.select(
         'supply_shortages',
-        select: '*, governorates(name_ar), districts(name_ar), profiles!reported_by(full_name)',
+        select:
+            '*, governorates(name_ar), districts(name_ar), profiles!reported_by(full_name)',
         filters: baseFilters,
         orderBy: 'created_at',
         ascending: false,
@@ -310,7 +317,8 @@ class DatabaseService {
 
     return _api.select(
       'supply_shortages',
-      select: '*, governorates(name_ar), districts(name_ar), profiles!reported_by(full_name)',
+      select:
+          '*, governorates(name_ar), districts(name_ar), profiles!reported_by(full_name)',
       filters: filters,
       orderBy: 'created_at',
       ascending: false,
@@ -344,10 +352,10 @@ class DatabaseService {
     );
   }
 
-
   // ===== REFERENCES =====
 
-  Future<List<Map<String, dynamic>>> getReferences({bool includeInactive = false}) async {
+  Future<List<Map<String, dynamic>>> getReferences(
+      {bool includeInactive = false}) async {
     final filters = <String, dynamic>{};
     if (!includeInactive) filters['is_active'] = true;
     return _api.select(
@@ -369,7 +377,8 @@ class DatabaseService {
   // ===== DASHBOARD =====
 
   /// Get dashboard stats for the current user (role-based)
-  Future<Map<String, dynamic>> getDashboardStats(String userId, {String? campaignType}) async {
+  Future<Map<String, dynamic>> getDashboardStats(String userId,
+      {String? campaignType}) async {
     final response = await _api.callFunction('get-dashboard-stats', {
       'user_id': userId,
       if (campaignType != null) 'campaign_type': campaignType,
@@ -452,7 +461,8 @@ class DatabaseService {
   /// Get all app settings or a specific one
   Future<Map<String, dynamic>> getAppSettings({String? key}) async {
     if (key != null) {
-      final result = await _api.selectOne('app_settings', filters: {'key': key});
+      final result =
+          await _api.selectOne('app_settings', filters: {'key': key});
       return result;
     }
     final results = await _api.select('app_settings');

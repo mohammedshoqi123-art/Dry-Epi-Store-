@@ -4,8 +4,10 @@ import '../config/app_config.dart';
 /// Sentry initialization and helper utilities for crash reporting.
 /// Configure via SENTRY_DSN environment variable.
 class SentryConfig {
-  static const String _dsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-  static const String _environment = String.fromEnvironment('ENV', defaultValue: 'development');
+  static const String _dsn =
+      String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+  static const String _environment =
+      String.fromEnvironment('ENV', defaultValue: 'development');
 
   static bool get isEnabled => _dsn.isNotEmpty;
 

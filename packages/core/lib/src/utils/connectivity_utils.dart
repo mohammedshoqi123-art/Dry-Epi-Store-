@@ -23,9 +23,9 @@ class ConnectivityUtils {
   static Future<void> initialize() async {
     try {
       final result = await _connectivity.checkConnectivity().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => <ConnectivityResult>[],
-      );
+            const Duration(seconds: 5),
+            onTimeout: () => <ConnectivityResult>[],
+          );
       _isOnline = _isConnected(result);
     } catch (_) {
       _isOnline = true;

@@ -30,7 +30,8 @@ import 'screens/internal_chat_screen.dart';
 //  Providers
 // ═══════════════════════════════════════════
 
-final dashboardDataProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+final dashboardDataProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final client = Supabase.instance.client;
   final session = client.auth.currentSession;
   if (session == null) throw Exception('غير مسجل الدخول');
@@ -51,8 +52,7 @@ final realtimeSubmissionsProvider = StreamProvider.autoDispose<int>((ref) {
   final client = Supabase.instance.client;
   return client
       .from('form_submissions')
-      .stream(primaryKey: ['id'])
-      .map((data) => data.length);
+      .stream(primaryKey: ['id']).map((data) => data.length);
 });
 
 // ═══════════════════════════════════════════
@@ -164,7 +164,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.white.withOpacity(0.2)),
                   ),
-                  child: const Icon(Icons.shield_rounded, color: Colors.white, size: 28),
+                  child: const Icon(Icons.shield_rounded,
+                      color: Colors.white, size: 28),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -229,14 +230,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         style: TextStyle(
                           color: isSelected ? Colors.white : Colors.white70,
                           fontSize: 14,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.normal,
                           fontFamily: 'Tajawal',
                         ),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      onTap: () => setState(() => _selectedNavIndex = item.index),
+                      onTap: () =>
+                          setState(() => _selectedNavIndex = item.index),
                     ),
                   ),
                 );
@@ -257,7 +260,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: Colors.white.withOpacity(0.15),
-                  child: const Icon(Icons.person, color: Colors.white, size: 20),
+                  child:
+                      const Icon(Icons.person, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -286,7 +290,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.logout_rounded, color: Colors.white.withOpacity(0.6), size: 20),
+                  icon: Icon(Icons.logout_rounded,
+                      color: Colors.white.withOpacity(0.6), size: 20),
                   onPressed: () {
                     Supabase.instance.client.auth.signOut();
                   },
@@ -419,17 +424,28 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
   String _getScreenTitle() {
     switch (_selectedNavIndex) {
-      case 0: return 'لوحة التحكم الرئيسية';
-      case 1: return 'إدارة الاستمارات';
-      case 2: return 'إدارة المستخدمين';
-      case 3: return 'مركز الإشعارات';
-      case 4: return 'إدارة البيانات';
-      case 5: return 'التقارير والتحليلات';
-      case 6: return 'الإعدادات';
-      case 7: return 'سجل التدقيق';
-      case 8: return 'مراقبة النظام';
-      case 9: return 'الدردشة الداخلية';
-      default: return 'لوحة التحكم';
+      case 0:
+        return 'لوحة التحكم الرئيسية';
+      case 1:
+        return 'إدارة الاستمارات';
+      case 2:
+        return 'إدارة المستخدمين';
+      case 3:
+        return 'مركز الإشعارات';
+      case 4:
+        return 'إدارة البيانات';
+      case 5:
+        return 'التقارير والتحليلات';
+      case 6:
+        return 'الإعدادات';
+      case 7:
+        return 'سجل التدقيق';
+      case 8:
+        return 'مراقبة النظام';
+      case 9:
+        return 'الدردشة الداخلية';
+      default:
+        return 'لوحة التحكم';
     }
   }
 
@@ -440,7 +456,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   Widget _buildDashboardContent(Map<String, dynamic> data) {
     final kpis = Map<String, dynamic>.from(data['kpis'] ?? {});
     final charts = Map<String, dynamic>.from(data['charts'] ?? {});
-    final recentActivity = List<Map<String, dynamic>>.from(data['recent_activity'] ?? []);
+    final recentActivity =
+        List<Map<String, dynamic>>.from(data['recent_activity'] ?? []);
     final systemHealth = Map<String, dynamic>.from(data['system_health'] ?? {});
 
     return RefreshIndicator(
@@ -468,14 +485,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                   Expanded(
                     flex: 2,
                     child: _buildTimelineChart(
-                      List<Map<String, dynamic>>.from(charts['submissions_timeline'] ?? []),
+                      List<Map<String, dynamic>>.from(
+                          charts['submissions_timeline'] ?? []),
                     ),
                   ),
                   const SizedBox(width: 20),
                   // Status Distribution
                   Expanded(
                     child: _buildStatusPieChart(
-                      Map<String, dynamic>.from(charts['status_distribution'] ?? {}),
+                      Map<String, dynamic>.from(
+                          charts['status_distribution'] ?? {}),
                     ),
                   ),
                 ],
@@ -489,7 +508,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                   Expanded(
                     flex: 2,
                     child: _buildGovernorateChart(
-                      List<Map<String, dynamic>>.from(charts['submissions_by_governorate'] ?? []),
+                      List<Map<String, dynamic>>.from(
+                          charts['submissions_by_governorate'] ?? []),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -566,7 +586,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         icon: Icons.map_rounded,
         title: 'التغطية الجغرافية',
         value: '${kpis['total_governorates'] ?? 0}',
-        subtitle: '${kpis['total_districts'] ?? 0} مديرية • ${kpis['total_facilities'] ?? 0} منشأة',
+        subtitle:
+            '${kpis['total_districts'] ?? 0} مديرية • ${kpis['total_facilities'] ?? 0} منشأة',
         color: const Color(0xFF00897B),
         trend: null,
       ),
@@ -575,10 +596,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     return Wrap(
       spacing: 16,
       runSpacing: 16,
-      children: cards.map((card) => SizedBox(
-        width: (MediaQuery.of(context).size.width - 280 - 48 - 32) / 3,
-        child: card,
-      )).toList(),
+      children: cards
+          .map((card) => SizedBox(
+                width: (MediaQuery.of(context).size.width - 280 - 48 - 32) / 3,
+                child: card,
+              ))
+          .toList(),
     );
   }
 
@@ -612,7 +635,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         reservedSize: 40,
                         getTitlesWidget: (value, meta) => Text(
                           value.toInt().toString(),
-                          style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                          style:
+                              TextStyle(color: Colors.grey[500], fontSize: 11),
                         ),
                       ),
                     ),
@@ -622,30 +646,38 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         interval: 5,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
-                          if (index < 0 || index >= timeline.length) return const SizedBox();
+                          if (index < 0 || index >= timeline.length)
+                            return const SizedBox();
                           final date = timeline[index]['date'] as String;
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               date.substring(5),
-                              style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 10),
                             ),
                           );
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
                   ),
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
-                    _buildLineData(timeline, 'total', const Color(0xFF00897B), 3),
-                    _buildLineData(timeline, 'approved', const Color(0xFF43A047), 2),
-                    _buildLineData(timeline, 'pending', const Color(0xFFFB8C00), 2),
+                    _buildLineData(
+                        timeline, 'total', const Color(0xFF00897B), 3),
+                    _buildLineData(
+                        timeline, 'approved', const Color(0xFF43A047), 2),
+                    _buildLineData(
+                        timeline, 'pending', const Color(0xFFFB8C00), 2),
                   ],
                   lineTouchData: LineTouchData(
                     touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (touchedSpots) => touchedSpots.map((spot) {
+                      getTooltipItems: (touchedSpots) =>
+                          touchedSpots.map((spot) {
                         return LineTooltipItem(
                           '${spot.y.toInt()}',
                           TextStyle(
@@ -691,7 +723,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
   double _getInterval(List<Map<String, dynamic>> data) {
     if (data.isEmpty) return 1;
-    final maxVal = data.fold<int>(0, (max, e) => math.max(max, (e['total'] ?? 0) as int));
+    final maxVal =
+        data.fold<int>(0, (max, e) => math.max(max, (e['total'] ?? 0) as int));
     if (maxVal <= 5) return 1;
     if (maxVal <= 20) return 5;
     if (maxVal <= 50) return 10;
@@ -703,12 +736,14 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   // ═══════════════════════════════════════════
 
   Widget _buildStatusPieChart(Map<String, dynamic> distribution) {
-    final total = distribution.values.fold<int>(0, (sum, v) => sum + (v as int));
+    final total =
+        distribution.values.fold<int>(0, (sum, v) => sum + (v as int));
     if (total == 0) {
       return _DashboardCard(
         title: 'توزيع الحالات',
         icon: Icons.pie_chart_rounded,
-        child: const SizedBox(height: 250, child: Center(child: Text('لا توجد بيانات'))),
+        child: const SizedBox(
+            height: 250, child: Center(child: Text('لا توجد بيانات'))),
       );
     }
 
@@ -802,14 +837,21 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             : BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
-                  maxY: data.fold<num>(0, (max, e) => math.max(max, e['count'] ?? 0)).toDouble() * 1.2,
+                  maxY: data
+                          .fold<num>(
+                              0, (max, e) => math.max(max, e['count'] ?? 0))
+                          .toDouble() *
+                      1.2,
                   barTouchData: BarTouchData(
                     touchTooltipData: BarTouchTooltipData(
                       getTooltipItem: (group, groupIndex, rod, rodIndex) {
                         final name = data[group.x.toInt()]['name'] ?? '';
                         return BarTooltipItem(
                           '$name\n${rod.toY.toInt()}',
-                          const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Tajawal'),
+                          const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontFamily: 'Tajawal'),
                         );
                       },
                     ),
@@ -821,7 +863,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         reservedSize: 35,
                         getTitlesWidget: (value, meta) => Text(
                           value.toInt().toString(),
-                          style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                          style:
+                              TextStyle(color: Colors.grey[500], fontSize: 10),
                         ),
                       ),
                     ),
@@ -830,20 +873,26 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
-                          if (index < 0 || index >= data.length) return const SizedBox();
+                          if (index < 0 || index >= data.length)
+                            return const SizedBox();
                           final name = data[index]['name'] as String? ?? '';
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              name.length > 6 ? '${name.substring(0, 6)}..' : name,
-                              style: TextStyle(color: Colors.grey[600], fontSize: 10),
+                              name.length > 6
+                                  ? '${name.substring(0, 6)}..'
+                                  : name,
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 10),
                             ),
                           );
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
                   ),
                   gridData: FlGridData(
                     show: true,
@@ -863,7 +912,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                           toY: (entry.value['count'] ?? 0).toDouble(),
                           color: const Color(0xFF00897B),
                           width: 20,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(6)),
                           backDrawRodData: BackgroundBarChartRodData(
                             show: true,
                             toY: (entry.value['count'] ?? 0).toDouble() * 1.3,
@@ -881,7 +931,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
   double _getBarInterval(List<Map<String, dynamic>> data) {
     if (data.isEmpty) return 1;
-    final maxVal = data.fold<num>(0, (max, e) => math.max(max, e['count'] ?? 0));
+    final maxVal =
+        data.fold<num>(0, (max, e) => math.max(max, e['count'] ?? 0));
     if (maxVal <= 5) return 1;
     if (maxVal <= 20) return 5;
     return (maxVal / 4).ceilToDouble();
@@ -901,7 +952,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             ? const Center(child: Text('لا توجد نشاطات'))
             : ListView.separated(
                 itemCount: activities.length.clamp(0, 10),
-                separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[200]),
+                separatorBuilder: (_, __) =>
+                    Divider(height: 1, color: Colors.grey[200]),
                 itemBuilder: (context, index) {
                   final activity = activities[index];
                   return _buildActivityItem(activity);
@@ -948,7 +1000,8 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         actionLabel = action;
     }
 
-    final timeDiff = DateTime.now().difference(DateTime.tryParse(createdAt) ?? DateTime.now());
+    final timeDiff = DateTime.now()
+        .difference(DateTime.tryParse(createdAt) ?? DateTime.now());
     String timeLabel;
     if (timeDiff.inMinutes < 1) {
       timeLabel = 'الآن';
@@ -972,28 +1025,38 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       ),
       title: Text(
         '$userName • $actionLabel',
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Tajawal'),
+        style: const TextStyle(
+            fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Tajawal'),
       ),
       subtitle: Text(
         _getTableLabel(tableName),
-        style: TextStyle(fontSize: 11, color: Colors.grey[500], fontFamily: 'Tajawal'),
+        style: TextStyle(
+            fontSize: 11, color: Colors.grey[500], fontFamily: 'Tajawal'),
       ),
       trailing: Text(
         timeLabel,
-        style: TextStyle(fontSize: 11, color: Colors.grey[400], fontFamily: 'Tajawal'),
+        style: TextStyle(
+            fontSize: 11, color: Colors.grey[400], fontFamily: 'Tajawal'),
       ),
     );
   }
 
   String _getTableLabel(String table) {
     switch (table) {
-      case 'profiles': return 'المستخدمين';
-      case 'form_submissions': return 'الإرساليات';
-      case 'forms': return 'الاستمارات';
-      case 'supply_shortages': return 'النواقص';
-      case 'governorates': return 'المحافظات';
-      case 'districts': return 'المديريات';
-      default: return table;
+      case 'profiles':
+        return 'المستخدمين';
+      case 'form_submissions':
+        return 'الإرساليات';
+      case 'forms':
+        return 'الاستمارات';
+      case 'supply_shortages':
+        return 'النواقص';
+      case 'governorates':
+        return 'المحافظات';
+      case 'districts':
+        return 'المديريات';
+      default:
+        return table;
     }
   }
 
@@ -1003,9 +1066,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
 
   Widget _buildSystemHealth(Map<String, dynamic> health) {
     final items = [
-      _HealthItem('قاعدة البيانات', health['database'] ?? 'unknown', Icons.storage_rounded),
-      _HealthItem('خدمة المزامنة', health['sync_service'] ?? 'unknown', Icons.sync_rounded),
-      _HealthItem('خدمة الذكاء الاصطناعي', health['ai_service'] ?? 'unknown', Icons.smart_toy_rounded),
+      _HealthItem('قاعدة البيانات', health['database'] ?? 'unknown',
+          Icons.storage_rounded),
+      _HealthItem('خدمة المزامنة', health['sync_service'] ?? 'unknown',
+          Icons.sync_rounded),
+      _HealthItem('خدمة الذكاء الاصطناعي', health['ai_service'] ?? 'unknown',
+          Icons.smart_toy_rounded),
     ];
 
     return _DashboardCard(
@@ -1042,7 +1108,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                isHealthy ? 'سليم' : isWarning ? 'تحذير' : 'خطأ',
+                isHealthy
+                    ? 'سليم'
+                    : isWarning
+                        ? 'تحذير'
+                        : 'خطأ',
                 style: TextStyle(
                   fontSize: 12,
                   color: isHealthy
@@ -1127,14 +1197,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
             builder: (context, value, child) {
               return Transform.rotate(
                 angle: value * 2 * 3.14159,
-                child: const Icon(Icons.sync_rounded, size: 48, color: Color(0xFF00897B)),
+                child: const Icon(Icons.sync_rounded,
+                    size: 48, color: Color(0xFF00897B)),
               );
             },
           ),
           const SizedBox(height: 16),
           Text(
             'جاري تحميل البيانات...',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600], fontFamily: 'Tajawal'),
+            style: TextStyle(
+                fontSize: 16, color: Colors.grey[600], fontFamily: 'Tajawal'),
           ),
         ],
       ),
@@ -1150,12 +1222,14 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           const SizedBox(height: 16),
           Text(
             'حدث خطأ في تحميل البيانات',
-            style: TextStyle(fontSize: 18, color: Colors.grey[700], fontFamily: 'Cairo'),
+            style: TextStyle(
+                fontSize: 18, color: Colors.grey[700], fontFamily: 'Cairo'),
           ),
           const SizedBox(height: 8),
           Text(
             '$error',
-            style: TextStyle(fontSize: 13, color: Colors.grey[500], fontFamily: 'Tajawal'),
+            style: TextStyle(
+                fontSize: 13, color: Colors.grey[500], fontFamily: 'Tajawal'),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -1203,13 +1277,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedNavIndex.clamp(0, 4),
-        onDestinationSelected: (index) => setState(() => _selectedNavIndex = index),
+        onDestinationSelected: (index) =>
+            setState(() => _selectedNavIndex = index),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'الرئيسية'),
-          NavigationDestination(icon: Icon(Icons.description_rounded), label: 'الاستمارات'),
-          NavigationDestination(icon: Icon(Icons.people_rounded), label: 'المستخدمين'),
-          NavigationDestination(icon: Icon(Icons.notifications_rounded), label: 'الإشعارات'),
-          NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'الإعدادات'),
+          NavigationDestination(
+              icon: Icon(Icons.dashboard_rounded), label: 'الرئيسية'),
+          NavigationDestination(
+              icon: Icon(Icons.description_rounded), label: 'الاستمارات'),
+          NavigationDestination(
+              icon: Icon(Icons.people_rounded), label: 'المستخدمين'),
+          NavigationDestination(
+              icon: Icon(Icons.notifications_rounded), label: 'الإشعارات'),
+          NavigationDestination(
+              icon: Icon(Icons.settings_rounded), label: 'الإعدادات'),
         ],
       ),
     );
@@ -1276,18 +1356,26 @@ class _KPICard extends StatelessWidget {
               const Spacer(),
               if (trend != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: (trend! >= 0 ? const Color(0xFF43A047) : const Color(0xFFE53935)).withOpacity(0.1),
+                    color: (trend! >= 0
+                            ? const Color(0xFF43A047)
+                            : const Color(0xFFE53935))
+                        .withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        trend! >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                        trend! >= 0
+                            ? Icons.trending_up_rounded
+                            : Icons.trending_down_rounded,
                         size: 16,
-                        color: trend! >= 0 ? const Color(0xFF43A047) : const Color(0xFFE53935),
+                        color: trend! >= 0
+                            ? const Color(0xFF43A047)
+                            : const Color(0xFFE53935),
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -1295,7 +1383,9 @@ class _KPICard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: trend! >= 0 ? const Color(0xFF43A047) : const Color(0xFFE53935),
+                          color: trend! >= 0
+                              ? const Color(0xFF43A047)
+                              : const Color(0xFFE53935),
                         ),
                       ),
                     ],
@@ -1437,7 +1527,8 @@ class _QuickActionTile extends StatelessWidget {
         title,
         style: const TextStyle(fontSize: 14, fontFamily: 'Tajawal'),
       ),
-      trailing: Icon(Icons.arrow_back_ios_rounded, size: 16, color: Colors.grey[400]),
+      trailing:
+          Icon(Icons.arrow_back_ios_rounded, size: 16, color: Colors.grey[400]),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       onTap: onTap,
     );

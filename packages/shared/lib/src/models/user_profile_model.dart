@@ -23,5 +23,6 @@ class UserProfileModel with _$UserProfileModel {
     Map<String, dynamic>? districts,
   }) = _UserProfileModel;
 
-  factory UserProfileModel.fromJson(Map<String, dynamic> json) => _$UserProfileModelFromJson(json);
+  factory UserProfileModel.fromJson(Map<String, dynamic> json) =>
+      _$UserProfileModelFromJson(json);
 }

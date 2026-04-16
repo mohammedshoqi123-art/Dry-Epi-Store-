@@ -27,11 +27,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       children: [
         _buildReportControls(),
         const SizedBox(height: 16),
-        Expanded(child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _reportData == null
-                ? _buildEmptyState()
-                : _buildReportContent()),
+        Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _reportData == null
+                    ? _buildEmptyState()
+                    : _buildReportContent()),
       ],
     );
   }
@@ -42,7 +43,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+        ],
       ),
       child: Row(
         children: [
@@ -57,8 +60,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               child: DropdownButton<String>(
                 value: _reportType,
                 items: const [
-                  DropdownMenuItem(value: 'submissions', child: Text('الإرساليات')),
-                  DropdownMenuItem(value: 'governorate_performance', child: Text('أداء المحافظات')),
+                  DropdownMenuItem(
+                      value: 'submissions', child: Text('الإرساليات')),
+                  DropdownMenuItem(
+                      value: 'governorate_performance',
+                      child: Text('أداء المحافظات')),
                   DropdownMenuItem(value: 'users', child: Text('المستخدمين')),
                   DropdownMenuItem(value: 'shortages', child: Text('النواقص')),
                   DropdownMenuItem(value: 'audit', child: Text('سجل التدقيق')),
@@ -100,7 +106,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00897B),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
           ),
@@ -127,7 +134,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           const SizedBox(height: 16),
           Text(
             'اختر نوع التقرير والفترة الزمنية ثم اضغط "إنشاء التقرير"',
-            style: TextStyle(fontSize: 16, color: Colors.grey[500], fontFamily: 'Tajawal'),
+            style: TextStyle(
+                fontSize: 16, color: Colors.grey[500], fontFamily: 'Tajawal'),
           ),
         ],
       ),
@@ -148,8 +156,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildSubmissionsReport() {
-    final submissions = List<Map<String, dynamic>>.from(_reportData?['submissions'] ?? []);
-    final aggregates = Map<String, dynamic>.from(_reportData?['aggregates'] ?? {});
+    final submissions =
+        List<Map<String, dynamic>>.from(_reportData?['submissions'] ?? []);
+    final aggregates =
+        Map<String, dynamic>.from(_reportData?['aggregates'] ?? {});
     final total = _reportData?['total'] ?? 0;
 
     return SingleChildScrollView(
@@ -159,9 +169,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           Row(
             children: [
               _SummaryCard('إجمالي', '$total', const Color(0xFF00897B)),
-              _SummaryCard('مقبول', '${aggregates['by_status']?['approved'] ?? 0}', const Color(0xFF43A047)),
-              _SummaryCard('مرفوض', '${aggregates['by_status']?['rejected'] ?? 0}', const Color(0xFFE53935)),
-              _SummaryCard('معلق', '${aggregates['by_status']?['submitted'] ?? 0}', const Color(0xFFFB8C00)),
+              _SummaryCard(
+                  'مقبول',
+                  '${aggregates['by_status']?['approved'] ?? 0}',
+                  const Color(0xFF43A047)),
+              _SummaryCard(
+                  'مرفوض',
+                  '${aggregates['by_status']?['rejected'] ?? 0}',
+                  const Color(0xFFE53935)),
+              _SummaryCard(
+                  'معلق',
+                  '${aggregates['by_status']?['submitted'] ?? 0}',
+                  const Color(0xFFFB8C00)),
             ],
           ),
           const SizedBox(height: 16),
@@ -171,7 +190,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+              ],
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -183,13 +204,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   DataColumn(label: Text('المحافظة')),
                   DataColumn(label: Text('التاريخ')),
                 ],
-                rows: submissions.take(50).map((s) => DataRow(cells: [
-                  DataCell(_statusChip(s['status'])),
-                  DataCell(Text(s['forms']?['title_ar'] ?? '')),
-                  DataCell(Text(s['profiles']?['full_name'] ?? '')),
-                  DataCell(Text(s['governorates']?['name_ar'] ?? '')),
-                  DataCell(Text((s['created_at'] as String? ?? '').split('T').first)),
-                ])).toList(),
+                rows: submissions
+                    .take(50)
+                    .map((s) => DataRow(cells: [
+                          DataCell(_statusChip(s['status'])),
+                          DataCell(Text(s['forms']?['title_ar'] ?? '')),
+                          DataCell(Text(s['profiles']?['full_name'] ?? '')),
+                          DataCell(Text(s['governorates']?['name_ar'] ?? '')),
+                          DataCell(Text((s['created_at'] as String? ?? '')
+                              .split('T')
+                              .first)),
+                        ]))
+                    .toList(),
               ),
             ),
           ),
@@ -199,14 +225,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildGovernoratePerformance() {
-    final govs = List<Map<String, dynamic>>.from(_reportData?['governorates'] ?? []);
+    final govs =
+        List<Map<String, dynamic>>.from(_reportData?['governorates'] ?? []);
 
     return SingleChildScrollView(
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+          ],
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -224,7 +253,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             rows: govs.map((g) {
               final sub = Map<String, dynamic>.from(g['submissions'] ?? {});
               return DataRow(cells: [
-                DataCell(Text(g['name_ar'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
+                DataCell(Text(g['name_ar'] ?? '',
+                    style: const TextStyle(fontWeight: FontWeight.w600))),
                 DataCell(Text('${sub['total'] ?? 0}')),
                 DataCell(Text('${sub['approved'] ?? 0}')),
                 DataCell(Text('${sub['rejected'] ?? 0}')),
@@ -242,23 +272,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
   Widget _buildUsersReport() {
     final users = List<Map<String, dynamic>>.from(_reportData?['users'] ?? []);
-    final aggregates = Map<String, dynamic>.from(_reportData?['aggregates'] ?? {});
+    final aggregates =
+        Map<String, dynamic>.from(_reportData?['aggregates'] ?? {});
     final byRole = Map<String, dynamic>.from(aggregates['by_role'] ?? {});
 
     return SingleChildScrollView(
       child: Column(
         children: [
           Row(
-            children: byRole.entries.map((e) => Expanded(
-              child: _SummaryCard(_roleLabel(e.key), '${e.value}', _roleColor(e.key)),
-            )).toList(),
+            children: byRole.entries
+                .map((e) => Expanded(
+                      child: _SummaryCard(
+                          _roleLabel(e.key), '${e.value}', _roleColor(e.key)),
+                    ))
+                .toList(),
           ),
           const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+              ],
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -270,13 +306,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   DataColumn(label: Text('المحافظة')),
                   DataColumn(label: Text('نشط')),
                 ],
-                rows: users.take(50).map((u) => DataRow(cells: [
-                  DataCell(Text(u['full_name'] ?? '')),
-                  DataCell(Text(u['email'] ?? '')),
-                  DataCell(Text(_roleLabel(u['role']))),
-                  DataCell(Text(u['governorates']?['name_ar'] ?? '')),
-                  DataCell(Text(u['is_active'] == true ? 'نعم' : 'لا')),
-                ])).toList(),
+                rows: users
+                    .take(50)
+                    .map((u) => DataRow(cells: [
+                          DataCell(Text(u['full_name'] ?? '')),
+                          DataCell(Text(u['email'] ?? '')),
+                          DataCell(Text(_roleLabel(u['role']))),
+                          DataCell(Text(u['governorates']?['name_ar'] ?? '')),
+                          DataCell(Text(u['is_active'] == true ? 'نعم' : 'لا')),
+                        ]))
+                    .toList(),
               ),
             ),
           ),
@@ -286,14 +325,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _buildShortagesReport() {
-    final shortages = List<Map<String, dynamic>>.from(_reportData?['shortages'] ?? []);
+    final shortages =
+        List<Map<String, dynamic>>.from(_reportData?['shortages'] ?? []);
 
     return SingleChildScrollView(
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)
+          ],
         ),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -306,14 +348,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               DataColumn(label: Text('المحافظة')),
               DataColumn(label: Text('محلول')),
             ],
-            rows: shortages.take(50).map((s) => DataRow(cells: [
-              DataCell(Text(s['item_name'] ?? '')),
-              DataCell(_severityChip(s['severity'])),
-              DataCell(Text('${s['quantity_needed'] ?? 0}')),
-              DataCell(Text('${s['quantity_available'] ?? 0}')),
-              DataCell(Text(s['governorates']?['name_ar'] ?? '')),
-              DataCell(Text(s['is_resolved'] == true ? '✓' : '✗')),
-            ])).toList(),
+            rows: shortages
+                .take(50)
+                .map((s) => DataRow(cells: [
+                      DataCell(Text(s['item_name'] ?? '')),
+                      DataCell(_severityChip(s['severity'])),
+                      DataCell(Text('${s['quantity_needed'] ?? 0}')),
+                      DataCell(Text('${s['quantity_available'] ?? 0}')),
+                      DataCell(Text(s['governorates']?['name_ar'] ?? '')),
+                      DataCell(Text(s['is_resolved'] == true ? '✓' : '✗')),
+                    ]))
+                .toList(),
           ),
         ),
       ),
@@ -324,59 +369,100 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     Color color;
     String label;
     switch (status) {
-      case 'approved': color = const Color(0xFF43A047); label = 'مقبول'; break;
-      case 'rejected': color = const Color(0xFFE53935); label = 'مرفوض'; break;
-      case 'submitted': color = const Color(0xFFFB8C00); label = 'معلق'; break;
-      case 'reviewed': color = const Color(0xFF1E88E5); label = 'تمت المراجعة'; break;
-      default: color = Colors.grey; label = status ?? '';
+      case 'approved':
+        color = const Color(0xFF43A047);
+        label = 'مقبول';
+        break;
+      case 'rejected':
+        color = const Color(0xFFE53935);
+        label = 'مرفوض';
+        break;
+      case 'submitted':
+        color = const Color(0xFFFB8C00);
+        label = 'معلق';
+        break;
+      case 'reviewed':
+        color = const Color(0xFF1E88E5);
+        label = 'تمت المراجعة';
+        break;
+      default:
+        color = Colors.grey;
+        label = status ?? '';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6)),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 12, color: color, fontWeight: FontWeight.w600)),
     );
   }
 
   Widget _severityChip(String? severity) {
     Color color;
     switch (severity) {
-      case 'critical': color = const Color(0xFFB71C1C); break;
-      case 'high': color = const Color(0xFFE53935); break;
-      case 'medium': color = const Color(0xFFFB8C00); break;
-      default: color = const Color(0xFF43A047);
+      case 'critical':
+        color = const Color(0xFFB71C1C);
+        break;
+      case 'high':
+        color = const Color(0xFFE53935);
+        break;
+      case 'medium':
+        color = const Color(0xFFFB8C00);
+        break;
+      default:
+        color = const Color(0xFF43A047);
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-      child: Text(severity ?? '', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6)),
+      child: Text(severity ?? '',
+          style: TextStyle(
+              fontSize: 12, color: color, fontWeight: FontWeight.w600)),
     );
   }
 
   String _roleLabel(String? role) {
     switch (role) {
-      case 'admin': return 'مسؤول';
-      case 'central': return 'مركزي';
-      case 'governorate': return 'محافظة';
-      case 'district': return 'مديرية';
-      case 'data_entry': return 'إدخال بيانات';
-      default: return role ?? '';
+      case 'admin':
+        return 'مسؤول';
+      case 'central':
+        return 'مركزي';
+      case 'governorate':
+        return 'محافظة';
+      case 'district':
+        return 'مديرية';
+      case 'data_entry':
+        return 'إدخال بيانات';
+      default:
+        return role ?? '';
     }
   }
 
   Color _roleColor(String? role) {
     switch (role) {
-      case 'admin': return const Color(0xFFE53935);
-      case 'central': return const Color(0xFF8E24AA);
-      case 'governorate': return const Color(0xFF1E88E5);
-      case 'district': return const Color(0xFFFB8C00);
-      default: return const Color(0xFF9E9E9E);
+      case 'admin':
+        return const Color(0xFFE53935);
+      case 'central':
+        return const Color(0xFF8E24AA);
+      case 'governorate':
+        return const Color(0xFF1E88E5);
+      case 'district':
+        return const Color(0xFFFB8C00);
+      default:
+        return const Color(0xFF9E9E9E);
     }
   }
 
   void _generateReport() async {
     setState(() => _loading = true);
     try {
-      final response = await Supabase.instance.client.functions.invoke('get-advanced-reports', body: {
+      final response = await Supabase.instance.client.functions
+          .invoke('get-advanced-reports', body: {
         'report_type': _reportType,
         'from_date': _fromDate.toIso8601String(),
         'to_date': _toDate.toIso8601String(),
@@ -388,7 +474,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }
@@ -396,17 +483,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   void _exportReport() async {
     try {
       await Supabase.instance.client.functions.invoke('export-data', body: {
-        'table': _reportType == 'governorate_performance' ? 'submissions' : _reportType,
+        'table': _reportType == 'governorate_performance'
+            ? 'submissions'
+            : _reportType,
         'from_date': _fromDate.toIso8601String(),
         'to_date': _toDate.toIso8601String(),
         'format': 'csv',
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تصدير التقرير')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('تم تصدير التقرير')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('خطأ: $e')));
       }
     }
   }
@@ -428,13 +519,24 @@ class _SummaryCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withOpacity(0.2)),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(color: color.withOpacity(0.05), blurRadius: 10)
+          ],
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color, fontFamily: 'Cairo')),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    fontFamily: 'Cairo')),
             const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 13, color: Colors.grey[600], fontFamily: 'Tajawal')),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    fontFamily: 'Tajawal')),
           ],
         ),
       ),

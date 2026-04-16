@@ -29,9 +29,8 @@ final formsStatsProvider =
   final client = Supabase.instance.client;
   try {
     final forms = await client.from('forms').select('id');
-    final formIds = (forms as List<dynamic>)
-        .map((f) => f['id'] as String)
-        .toList();
+    final formIds =
+        (forms as List<dynamic>).map((f) => f['id'] as String).toList();
 
     final Map<String, Map<String, int>> stats = {};
     for (final fid in formIds) {
@@ -62,8 +61,7 @@ class FormsManagementScreen extends ConsumerStatefulWidget {
       _FormsManagementScreenState();
 }
 
-class _FormsManagementScreenState
-    extends ConsumerState<FormsManagementScreen> {
+class _FormsManagementScreenState extends ConsumerState<FormsManagementScreen> {
   String _searchQuery = '';
 
   @override
@@ -97,16 +95,16 @@ class _FormsManagementScreenState
                 textDirection: TextDirection.rtl,
                 decoration: InputDecoration(
                   hintText: 'بحث في النماذج...',
-                  prefixIcon: const Icon(Icons.search,
-                      color: AppTheme.textSecondary),
+                  prefixIcon:
+                      const Icon(Icons.search, color: AppTheme.textSecondary),
                   filled: true,
                   fillColor: AppTheme.backgroundLight,
                   border: OutlineInputBorder(
                     borderRadius: AppTheme.radiusMedium,
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
@@ -160,8 +158,9 @@ class _FormsManagementScreenState
             final filtered = _searchQuery.isEmpty
                 ? forms
                 : forms.where((f) {
-                    final name =
-                        (f['name_ar'] ?? f['name'] ?? '').toString().toLowerCase();
+                    final name = (f['name_ar'] ?? f['name'] ?? '')
+                        .toString()
+                        .toLowerCase();
                     return name.contains(_searchQuery.toLowerCase());
                   }).toList();
 
@@ -199,14 +198,14 @@ class _FormsManagementScreenState
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
                       Text(
                         '${filtered.length} نموذج',
-                        style: AppTheme.bodyM.copyWith(
-                            color: AppTheme.textSecondary),
+                        style: AppTheme.bodyM
+                            .copyWith(color: AppTheme.textSecondary),
                       ),
                       const Spacer(),
                       TextButton.icon(
@@ -224,8 +223,7 @@ class _FormsManagementScreenState
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final form = filtered[index];
-                      final formStats =
-                          stats[form['id']] ?? {'total': 0};
+                      final formStats = stats[form['id']] ?? {'total': 0};
                       final isActive = form['is_active'] ?? true;
                       final fields =
                           (form['fields'] as List<dynamic>?)?.length ?? 0;
@@ -234,8 +232,8 @@ class _FormsManagementScreenState
                           (schema?['fields'] as List<dynamic>?)?.length ?? 0;
                       final totalFields = fields > 0 ? fields : schemaFields;
                       final createdAt = form['created_at'] != null
-                          ? DateFormat('d/M/yyyy').format(
-                              DateTime.parse(form['created_at']))
+                          ? DateFormat('d/M/yyyy')
+                              .format(DateTime.parse(form['created_at']))
                           : '—';
 
                       return Card(
@@ -248,12 +246,10 @@ class _FormsManagementScreenState
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: isWide
-                                ? _buildWideFormCard(
-                                    form, formStats, isActive,
+                                ? _buildWideFormCard(form, formStats, isActive,
                                     totalFields, createdAt)
-                                : _buildCompactFormCard(
-                                    form, formStats, isActive,
-                                    totalFields, createdAt),
+                                : _buildCompactFormCard(form, formStats,
+                                    isActive, totalFields, createdAt),
                           ),
                         ),
                       );
@@ -322,10 +318,9 @@ class _FormsManagementScreenState
               Wrap(
                 spacing: 16,
                 children: [
-                  _buildInfoChip(Icons.layers_outlined,
-                      '$totalFields حقل'),
-                  _buildInfoChip(Icons.upload_file,
-                      '${stats['total'] ?? 0} إرسالية'),
+                  _buildInfoChip(Icons.layers_outlined, '$totalFields حقل'),
+                  _buildInfoChip(
+                      Icons.upload_file, '${stats['total'] ?? 0} إرسالية'),
                   if ((stats['submitted'] ?? 0) > 0)
                     _buildInfoChip(Icons.pending_actions,
                         '${stats['submitted']} قيد المراجعة',
@@ -341,8 +336,7 @@ class _FormsManagementScreenState
         Column(
           children: [
             IconButton(
-              icon: const Icon(Icons.edit_outlined,
-                  color: AppTheme.infoColor),
+              icon: const Icon(Icons.edit_outlined, color: AppTheme.infoColor),
               onPressed: () => _showFormDialog(form: form),
               tooltip: 'تعديل',
             ),
@@ -353,8 +347,8 @@ class _FormsManagementScreenState
               tooltip: 'فتح المُصمم',
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline,
-                  color: AppTheme.errorColor),
+              icon:
+                  const Icon(Icons.delete_outline, color: AppTheme.errorColor),
               onPressed: () => _deleteForm(form['id']),
               tooltip: 'حذف',
             ),
@@ -393,8 +387,7 @@ class _FormsManagementScreenState
                   Text(
                     form['name_ar'] ?? form['name'] ?? 'بدون عنوان',
                     style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontWeight: FontWeight.w700),
+                        fontFamily: 'Cairo', fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
                   _buildStatusChip(isActive),
@@ -423,8 +416,7 @@ class _FormsManagementScreenState
                         Icon(Icons.edit_outlined,
                             size: 18, color: AppTheme.infoColor),
                         SizedBox(width: 8),
-                        Text('تعديل',
-                            style: TextStyle(fontFamily: 'Tajawal')),
+                        Text('تعديل', style: TextStyle(fontFamily: 'Tajawal')),
                       ],
                     )),
                 const PopupMenuItem(
@@ -445,8 +437,7 @@ class _FormsManagementScreenState
                         Icon(Icons.delete_outline,
                             size: 18, color: AppTheme.errorColor),
                         SizedBox(width: 8),
-                        Text('حذف',
-                            style: TextStyle(fontFamily: 'Tajawal')),
+                        Text('حذف', style: TextStyle(fontFamily: 'Tajawal')),
                       ],
                     )),
               ],
@@ -457,12 +448,9 @@ class _FormsManagementScreenState
         Wrap(
           spacing: 12,
           children: [
-            _buildInfoChip(
-                Icons.layers_outlined, '$totalFields حقل'),
-            _buildInfoChip(Icons.upload_file,
-                '${stats['total'] ?? 0} إرسالية'),
-            _buildInfoChip(
-                Icons.calendar_today_outlined, createdAt),
+            _buildInfoChip(Icons.layers_outlined, '$totalFields حقل'),
+            _buildInfoChip(Icons.upload_file, '${stats['total'] ?? 0} إرسالية'),
+            _buildInfoChip(Icons.calendar_today_outlined, createdAt),
           ],
         ),
       ],
@@ -524,8 +512,7 @@ class _FormsManagementScreenState
           return Directionality(
             textDirection: TextDirection.rtl,
             child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: AppTheme.radiusLarge),
+              shape: RoundedRectangleBorder(borderRadius: AppTheme.radiusLarge),
               title: Text(
                 isEdit ? 'تعديل النموذج' : 'إنشاء نموذج جديد',
                 style: const TextStyle(fontFamily: 'Cairo'),
@@ -558,8 +545,7 @@ class _FormsManagementScreenState
                           style: TextStyle(fontFamily: 'Tajawal')),
                       value: isActive,
                       activeColor: AppTheme.primaryColor,
-                      onChanged: (v) =>
-                          setDialogState(() => isActive = v),
+                      onChanged: (v) => setDialogState(() => isActive = v),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ],
@@ -631,10 +617,10 @@ class _FormsManagementScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              formId != null
-                  ? 'تم تحديث النموذج'
-                  : 'تم إنشاء النموذج — افتح المُصمم لإضافة الحقول',
-              style: const TextStyle(fontFamily: 'Tajawal')),
+                formId != null
+                    ? 'تم تحديث النموذج'
+                    : 'تم إنشاء النموذج — افتح المُصمم لإضافة الحقول',
+                style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
           ),
         );
@@ -643,8 +629,8 @@ class _FormsManagementScreenState
       if (ctx.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل: $e',
-                style: const TextStyle(fontFamily: 'Tajawal')),
+            content:
+                Text('فشل: $e', style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -663,15 +649,14 @@ class _FormsManagementScreenState
     if (confirmed != true) return;
 
     try {
-      await Supabase.instance.client
-          .from('forms').delete().eq('id', id);
+      await Supabase.instance.client.from('forms').delete().eq('id', id);
       ref.invalidate(formsListProvider);
       ref.invalidate(formsStatsProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم حذف النموذج',
-                style: TextStyle(fontFamily: 'Tajawal')),
+            content:
+                Text('تم حذف النموذج', style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
           ),
         );
@@ -680,8 +665,7 @@ class _FormsManagementScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل: $e',
-                style: TextStyle(fontFamily: 'Tajawal')),
+            content: Text('فشل: $e', style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.errorColor,
           ),
         );

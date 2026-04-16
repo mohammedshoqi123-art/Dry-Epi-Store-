@@ -106,7 +106,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
   Future<void> _refresh() async {
     if (!ConnectivityUtils.isOnline) return;
     final campaign = ref.read(campaignProvider);
-    final filter = SubmissionsFilter(status: _statusFilter, campaignType: campaign.value);
+    final filter =
+        SubmissionsFilter(status: _statusFilter, campaignType: campaign.value);
     await ref.read(forceRefreshProvider)(filter.cacheKey);
     ref.invalidate(submissionsProvider(filter));
     await _loadInitial();
@@ -124,8 +125,10 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
     final filtered = _searchQuery.isEmpty
         ? _items
         : _items.where((sub) {
-            final formTitle = (sub['forms']?['title_ar'] ?? '').toString().toLowerCase();
-            final userName = (sub['profiles']?['full_name'] ?? '').toString().toLowerCase();
+            final formTitle =
+                (sub['forms']?['title_ar'] ?? '').toString().toLowerCase();
+            final userName =
+                (sub['profiles']?['full_name'] ?? '').toString().toLowerCase();
             final status = (sub['status'] ?? '').toString().toLowerCase();
             return formTitle.contains(_searchQuery) ||
                 userName.contains(_searchQuery) ||
@@ -150,7 +153,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             child: EpiSearchBar(
               controller: _searchController,
               hint: 'بحث في الإرساليات...',
-              onChanged: (query) => setState(() => _searchQuery = query.toLowerCase()),
+              onChanged: (query) =>
+                  setState(() => _searchQuery = query.toLowerCase()),
             ),
           ),
           if (_statusFilter != null)
@@ -162,7 +166,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => _onFilterChanged(null),
-                    child: const Icon(Icons.close, size: 18, color: AppTheme.textSecondary),
+                    child: const Icon(Icons.close,
+                        size: 18, color: AppTheme.textSecondary),
                   ),
                 ],
               ),
@@ -196,8 +201,12 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
     if (filtered.isEmpty && !_isLoadingMore) {
       return EpiEmptyState(
         icon: Icons.upload_file,
-        title: _searchQuery.isNotEmpty ? 'لا توجد نتائج للبحث' : 'لا توجد إرساليات',
-        subtitle: _searchQuery.isNotEmpty ? 'جرّب كلمات بحث مختلفة' : 'لم يتم إرسال أي نماذج بعد',
+        title: _searchQuery.isNotEmpty
+            ? 'لا توجد نتائج للبحث'
+            : 'لا توجد إرساليات',
+        subtitle: _searchQuery.isNotEmpty
+            ? 'جرّب كلمات بحث مختلفة'
+            : 'لم يتم إرسال أي نماذج بعد',
       );
     }
 
@@ -213,7 +222,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
               child: _isLoadingMore
-                  ? const CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryColor)
+                  ? const CircularProgressIndicator(
+                      strokeWidth: 2, color: AppTheme.primaryColor)
                   : const SizedBox.shrink(),
             ),
           );
@@ -248,12 +258,21 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('تصفية حسب الحالة',
-                style: TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w700)),
+                style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: ['draft', 'submitted', 'reviewed', 'approved', 'rejected'].map((s) {
+              children: [
+                'draft',
+                'submitted',
+                'reviewed',
+                'approved',
+                'rejected'
+              ].map((s) {
                 return ChoiceChip(
                   label: EpiStatusChip(status: s, small: true),
                   selected: _statusFilter == s,
@@ -280,7 +299,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
       final file = await FormReportGenerator.generate(
         form: form,
         submissions: [sub],
-        period: 'إرسال واحدة — ${(sub['created_at'] ?? '').toString().substring(0, 10)}',
+        period:
+            'إرسال واحدة — ${(sub['created_at'] ?? '').toString().substring(0, 10)}',
       );
 
       if (!mounted) return;
@@ -293,7 +313,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم إنشاء التقرير ✅', style: TextStyle(fontFamily: 'Tajawal')),
+            content: Text('تم إنشاء التقرير ✅',
+                style: TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.successColor,
             duration: Duration(seconds: 2),
           ),
@@ -303,7 +324,8 @@ class _SubmissionsScreenState extends ConsumerState<SubmissionsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('فشل إنشاء التقرير: $e', style: const TextStyle(fontFamily: 'Tajawal')),
+            content: Text('فشل إنشاء التقرير: $e',
+                style: const TextStyle(fontFamily: 'Tajawal')),
             backgroundColor: AppTheme.errorColor,
           ),
         );
@@ -349,14 +371,21 @@ class _SubmissionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600)),
+                    style: const TextStyle(
+                        fontFamily: 'Cairo', fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 if (userName != null)
                   Text(userName!,
-                      style: const TextStyle(fontFamily: 'Tajawal', fontSize: 12, color: AppTheme.textSecondary)),
+                      style: const TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 12,
+                          color: AppTheme.textSecondary)),
                 if (date != null)
                   Text(_formatDate(date!),
-                      style: const TextStyle(fontFamily: 'Tajawal', fontSize: 11, color: AppTheme.textHint)),
+                      style: const TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 11,
+                          color: AppTheme.textHint)),
               ],
             ),
           ),

@@ -100,7 +100,8 @@ class EncryptionService {
       final encrypted = encrypter.encrypt(plaintext, iv: iv);
 
       // Assemble: salt + iv + ciphertext_with_tag
-      final result = Uint8List(_saltLength + _ivLength + encrypted.bytes.length);
+      final result =
+          Uint8List(_saltLength + _ivLength + encrypted.bytes.length);
       var offset = 0;
       result.setAll(offset, _salt);
       offset += _saltLength;
@@ -120,7 +121,9 @@ class EncryptionService {
   String decrypt(String ciphertext) {
     try {
       final bytes = base64Decode(ciphertext);
-      final minLength = _saltLength + _ivLength + 16; // 16 = GCM tag only (empty plaintext is valid)
+      final minLength = _saltLength +
+          _ivLength +
+          16; // 16 = GCM tag only (empty plaintext is valid)
 
       if (bytes.length < minLength) {
         throw FormatException('Ciphertext too short');
@@ -128,11 +131,14 @@ class EncryptionService {
 
       // Parse: salt(16) + iv(12) + encrypted+tag
       var offset = 0;
-      final salt = Uint8List.fromList(bytes.sublist(offset, offset + _saltLength));
+      final salt =
+          Uint8List.fromList(bytes.sublist(offset, offset + _saltLength));
       offset += _saltLength;
-      final iv = enc.IV(Uint8List.fromList(bytes.sublist(offset, offset + _ivLength)));
+      final iv =
+          enc.IV(Uint8List.fromList(bytes.sublist(offset, offset + _ivLength)));
       offset += _ivLength;
-      final encrypted = enc.Encrypted(Uint8List.fromList(bytes.sublist(offset)));
+      final encrypted =
+          enc.Encrypted(Uint8List.fromList(bytes.sublist(offset)));
 
       // Re-derive the key using the salt from the ciphertext (cached)
       final keyBytes = utf8.encode(_activeKey);

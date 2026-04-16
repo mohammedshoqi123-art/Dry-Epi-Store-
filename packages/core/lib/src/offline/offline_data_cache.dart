@@ -75,14 +75,20 @@ class OfflineDataCache {
       if (_offline.isOnline == false) {
         final staleCache = _getFromMemory<List>(cacheKey, Duration(days: 365));
         if (staleCache != null) {
-          if (kDebugMode) print('[OfflineDataCache] Returning stale memory cache for $cacheKey (offline mode)');
+          if (kDebugMode)
+            print(
+                '[OfflineDataCache] Returning stale memory cache for $cacheKey (offline mode)');
           return List<Map<String, dynamic>>.from(staleCache);
         }
 
-        final stalePersistent = _getFromPersistent<List>(cacheKey, Duration(days: 365), offlineOverride: true);
+        final stalePersistent = _getFromPersistent<List>(
+            cacheKey, Duration(days: 365),
+            offlineOverride: true);
         if (stalePersistent != null) {
           _putToMemory(cacheKey, stalePersistent);
-          if (kDebugMode) print('[OfflineDataCache] Returning stale persistent cache for $cacheKey (offline mode)');
+          if (kDebugMode)
+            print(
+                '[OfflineDataCache] Returning stale persistent cache for $cacheKey (offline mode)');
           return List<Map<String, dynamic>>.from(stalePersistent);
         }
       }
@@ -95,18 +101,26 @@ class OfflineDataCache {
       return data;
     } catch (e) {
       // 5. Network failed — try returning stale cache as fallback (up to 30 days)
-      if (kDebugMode) print('[OfflineDataCache] Network failed for $cacheKey, trying stale cache: $e');
+      if (kDebugMode)
+        print(
+            '[OfflineDataCache] Network failed for $cacheKey, trying stale cache: $e');
 
       final staleCache = _getFromMemory<List>(cacheKey, Duration(days: 365));
       if (staleCache != null) {
-        if (kDebugMode) print('[OfflineDataCache] Returning stale memory cache for $cacheKey');
+        if (kDebugMode)
+          print(
+              '[OfflineDataCache] Returning stale memory cache for $cacheKey');
         return List<Map<String, dynamic>>.from(staleCache);
       }
 
-      final stalePersistent = _getFromPersistent<List>(cacheKey, Duration(days: 365), offlineOverride: true);
+      final stalePersistent = _getFromPersistent<List>(
+          cacheKey, Duration(days: 365),
+          offlineOverride: true);
       if (stalePersistent != null) {
         _putToMemory(cacheKey, stalePersistent);
-        if (kDebugMode) print('[OfflineDataCache] Returning stale persistent cache for $cacheKey');
+        if (kDebugMode)
+          print(
+              '[OfflineDataCache] Returning stale persistent cache for $cacheKey');
         return List<Map<String, dynamic>>.from(stalePersistent);
       }
 
@@ -142,10 +156,14 @@ class OfflineDataCache {
 
       // Offline fallback — return stale data
       if (_offline.isOnline == false) {
-        final stalePersistent = _getFromPersistent<Map>(cacheKey, Duration(days: 365), offlineOverride: true);
+        final stalePersistent = _getFromPersistent<Map>(
+            cacheKey, Duration(days: 365),
+            offlineOverride: true);
         if (stalePersistent != null) {
           _putToMemory(cacheKey, stalePersistent);
-          if (kDebugMode) print('[OfflineDataCache] Returning stale map for $cacheKey (offline)');
+          if (kDebugMode)
+            print(
+                '[OfflineDataCache] Returning stale map for $cacheKey (offline)');
           return Map<String, dynamic>.from(stalePersistent);
         }
       }
@@ -160,7 +178,9 @@ class OfflineDataCache {
       final staleCache = _getFromMemory<Map>(cacheKey, Duration(days: 365));
       if (staleCache != null) return Map<String, dynamic>.from(staleCache);
 
-      final stalePersistent = _getFromPersistent<Map>(cacheKey, Duration(days: 365), offlineOverride: true);
+      final stalePersistent = _getFromPersistent<Map>(
+          cacheKey, Duration(days: 365),
+          offlineOverride: true);
       if (stalePersistent != null) {
         _putToMemory(cacheKey, stalePersistent);
         return Map<String, dynamic>.from(stalePersistent);
@@ -202,8 +222,10 @@ class OfflineDataCache {
   /// Get from persistent cache if not expired.
   /// [offlineOverride] — if true, bypasses normal cacheExpiry and returns stale data
   /// up to 30 days old. Used when network fails and we need ANY cached data.
-  dynamic _getFromPersistent<T>(String key, Duration maxAge, {bool offlineOverride = false}) {
-    final cached = _offline.getCachedData(key, offlineOverride: offlineOverride);
+  dynamic _getFromPersistent<T>(String key, Duration maxAge,
+      {bool offlineOverride = false}) {
+    final cached =
+        _offline.getCachedData(key, offlineOverride: offlineOverride);
     if (cached == null) return null;
 
     // Handle list wrapper
@@ -218,8 +240,8 @@ class OfflineDataCache {
   void _putToMemory(String key, dynamic data) {
     // Evict oldest if at capacity
     if (_memoryCache.length >= _maxMemoryEntries) {
-      final oldest = _memoryCache.entries
-          .reduce((a, b) => a.value.timestamp.isBefore(b.value.timestamp) ? a : b);
+      final oldest = _memoryCache.entries.reduce(
+          (a, b) => a.value.timestamp.isBefore(b.value.timestamp) ? a : b);
       _memoryCache.remove(oldest.key);
     }
 
@@ -240,9 +262,11 @@ class OfflineDataCache {
   ) {
     fetchFn().then((data) async {
       await _saveToCache(key, data);
-      if (kDebugMode) print('[OfflineDataCache] Background refresh complete for $key');
+      if (kDebugMode)
+        print('[OfflineDataCache] Background refresh complete for $key');
     }).catchError((e) {
-      if (kDebugMode) print('[OfflineDataCache] Background refresh failed for $key: $e');
+      if (kDebugMode)
+        print('[OfflineDataCache] Background refresh failed for $key: $e');
     });
   }
 
@@ -253,7 +277,8 @@ class OfflineDataCache {
     fetchFn().then((data) async {
       await _saveToCache(key, data);
     }).catchError((e) {
-      if (kDebugMode) print('[OfflineDataCache] Background refresh failed for $key: $e');
+      if (kDebugMode)
+        print('[OfflineDataCache] Background refresh failed for $key: $e');
     });
   }
 
@@ -305,7 +330,8 @@ class OfflineDataCache {
   }
 
   /// Cache a single form's data for offline access
-  Future<void> cacheFormData(String formId, Map<String, dynamic> formData) async {
+  Future<void> cacheFormData(
+      String formId, Map<String, dynamic> formData) async {
     final cachedForms = getCachedDataList('forms') ?? [];
     // Update or add the form in the cached list
     bool found = false;
