@@ -964,13 +964,13 @@ class _FormEditorScreenState extends State<FormEditorScreen> {
                                 (_sections[sectionIndex]['fields'] as List)
                                     .cast<Map<String, dynamic>>();
                             if (isEdit) {
-                              fields[fieldIndex!] = field;
+                              fields[fieldIndex] = field;
                             } else {
                               fields.add(field);
                             }
                           } else {
                             if (isEdit) {
-                              _fields[fieldIndex!] = field;
+                              _fields[fieldIndex] = field;
                             } else {
                               _fields.add(field);
                             }

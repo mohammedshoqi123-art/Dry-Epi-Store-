@@ -13,7 +13,7 @@ import '../screens/forms_screen.dart';
 import '../screens/map_screen.dart';
 import '../screens/ai_chat_screen.dart';
 import '../screens/submission_detail_screen.dart';
-import '../screens/form_fill_screen.dart';
+import '../screens/form_fill/form_fill_screen.dart';
 import '../screens/forms_status_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/references_screen.dart';
