@@ -918,6 +918,90 @@ export function useSendNotification() {
   })
 }
 
+export function useNotificationStats() {
+  return useQuery({
+    queryKey: ['notification-stats'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const userId = session?.user?.id || '00000000-0000-0000-0000-000000000000'
+
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('type, category, is_read, created_at')
+        .eq('recipient_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(500)
+      if (error) throw error
+
+      // By type
+      const byType: Record<string, number> = {}
+      // By category
+      const byCategory: Record<string, number> = {}
+      // By day (last 7 days)
+      const byDay: Record<string, { total: number; unread: number }> = {}
+      const now = new Date()
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now)
+        d.setDate(d.getDate() - i)
+        const key = d.toISOString().split('T')[0]
+        byDay[key] = { total: 0, unread: 0 }
+      }
+
+      for (const n of data ?? []) {
+        byType[n.type] = (byType[n.type] ?? 0) + 1
+        byCategory[n.category] = (byCategory[n.category] ?? 0) + 1
+        const dayKey = n.created_at.split('T')[0]
+        if (byDay[dayKey]) {
+          byDay[dayKey].total++
+          if (!n.is_read) byDay[dayKey].unread++
+        }
+      }
+
+      const typeData = Object.entries(byType).map(([name, value]) => ({ name, value }))
+      const categoryData = Object.entries(byCategory).map(([name, value]) => ({ name, value }))
+      const trendData = Object.entries(byDay).map(([date, d]) => ({
+        date: date.slice(5),
+        ...d,
+      }))
+
+      return { byType: typeData, byCategory: categoryData, trend: trendData, total: data?.length ?? 0 }
+    },
+    enabled: isConfigured,
+    staleTime: 30000,
+  })
+}
+
+export function useNotificationTemplates() {
+  return useQuery({
+    queryKey: ['notification-templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notification_templates')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (error) {
+        // Table might not exist yet, return defaults
+        if (error.code === '42P01') return getDefaultTemplates()
+        throw error
+      }
+      return data?.length ? data : getDefaultTemplates()
+    },
+    enabled: isConfigured,
+    staleTime: 60000,
+  })
+}
+
+function getDefaultTemplates() {
+  return [
+    { id: 't1', title: 'تذكير بالإرساليات', body: 'يرجى إكمال الإرساليات المعلقة قبل نهاية اليوم.', type: 'warning', category: 'submission' },
+    { id: 't2', title: 'صيانة النظام', body: 'سيكون النظام في وضع الصيانة اليوم من الساعة 10 مساءً حتى 12 مساءً.', type: 'info', category: 'system' },
+    { id: 't3', title: 'نقص في اللقاحات', body: 'تم رصد نقص في أحد اللقاحات. يرجى المراجعة.', type: 'error', category: 'shortage' },
+    { id: 't4', title: 'إشعار عام', body: '', type: 'info', category: 'system' },
+    { id: 't5', title: 'تمت الموافقة', body: 'تمت الموافقة على طلبك بنجاح.', type: 'success', category: 'user' },
+  ]
+}
+
 // ==================== ROLE DISTRIBUTION ====================
 
 export function useRoleDistribution() {
