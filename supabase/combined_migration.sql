@@ -589,6 +589,25 @@ INSERT INTO app_settings (key, value, label_ar, type, category) VALUES
   ('max_login_attempts', '5', 'أقصى عدد محاولات تسجيل الدخول', 'number', 'security')
 ON CONFLICT (key) DO NOTHING;
 
+-- ============================================================
+-- 13. CLEANUP: Soft-delete unwanted forms
+-- ============================================================
+UPDATE forms
+SET deleted_at = now(), updated_at = now()
+WHERE deleted_at IS NULL
+  AND (
+    title_ar IN (
+      'استمارة مراقبة التطعيم',
+      'تقرير الزيارات الميدانية',
+      'تقرير نقص التجهيزات'
+    )
+    OR title_en IN (
+      'Vaccination Monitoring Form',
+      'Field Visit Report',
+      'Equipment Shortage Report'
+    )
+  );
+
 COMMIT;
 
 -- ============================================================

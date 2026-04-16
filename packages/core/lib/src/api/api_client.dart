@@ -11,6 +11,10 @@ import '../errors/app_exceptions.dart';
 class ApiClient {
   SupabaseClient? _client;
 
+  /// Sentinel value to filter for IS NULL in select queries.
+  /// Usage: ApiClient.select('table', filters: {'deleted_at': ApiClient.isNull})
+  static const isNull = _NullFilterSentinel();
+
   /// Lazy initialization — don't crash if Supabase isn't set up yet.
   SupabaseClient get _safeClient {
     if (_client == null) {
@@ -42,7 +46,11 @@ class ApiClient {
 
       if (filters != null) {
         for (final key in filters.keys) {
-          if (filters[key] != null) query = query.eq(key, filters[key]);
+          if (filters[key] is _NullFilterSentinel) {
+            query = query.is_(key, null);
+          } else if (filters[key] != null) {
+            query = query.eq(key, filters[key]);
+          }
         }
       }
 
@@ -75,7 +83,11 @@ class ApiClient {
     try {
       var query = _safeClient.from(table).select(select);
       filters.forEach((key, value) {
-        query = query.eq(key, value);
+        if (value is _NullFilterSentinel) {
+          query = query.is_(key, null);
+        } else {
+          query = query.eq(key, value);
+        }
       });
       final result = await query.maybeSingle();
       if (result == null) throw NotFoundException('Record not found in $table');
@@ -367,4 +379,9 @@ class ApiClient {
       return true;
     }());
   }
+}
+
+/// Sentinel class for IS NULL filter support in [ApiClient.select].
+class _NullFilterSentinel {
+  const _NullFilterSentinel();
 }

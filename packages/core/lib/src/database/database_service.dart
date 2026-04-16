@@ -68,7 +68,9 @@ class DatabaseService {
   // ===== FORMS =====
 
   Future<List<Map<String, dynamic>>> getForms({bool activeOnly = true, String? campaignType}) async {
-    final filters = <String, dynamic>{};
+    final filters = <String, dynamic>{
+      'deleted_at': ApiClient.isNull, // exclude soft-deleted forms
+    };
     if (activeOnly) filters['is_active'] = true;
     if (campaignType != null) filters['campaign_type'] = campaignType;
     return _api.select(
