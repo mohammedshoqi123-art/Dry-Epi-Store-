@@ -10,7 +10,7 @@ void main() {
 
     test('app version is set correctly', () {
       expect(AppConfig.appVersion, equals('2.2.0'));
-      expect(AppConfig.buildNumber, equals(1));
+      expect(AppConfig.buildNumber, equals(22));
     });
 
     test('sync interval is reasonable', () {
