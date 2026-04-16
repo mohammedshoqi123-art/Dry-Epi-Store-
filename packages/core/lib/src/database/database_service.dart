@@ -50,13 +50,21 @@ class DatabaseService {
   // ===== GOVERNORATES =====
 
   Future<List<Map<String, dynamic>>> getGovernorates() async {
-    return _api.select('governorates', orderBy: 'name_ar');
+    return _api.select(
+      'governorates',
+      filters: {'deleted_at': ApiClient.isNull, 'is_active': true},
+      orderBy: 'name_ar',
+    );
   }
 
   // ===== DISTRICTS =====
 
   Future<List<Map<String, dynamic>>> getDistricts({String? governorateId}) async {
-    final filters = governorateId != null ? {'governorate_id': governorateId} : <String, dynamic>{};
+    final filters = <String, dynamic>{
+      'deleted_at': ApiClient.isNull,
+      'is_active': true,
+    };
+    if (governorateId != null) filters['governorate_id'] = governorateId;
     return _api.select(
       'districts',
       select: '*, governorates(name_ar, name_en)',

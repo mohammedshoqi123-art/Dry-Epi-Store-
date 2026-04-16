@@ -49,8 +49,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
       final response = await query.order('created_at', ascending: false).limit(200);
 
       // Load governorates for the form
-      final govs = await client.from('governorates').select('id, name_ar').eq('is_active', true).order('name_ar');
-      final districts = await client.from('districts').select('id, name_ar, governorate_id').eq('is_active', true).order('name_ar');
+      final govs = await client.from('governorates').select('id, name_ar').eq('is_active', true).isFilter('deleted_at', null).order('name_ar');
+      final districts = await client.from('districts').select('id, name_ar, governorate_id').eq('is_active', true).isFilter('deleted_at', null).order('name_ar');
 
       setState(() {
         _users = (response as List<dynamic>).cast<Map<String, dynamic>>();
