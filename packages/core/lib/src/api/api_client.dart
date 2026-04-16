@@ -47,7 +47,7 @@ class ApiClient {
       if (filters != null) {
         for (final key in filters.keys) {
           if (filters[key] is _NullFilterSentinel) {
-            query = query.is_(key, null);
+            query = query.isFilter(key, null);
           } else if (filters[key] != null) {
             query = query.eq(key, filters[key]);
           }
@@ -84,7 +84,7 @@ class ApiClient {
       var query = _safeClient.from(table).select(select);
       filters.forEach((key, value) {
         if (value is _NullFilterSentinel) {
-          query = query.is_(key, null);
+          query = query.isFilter(key, null);
         } else {
           query = query.eq(key, value);
         }

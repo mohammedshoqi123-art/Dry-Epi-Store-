@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import '../config/supabase_config.dart';
@@ -265,7 +266,7 @@ class AuthRepository {
   }
 
   /// Upload avatar image to Supabase Storage and return the public URL.
-  Future<String> uploadAvatar(String filePath, List<int> fileBytes) async {
+  Future<String> uploadAvatar(String filePath, Uint8List fileBytes) async {
     if (!_isConfigured || _client == null) {
       throw StateError('Supabase is not configured.');
     }
