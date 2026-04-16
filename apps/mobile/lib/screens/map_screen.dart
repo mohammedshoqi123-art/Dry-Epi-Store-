@@ -677,7 +677,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
           final count =
               (gov['submission_count'] as num?)?.toDouble() ?? 1.0;
-          final maxCount = 50.0;
+          const maxCount = 50.0;
           final intensity = (count / maxCount).clamp(0.1, 1.0);
 
           Color color;
@@ -695,7 +695,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
 
           circles.add(CircleMarker(
             point: LatLng(
-                (lat as num).toDouble(), (lng as num).toDouble()),
+                lat.toDouble(), lng.toDouble()),
             radius: 12000 + (count * 600),
             useRadiusInMeter: true,
             color: color.withValues(alpha: 0.35),
@@ -706,7 +706,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
           // Add count label
           labels.add(Marker(
             point: LatLng(
-                (lat as num).toDouble(), (lng as num).toDouble()),
+                lat.toDouble(), lng.toDouble()),
             width: 40,
             height: 24,
             child: Container(
