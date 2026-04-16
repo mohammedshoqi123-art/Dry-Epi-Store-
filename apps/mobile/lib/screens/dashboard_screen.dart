@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:epi_shared/epi_shared.dart';
 import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
@@ -306,50 +307,121 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
   Future<void> _generateReport(BuildContext ctx, String type) async {
     Navigator.pop(ctx);
-    if (!ConnectivityUtils.isOnline) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يجب الاتصال بالإنترنت لاستخراج التقرير', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: Colors.orange),
-      );
-      return;
-    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Row(children: [SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)), SizedBox(width: 12), Text('جاري استخراج التقرير...', style: TextStyle(fontFamily: 'Tajawal'))]), duration: Duration(seconds: 30)),
+      const SnackBar(
+        content: Row(children: [
+          SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+          SizedBox(width: 12),
+          Text('جاري إنشاء التقرير...', style: TextStyle(fontFamily: 'Tajawal')),
+        ]),
+        duration: Duration(seconds: 30),
+      ),
     );
 
     try {
-      final api = ref.read(apiClientProvider);
-      final response = await api.callFunction('get-advanced-reports', {
-        'report_type': type,
-        'format': 'pdf',
-      });
+      // 1. Fetch data from Edge Function (or local cache)
+      final analytics = ref.read(dashboardAnalyticsProvider(
+        AnalyticsFilter(campaignType: ref.read(campaignProvider).value),
+      ));
+      final data = await analytics.future;
+
+      // 2. Fetch governorate ranking
+      List<Map<String, dynamic>>? govData;
+      try {
+        govData = await ref.read(analyticsServiceProvider).getGovernorateRanking();
+      } catch (_) {}
+
+      // 3. Fetch shortages if needed
+      List<Map<String, dynamic>>? shortagesData;
+      if (type == 'shortages' || type == 'full') {
+        try {
+          shortagesData = await ref.read(databaseServiceProvider).getShortages();
+        } catch (_) {}
+      }
+
+      // 4. Determine report title/subtitle
+      final reportInfo = _getReportInfo(type);
+
+      // 5. Generate PDF locally
+      final file = await ReportGenerator.generatePDFReport(
+        title: reportInfo['title']!,
+        subtitle: reportInfo['subtitle']!,
+        period: reportInfo['period']!,
+        analyticsData: data,
+        governorateData: govData,
+        shortagesData: type == 'shortages' || type == 'full' ? shortagesData : null,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      // 6. Share the PDF
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
+        subject: 'تقرير EPI — ${reportInfo['title']}',
+        text: 'تقرير منصة مشرف EPI',
+      ));
 
       if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        final pdfUrl = response['pdf_url'] as String?;
-        if (pdfUrl != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('تم استخراج التقرير بنجاح ✅', style: const TextStyle(fontFamily: 'Tajawal')),
-              backgroundColor: AppTheme.successColor,
-              action: SnackBarAction(label: 'عرض', textColor: Colors.white, onPressed: () {
-                // Open PDF URL
-              }),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم إنشاء التقرير ✅', style: TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.successColor),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('تم إنشاء التقرير بنجاح ✅', style: TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: AppTheme.successColor,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل استخراج التقرير: ${e.toString().replaceAll('Exception: ', '')}', style: const TextStyle(fontFamily: 'Tajawal')), backgroundColor: AppTheme.errorColor),
+          SnackBar(
+            content: Text('فشل إنشاء التقرير: ${e.toString().replaceAll('Exception: ', '')}',
+              style: const TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: AppTheme.errorColor,
+          ),
         );
       }
+    }
+  }
+
+  Map<String, String> _getReportInfo(String type) {
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    switch (type) {
+      case 'daily':
+        return {
+          'title': 'تقرير الإرساليات اليومي',
+          'subtitle': 'إحصائيات ومتابعة إرساليات اليوم',
+          'period': dateStr,
+        };
+      case 'weekly':
+        final weekAgo = now.subtract(const Duration(days: 7));
+        final fromStr = '${weekAgo.year}-${weekAgo.month.toString().padLeft(2, '0')}-${weekAgo.day.toString().padLeft(2, '0')}';
+        return {
+          'title': 'تقرير الإرساليات الأسبوعي',
+          'subtitle': 'ملخص أداء الأسبوع الماضي',
+          'period': '$fromStr — $dateStr',
+        };
+      case 'shortages':
+        return {
+          'title': 'تقرير النواقص والاحتياجات',
+          'subtitle': 'تتبع النواقص الميدانية وحالة الحلول',
+          'period': 'آخر 30 يوم',
+        };
+      case 'governorates':
+        return {
+          'title': 'تقرير أداء المحافظات',
+          'subtitle': 'مقارنة أداء المحافظات والمديريات',
+          'period': 'آخر 30 يوم',
+        };
+      case 'full':
+      default:
+        return {
+          'title': 'التقرير الشامل',
+          'subtitle': 'كل البيانات والإحصائيات — تقرير متكامل',
+          'period': 'آخر 30 يوم',
+        };
     }
   }
 
