@@ -128,17 +128,49 @@ class DatabaseService {
     String? orderBy,
     bool ascending = false,
   }) async {
+    // ═══ FIX: form_submissions doesn't have campaign_type — resolve form IDs first ═══
+    String? effectiveFormId = formId;
+    if (campaignType != null && formId == null) {
+      final campaignForms = await getForms(campaignType: campaignType);
+      if (campaignForms.isEmpty) return []; // No forms for this campaign
+      // If filtering by specific campaign, we need to use .in_ filter
+      // Since _api.select only supports .eq, we'll fetch all and filter locally
+      // OR we can query form IDs and pass them. For now, use the first approach.
+      final formIds = campaignForms.map((f) => f['id'] as String).toList();
+
+      final allResults = await _api.select(
+        'form_submissions',
+        select: '*, forms!form_id(title_ar, title_en, campaign_type), profiles!submitted_by(full_name, email)',
+        filters: {
+          if (status != null) 'status': status,
+          if (governorateId != null) 'governorate_id': governorateId,
+          if (districtId != null) 'district_id': districtId,
+          if (submittedBy != null) 'submitted_by': submittedBy,
+        },
+        orderBy: orderBy ?? 'created_at',
+        ascending: ascending,
+        limit: (limit ?? 20) * 5, // Fetch more to account for filtering
+        offset: offset,
+      );
+
+      // Filter by campaign form IDs locally
+      var filtered = allResults.where((s) => formIds.contains(s['form_id'])).toList();
+      if (limit != null && filtered.length > limit) {
+        filtered = filtered.sublist(0, limit);
+      }
+      return filtered;
+    }
+
     final filters = <String, dynamic>{};
     if (formId != null) filters['form_id'] = formId;
     if (status != null) filters['status'] = status;
     if (governorateId != null) filters['governorate_id'] = governorateId;
     if (districtId != null) filters['district_id'] = districtId;
     if (submittedBy != null) filters['submitted_by'] = submittedBy;
-    if (campaignType != null) filters['campaign_type'] = campaignType;
 
     return _api.select(
       'form_submissions',
-      select: '*, forms(title_ar, title_en), profiles!submitted_by(full_name, email)',
+      select: '*, forms!form_id(title_ar, title_en, campaign_type), profiles!submitted_by(full_name, email)',
       filters: filters,
       orderBy: orderBy ?? 'created_at',
       ascending: ascending,
@@ -181,9 +213,55 @@ class DatabaseService {
     String? districtId,
     String? severity,
     bool? isResolved,
+    String? campaignType,
     int? limit,
     int? offset,
   }) async {
+    // ═══ FIX: supply_shortages doesn't have campaign_type — filter via submission_id ═══
+    if (campaignType != null) {
+      final campaignForms = await getForms(campaignType: campaignType);
+      if (campaignForms.isEmpty) return [];
+      final formIds = campaignForms.map((f) => f['id'] as String).toList();
+
+      // Get submissions for these forms
+      final submissions = await _api.select(
+        'form_submissions',
+        select: 'id',
+        filters: {},
+        limit: 10000,
+      );
+      final submissionIds = submissions
+          .where((s) => formIds.contains(s['form_id']))
+          .map((s) => s['id'] as String)
+          .toSet();
+
+      // Get all shortages and filter by submission_id
+      final allShortages = await _api.select(
+        'supply_shortages',
+        select: '*, governorates(name_ar), districts(name_ar), profiles!reported_by(full_name)',
+        filters: {
+          if (governorateId != null) 'governorate_id': governorateId,
+          if (districtId != null) 'district_id': districtId,
+          if (severity != null) 'severity': severity,
+          if (isResolved != null) 'is_resolved': isResolved,
+        },
+        orderBy: 'created_at',
+        ascending: false,
+        limit: (limit ?? 20) * 5,
+        offset: offset,
+      );
+
+      var filtered = allShortages.where((s) {
+        final subId = s['submission_id'] as String?;
+        return subId == null || submissionIds.contains(subId);
+      }).toList();
+
+      if (limit != null && filtered.length > limit) {
+        filtered = filtered.sublist(0, limit);
+      }
+      return filtered;
+    }
+
     final filters = <String, dynamic>{};
     if (governorateId != null) filters['governorate_id'] = governorateId;
     if (districtId != null) filters['district_id'] = districtId;
@@ -251,9 +329,10 @@ class DatabaseService {
   // ===== DASHBOARD =====
 
   /// Get dashboard stats for the current user (role-based)
-  Future<Map<String, dynamic>> getDashboardStats(String userId) async {
+  Future<Map<String, dynamic>> getDashboardStats(String userId, {String? campaignType}) async {
     final response = await _api.callFunction('get-dashboard-stats', {
       'user_id': userId,
+      if (campaignType != null) 'campaign_type': campaignType,
     });
     return response;
   }

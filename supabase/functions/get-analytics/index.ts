@@ -16,14 +16,27 @@ serve(async (req) => {
     if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
 
     const body = await req.json().catch(() => ({}))
-    const { governorate_id, district_id, start_date, end_date, form_id } = body
+    const { governorate_id, district_id, start_date, end_date, form_id, campaign_type } = body
 
     const today = new Date().toISOString().split('T')[0]
+
+    // ═══ FIX: Resolve form IDs for campaign filtering ═══
+    let campaignFormIds: string[] | null = null
+    if (campaign_type && campaign_type !== 'all') {
+      const { data: campaignForms } = await supabase
+        .from('forms')
+        .select('id')
+        .eq('campaign_type', campaign_type)
+        .is('deleted_at', null)
+      campaignFormIds = campaignForms?.map(f => f.id) ?? null
+    }
 
     const applyFilters = (q: any) => {
       if (governorate_id) q = q.eq('governorate_id', governorate_id)
       if (district_id) q = q.eq('district_id', district_id)
       if (form_id) q = q.eq('form_id', form_id)
+      // ═══ FIX: Filter by campaign via form_id ═══
+      if (campaignFormIds && campaignFormIds.length > 0 && !form_id) q = q.in('form_id', campaignFormIds)
       return q
     }
 

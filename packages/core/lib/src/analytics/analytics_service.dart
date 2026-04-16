@@ -50,26 +50,65 @@ class AnalyticsService {
     DateTime? endDate,
     String? campaignType,
   }) async {
+    // ═══ FIX: form_submissions doesn't have campaign_type — resolve form IDs first ═══
+    List<String>? campaignFormIds;
+    if (campaignType != null) {
+      final campaignForms = await _api.select(
+        'forms',
+        select: 'id',
+        filters: {'campaign_type': campaignType},
+        limit: 100,
+      );
+      campaignFormIds = campaignForms.map((f) => f['id'] as String).toList();
+      if (campaignFormIds.isEmpty) {
+        return {
+          'submissions': {'total': 0, 'today': 0, 'byStatus': {}, 'byDay': {}},
+          'shortages': {'total': 0, 'resolved': 0, 'pending': 0, 'bySeverity': {}},
+        };
+      }
+    }
+
     final filters = <String, dynamic>{};
     if (governorateId != null) filters['governorate_id'] = governorateId;
     if (districtId != null) filters['district_id'] = districtId;
-    if (campaignType != null) filters['campaign_type'] = campaignType;
+    // Don't add campaign_type to form_submissions filters — it doesn't exist there
 
     // Submissions
-    final submissions = await _api.select(
+    var submissions = await _api.select(
       'form_submissions',
-      select: 'id, status, created_at, governorate_id, district_id',
+      select: 'id, status, created_at, governorate_id, district_id, form_id',
       filters: filters,
       limit: 1000,
     );
 
-    // Shortages
-    final shortages = await _api.select(
+    // Filter by campaign form IDs locally
+    if (campaignFormIds != null) {
+      submissions = submissions.where((s) => campaignFormIds!.contains(s['form_id'])).toList();
+    }
+
+    // Shortages — filter via submission_id if campaign is set
+    List<String>? submissionIdsForCampaign;
+    if (campaignFormIds != null) {
+      submissionIdsForCampaign = submissions.map((s) => s['id'] as String).toSet().toList();
+    }
+
+    var shortages = await _api.select(
       'supply_shortages',
-      select: 'id, severity, is_resolved, created_at',
-      filters: filters.isEmpty ? {} : filters,
+      select: 'id, severity, is_resolved, created_at, submission_id',
+      filters: {
+        if (governorateId != null) 'governorate_id': governorateId,
+        if (districtId != null) 'district_id': districtId,
+      },
       limit: 1000,
     );
+
+    // Filter shortages by campaign
+    if (submissionIdsForCampaign != null) {
+      shortages = shortages.where((s) {
+        final subId = s['submission_id'] as String?;
+        return subId == null || submissionIdsForCampaign!.contains(subId);
+      }).toList();
+    }
 
     // Compute status distribution
     final byStatus = <String, int>{};

@@ -17,9 +17,11 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}))
     const targetUserId = body.user_id || auth.userId
+    const campaignType = body.campaign_type
 
     const { data, error } = await supabase.rpc('get_dashboard_stats', {
-      p_user_id: targetUserId
+      p_user_id: targetUserId,
+      p_campaign_type: campaignType || null
     })
 
     if (error) {
