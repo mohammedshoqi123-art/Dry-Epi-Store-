@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
 
 /// إدارة المراجع والكتب — References Management (Add + Edit + Delete)

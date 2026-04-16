@@ -816,6 +816,108 @@ export function useMarkAllNotificationsRead() {
   })
 }
 
+export function useDeleteNotification() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useDeleteAllNotifications() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('recipient_id', session?.user.id || '00000000-0000-0000-0000-000000000000')
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useToggleNotificationRead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, isRead }: { id: string; isRead: boolean }) => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .update({
+          is_read: !isRead,
+          read_at: !isRead ? new Date().toISOString() : null,
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useSendNotification() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (params: {
+      title: string
+      body: string
+      type?: string
+      category?: string
+      target: 'all' | 'admin' | 'field' | 'governorate'
+      governorate_id?: string
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession()
+      // Get recipients based on target
+      let recipientQuery = supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_active', true)
+        .is('deleted_at', null)
+
+      if (params.target === 'admin') {
+        recipientQuery = recipientQuery.in('role', ['admin', 'central'])
+      } else if (params.target === 'field') {
+        recipientQuery = recipientQuery.in('role', ['governorate', 'district', 'data_entry'])
+      } else if (params.target === 'governorate' && params.governorate_id) {
+        recipientQuery = recipientQuery.eq('governorate_id', params.governorate_id)
+      }
+
+      const { data: recipients, error: recError } = await recipientQuery
+      if (recError) throw recError
+      if (!recipients || recipients.length === 0) throw new Error('لا يوجد مستلمين')
+
+      // Batch insert
+      const notifications = recipients.map(r => ({
+        recipient_id: r.id,
+        title: params.title,
+        body: params.body,
+        type: params.type || 'info',
+        category: params.category || 'system',
+        data: {},
+      }))
+
+      for (let i = 0; i < notifications.length; i += 100) {
+        const batch = notifications.slice(i, i + 100)
+        const { error } = await supabase.from('notifications').insert(batch)
+        if (error) throw error
+      }
+
+      return { sent_count: notifications.length }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
 // ==================== ROLE DISTRIBUTION ====================
 
 export function useRoleDistribution() {

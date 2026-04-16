@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Header } from '@/components/layout/header'
-import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@/hooks/useApi'
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification, useDeleteAllNotifications, useToggleNotificationRead, useSendNotification, useGovernorates } from '@/hooks/useApi'
 import { formatRelativeTime, formatDateTime, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import type { Notification } from '@/types/database'
@@ -50,7 +50,23 @@ export default function NotificationsPage() {
   const { data: notifications, isLoading, isError, error, refetch } = useNotifications()
   const markRead = useMarkNotificationRead()
   const markAllRead = useMarkAllNotificationsRead()
+  const deleteNotif = useDeleteNotification()
+  const deleteAll = useDeleteAllNotifications()
+  const toggleRead = useToggleNotificationRead()
   const { toast } = useToast()
+
+  const handleDelete = (id: string) => {
+    deleteNotif.mutate(id, {
+      onSuccess: () => toast({ title: 'تم حذف الإشعار', variant: 'success' })
+    })
+  }
+
+  const handleDeleteAll = () => {
+    if (!confirm('هل أنت متأكد من حذف جميع الإشعارات؟')) return
+    deleteAll.mutate(undefined, {
+      onSuccess: () => toast({ title: 'تم حذف جميع الإشعارات', variant: 'success' })
+    })
+  }
 
   // Filter notifications
   const filtered = useMemo(() => {
@@ -186,6 +202,18 @@ export default function NotificationsPage() {
           </Select>
 
           <div className="flex gap-2 mr-auto">
+            {notifications && notifications.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleDeleteAll}
+                disabled={deleteAll.isPending}
+              >
+                <Trash2 className="w-4 h-4" />
+                حذف الكل
+              </Button>
+            )}
             {unreadCount > 0 && (
               <Button
                 variant="outline"
@@ -308,7 +336,12 @@ export default function NotificationsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={(e) => {
                             e.stopPropagation()
-                            markRead.mutate(notif.id)
+                            toggleRead.mutate({ id: notif.id, isRead: notif.is_read }, {
+                              onSuccess: () => toast({
+                                title: notif.is_read ? 'تم تحديد كغير مقروء' : 'تم تحديد كمقروء',
+                                variant: 'success'
+                              })
+                            })
                           }}>
                             {notif.is_read ? <EyeOff className="w-4 h-4 ml-2" /> : <Eye className="w-4 h-4 ml-2" />}
                             {notif.is_read ? 'تحديد كغير مقروء' : 'تحديد كمقروء'}
@@ -316,7 +349,10 @@ export default function NotificationsPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-red-600 focus:text-red-600"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(notif.id)
+                            }}
                           >
                             <Trash2 className="w-4 h-4 ml-2" />
                             حذف
@@ -454,18 +490,33 @@ function ComposeNotificationDialog({ open, onOpenChange }: {
   const [type, setType] = useState('info')
   const [category, setCategory] = useState('system')
   const [target, setTarget] = useState('all')
+  const [governorateId, setGovernorateId] = useState('')
   const { toast } = useToast()
+  const sendNotif = useSendNotification()
+  const { data: governorates } = useGovernorates()
 
   const handleSend = () => {
     if (!title.trim() || !body.trim()) {
       toast({ title: 'العنوان والنص مطلوبان', variant: 'destructive' })
       return
     }
-    // Would call supabase function to create notification
-    toast({ title: 'تم إرسال الإشعار بنجاح', variant: 'success' })
-    setTitle('')
-    setBody('')
-    onOpenChange(false)
+    sendNotif.mutate(
+      { title: title.trim(), body: body.trim(), type, category, target: target as any, governorate_id: governorateId || undefined },
+      {
+        onSuccess: (data) => {
+          toast({ title: `تم إرسال ${data.sent_count} إشعار بنجاح`, variant: 'success' })
+          setTitle('')
+          setBody('')
+          setType('info')
+          setCategory('system')
+          setTarget('all')
+          onOpenChange(false)
+        },
+        onError: (err) => {
+          toast({ title: 'فشل الإرسال', description: (err as Error).message, variant: 'destructive' })
+        }
+      }
+    )
   }
 
   return (
@@ -531,13 +582,27 @@ function ComposeNotificationDialog({ open, onOpenChange }: {
               </Select>
             </div>
           </div>
+
+          {target === 'governorate' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">اختر المحافظة</label>
+              <Select value={governorateId} onValueChange={setGovernorateId}>
+                <SelectTrigger><SelectValue placeholder="اختر محافظة..." /></SelectTrigger>
+                <SelectContent>
+                  {governorates?.map((g: any) => (
+                    <SelectItem key={g.id} value={g.id}>{g.name_ar}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
-          <Button onClick={handleSend} className="gap-2">
+          <Button onClick={handleSend} className="gap-2" disabled={sendNotif.isPending}>
             <Send className="w-4 h-4" />
-            إرسال
+            {sendNotif.isPending ? 'جاري الإرسال...' : 'إرسال'}
           </Button>
         </DialogFooter>
       </DialogContent>
