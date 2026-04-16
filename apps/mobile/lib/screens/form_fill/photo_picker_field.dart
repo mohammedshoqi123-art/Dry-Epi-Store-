@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -31,11 +30,11 @@ class PhotoPickerField extends StatelessWidget {
       );
       if (picked == null) return;
 
-      // ═══ COMPRESS: reduce file size by ~90% while keeping good quality ═══
+      // Compress the image
       final compressed = await _compressImage(picked);
       final finalFile = compressed ?? picked; // Fallback to original if compression fails
 
-      final updated = List<XFile>.from(photos)..add(XFile(finalFile.path));
+      final updated = List<XFile>.from(photos)..add(finalFile);
       onPhotosChanged(updated);
     } catch (e) {
       if (context.mounted) context.showError('فشل التقاط الصورة');
@@ -44,7 +43,7 @@ class PhotoPickerField extends StatelessWidget {
 
   /// Compress image to ~200-500KB while maintaining readable quality.
   /// Returns null if compression fails (caller should use original file).
-  static Future<File?> _compressImage(XFile file) async {
+  static Future<XFile?> _compressImage(XFile file) async {
     try {
       final filePath = file.path;
       final lastIndex = filePath.lastIndexOf('.');
@@ -60,7 +59,7 @@ class PhotoPickerField extends StatelessWidget {
         format: ext.contains('png') ? CompressFormat.png : CompressFormat.jpeg,
       );
 
-      return result != null ? File(result.path) : null;
+      return result; // XFile? in flutter_image_compress v2
     } catch (e) {
       // Compression failed — use original
       return null;
