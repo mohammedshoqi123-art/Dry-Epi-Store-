@@ -169,6 +169,30 @@ class _ReferencesManagementScreenState extends ConsumerState<ReferencesManagemen
     }
   }
 
+  // ═══════════════════════════════════════
+  // TOGGLE VISIBILITY (HIDE/SHOW)
+  // ═══════════════════════════════════════
+  Future<void> _toggleVisibility(Map<String, dynamic> ref) async {
+    try {
+      final client = Supabase.instance.client;
+      final newStatus = !(ref['is_active'] as bool? ?? true);
+      await client.from('doc_references').update({'is_active': newStatus}).eq('id', ref['id']);
+      _loadReferences();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(newStatus ? 'تم إظهار المرجع ✅' : 'تم إخفاء المرجع 👁️', style: const TextStyle(fontFamily: 'Tajawal')),
+            backgroundColor: newStatus ? AppTheme.successColor : AppTheme.warningColor),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e', style: const TextStyle(fontFamily: 'Tajawal')), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -280,6 +304,14 @@ class _ReferencesManagementScreenState extends ConsumerState<ReferencesManagemen
                 ),
               ),
               const Icon(Icons.more_vert_rounded, color: AppTheme.textHint),
+              if (!(isActive)) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: AppTheme.warningColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                  child: const Text('مخفي', style: TextStyle(fontFamily: 'Tajawal', fontSize: 10, color: AppTheme.warningColor)),
+                ),
+              ],
             ],
           ),
         ),
@@ -317,6 +349,12 @@ class _ReferencesManagementScreenState extends ConsumerState<ReferencesManagemen
             const SizedBox(height: 16),
             const Divider(),
             _actionTile(Icons.edit_rounded, 'تعديل', AppTheme.primaryColor, () { Navigator.pop(ctx); _editReference(ref); }),
+            _actionTile(
+              (ref['is_active'] as bool? ?? true) ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+              (ref['is_active'] as bool? ?? true) ? 'إخفاء' : 'إظهار',
+              AppTheme.warningColor,
+              () { Navigator.pop(ctx); _toggleVisibility(ref); },
+            ),
             _actionTile(Icons.delete_forever_rounded, 'حذف', AppTheme.errorColor, () { Navigator.pop(ctx); _deleteReference(ref); }),
             const SizedBox(height: 12),
           ],
