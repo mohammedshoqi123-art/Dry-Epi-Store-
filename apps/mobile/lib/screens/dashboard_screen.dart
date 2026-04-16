@@ -468,8 +468,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       onTap: () {
         HapticFeedback.lightImpact();
         if (kpi.label == 'الإرساليات') context.go('/forms/status');
-        if (kpi.label == 'النواقص' || kpi.label == 'حرج') context.go('/analytics');
-        if (kpi.label == 'الإنجاز') context.go('/analytics');
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -627,7 +625,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       _QA(Icons.description_rounded, 'النماذج', '/forms', const Color(0xFF5C6BC0)),
       _QA(Icons.picture_as_pdf_rounded, 'تصدير PDF', '__export_pdf__', const Color(0xFFE53935)),
       _QA(Icons.map_outlined, 'الخريطة', '/map', const Color(0xFF1E88E5)),
-      _QA(Icons.bar_chart_rounded, 'التحليلات', '/analytics', const Color(0xFF43A047)),
       _QA(Icons.smart_toy_outlined, 'المساعد الذكي', '/ai', const Color(0xFFFF8F00)),
     ];
 
@@ -829,13 +826,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         children: insights.asMap().entries.map((entry) {
           final isFirst = entry.key == 0;
           final isLast = entry.key == insights.length - 1;
-          return InkWell(
-            borderRadius: BorderRadius.vertical(
-              top: isFirst ? const Radius.circular(20) : Radius.zero,
-              bottom: isLast ? const Radius.circular(20) : Radius.zero,
-            ),
-            onTap: () => context.go('/analytics'),
-            child: Padding(
+          return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
@@ -857,7 +848,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Icon(Icons.chevron_left_rounded, color: AppTheme.textHint, size: 20),
                 ],
               ),
             ),

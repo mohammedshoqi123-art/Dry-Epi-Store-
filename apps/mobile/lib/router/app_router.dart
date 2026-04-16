@@ -11,7 +11,6 @@ import '../screens/login_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/forms_screen.dart';
 import '../screens/map_screen.dart';
-import '../screens/analytics_screen.dart';
 import '../screens/ai_chat_screen.dart';
 import '../screens/submission_detail_screen.dart';
 import '../screens/form_fill_screen.dart';
@@ -29,7 +28,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   // Minimum role level required per route
   const routeMinRole = {
-    '/analytics': 1,       // everyone
     '/ai': 1,              // everyone
     '/references': 1,      // everyone can view references
   };
@@ -114,10 +112,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/map',
             builder: (context, state) => const MapScreen(),
-          ),
-          GoRoute(
-            path: '/analytics',
-            builder: (context, state) => const AnalyticsScreen(),
           ),
           GoRoute(
             path: '/ai',
