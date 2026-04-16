@@ -33,3 +33,4 @@ export 'src/errors/app_exceptions.dart';
 export 'src/utils/connectivity_utils.dart';
 export 'src/utils/date_utils.dart';
 export 'src/utils/geo_utils.dart';
+export 'src/models/campaign_type.dart';

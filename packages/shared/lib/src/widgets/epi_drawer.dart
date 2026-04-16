@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
+/// Campaign types for the activity selector.
+enum DrawerCampaign {
+  polioCampaign('polio_campaign', 'حملة شلل الأطفال', '🧬'),
+  integratedActivity('integrated_activity', 'النشاط الإيصالي التكاملي', '📋');
+
+  final String value;
+  final String labelAr;
+  final String emoji;
+  const DrawerCampaign(this.value, this.labelAr, this.emoji);
+
+  static DrawerCampaign fromString(String v) =>
+      DrawerCampaign.values.firstWhere((c) => c.value == v, orElse: () => DrawerCampaign.polioCampaign);
+}
+
 class EpiDrawer extends StatelessWidget {
   final String currentRoute;
   final String? userName;
@@ -11,6 +25,8 @@ class EpiDrawer extends StatelessWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onSyncConfig;
   final bool isSyncingConfig;
+  final String activeCampaign;
+  final ValueChanged<String>? onCampaignChanged;
 
   const EpiDrawer({
     super.key,
@@ -23,10 +39,14 @@ class EpiDrawer extends StatelessWidget {
     this.onLogout,
     this.onSyncConfig,
     this.isSyncingConfig = false,
+    this.activeCampaign = 'polio_campaign',
+    this.onCampaignChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final campaign = DrawerCampaign.fromString(activeCampaign);
+
     return Drawer(
       child: Directionality(
         textDirection: TextDirection.rtl,
@@ -35,7 +55,7 @@ class EpiDrawer extends StatelessWidget {
             // Header with gradient
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppTheme.primaryColor, AppTheme.primaryDark],
@@ -89,6 +109,36 @@ class EpiDrawer extends StatelessWidget {
                         ),
                       ),
                     ),
+                  // ═══ Campaign selector ═══
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: activeCampaign,
+                        isExpanded: true,
+                        dropdownColor: AppTheme.primaryDark,
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                        style: const TextStyle(fontFamily: 'Tajawal', color: Colors.white, fontSize: 14),
+                        items: DrawerCampaign.values.map((c) {
+                          return DropdownMenuItem(
+                            value: c.value,
+                            child: Text('${c.emoji} ${c.labelAr}'),
+                          );
+                        }).toList(),
+                        onChanged: (v) {
+                          if (v != null && v != activeCampaign) {
+                            onCampaignChanged?.call(v);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -101,7 +151,8 @@ class EpiDrawer extends StatelessWidget {
                   _SectionLabel(label: 'الرئيسية'),
                   _buildItem(context, Icons.dashboard_rounded, 'لوحة التحكم', '/dashboard'),
                   _buildItem(context, Icons.assignment_rounded, 'النماذج', '/forms'),
-                  _buildItem(context, Icons.dashboard_customize_outlined, 'حالة الاستمارات', '/forms/status'),
+                  if (campaign == DrawerCampaign.polioCampaign)
+                    _buildItem(context, Icons.poll_rounded, 'المسح العشوائي', '/random-survey'),
                   _buildItem(context, Icons.upload_file_rounded, 'الإرساليات', '/submissions'),
                   _buildItem(context, Icons.map_rounded, 'الخريطة', '/map'),
                   _buildItem(context, Icons.notifications_rounded, 'الإشعارات', '/notifications'),

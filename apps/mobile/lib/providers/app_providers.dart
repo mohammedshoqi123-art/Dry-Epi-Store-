@@ -216,11 +216,69 @@ final districtsProvider = FutureProvider.family<List<Map<String, dynamic>>, Stri
   },
 );
 
+// ─── Campaign / Activity Selection ──────────────────────────────────────────
+
+/// Persisted campaign selection — stored in Supabase profiles table,
+/// cached locally in Hive for offline access.
+class CampaignNotifier extends StateNotifier<CampaignType> {
+  final Ref _ref;
+  bool _loaded = false;
+
+  CampaignNotifier(this._ref) : super(CampaignType.polioCampaign) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final cache = await _ref.read(offlineDataCacheProvider.future);
+      final cached = await cache.getMap(
+        'active_campaign',
+        () async {
+          final db = _ref.read(databaseServiceProvider);
+          final result = await db.getActiveCampaign();
+          return {'campaign': result};
+        },
+        maxAge: const Duration(days: 30),
+      );
+      state = CampaignType.fromString(cached['campaign'] as String? ?? 'polio_campaign');
+      _loaded = true;
+    } catch (_) {
+      // Default to polio campaign if loading fails
+      _loaded = true;
+    }
+  }
+
+  Future<void> selectCampaign(CampaignType campaign) async {
+    if (campaign == state) return;
+    state = campaign;
+    try {
+      // Save to Supabase
+      final db = _ref.read(databaseServiceProvider);
+      await db.setActiveCampaign(campaign.value);
+      // Invalidate forms cache (both campaigns) to reload with new filter
+      final cache = await _ref.read(offlineDataCacheProvider.future);
+      await cache.invalidate('forms_polio_campaign');
+      await cache.invalidate('forms_integrated_activity');
+      // Invalidate forms provider to reload
+      _ref.invalidate(formsProvider);
+    } catch (e) {
+      debugPrint('[CampaignNotifier] Save failed: $e');
+    }
+  }
+}
+
+final campaignProvider = StateNotifierProvider<CampaignNotifier, CampaignType>(
+  (ref) => CampaignNotifier(ref),
+);
+
+// ─── Forms (filtered by active campaign) ────────────────────────────────────
+
 final formsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final campaign = ref.watch(campaignProvider);
   final cache = await ref.watch(offlineDataCacheProvider.future);
   return cache.getList(
-    'forms',
-    () => ref.read(databaseServiceProvider).getForms(),
+    'forms_${campaign.value}',
+    () => ref.read(databaseServiceProvider).getForms(campaignType: campaign.value),
     maxAge: const Duration(hours: 24), // Forms change rarely — cache 24h
   );
 });

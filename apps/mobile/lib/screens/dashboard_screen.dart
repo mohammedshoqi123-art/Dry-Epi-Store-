@@ -111,6 +111,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     final hour = DateTime.now().hour;
     final greeting = hour < 12 ? 'صباح الخير' : hour < 17 ? 'مساء الخير' : 'تصبح على خير';
     final emoji = hour < 12 ? '☀️' : hour < 17 ? '🌤️' : '🌙';
+    final campaign = ref.watch(campaignProvider);
 
     return SlideTransition(
       position: Tween<Offset>(begin: const Offset(0, -0.3), end: Offset.zero)
@@ -160,6 +161,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            campaign.displayLabel,
+                            style: const TextStyle(
+                              fontFamily: 'Tajawal',
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],

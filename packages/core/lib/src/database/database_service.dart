@@ -67,13 +67,36 @@ class DatabaseService {
 
   // ===== FORMS =====
 
-  Future<List<Map<String, dynamic>>> getForms({bool activeOnly = true}) async {
+  Future<List<Map<String, dynamic>>> getForms({bool activeOnly = true, String? campaignType}) async {
+    final filters = <String, dynamic>{};
+    if (activeOnly) filters['is_active'] = true;
+    if (campaignType != null) filters['campaign_type'] = campaignType;
     return _api.select(
       'forms',
-      filters: activeOnly ? {'is_active': true} : {},
+      filters: filters,
       orderBy: 'created_at',
       ascending: false,
     );
+  }
+
+  /// Get the current user's active campaign from their profile.
+  Future<String> getActiveCampaign() async {
+    try {
+      final userId = SupabaseConfig.currentUser?.id;
+      if (userId == null) return 'polio_campaign';
+      final profile = await _api.selectOne('profiles', filters: {'id': userId});
+      return profile['active_campaign'] as String? ?? 'polio_campaign';
+    } catch (_) {
+      return 'polio_campaign';
+    }
+  }
+
+  /// Set the current user's active campaign.
+  Future<void> setActiveCampaign(String campaign) async {
+    final userId = SupabaseConfig.currentUser?.id;
+    if (userId == null) return;
+    await _api.update('profiles', {'active_campaign': campaign},
+        filters: {'id': userId});
   }
 
   Future<Map<String, dynamic>> getForm(String formId) async {

@@ -330,6 +330,7 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
   Widget build(BuildContext context) {
     final authAsync = ref.watch(authStateProvider);
     final authState = authAsync.valueOrNull;
+    final campaign = ref.watch(campaignProvider);
     return EpiDrawer(
       currentRoute: GoRouterState.of(context).matchedLocation,
       userName: authState?.fullName ?? 'مستخدم',
@@ -341,6 +342,10 @@ class _AppDrawerState extends ConsumerState<AppDrawer> {
       },
       onSyncConfig: _syncConfig,
       isSyncingConfig: _isSyncingConfig,
+      activeCampaign: campaign.value,
+      onCampaignChanged: (v) {
+        ref.read(campaignProvider.notifier).selectCampaign(CampaignType.fromString(v));
+      },
     );
   }
 }
