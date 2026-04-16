@@ -436,7 +436,7 @@ class _ReferenceFormSheetState extends State<_ReferenceFormSheet> {
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   decoration: _inputDecoration('التصنيف', Icons.category_rounded),
-                  items: _ReferenceManagementScreenState._categories.entries.map((e) =>
+                  items: _ReferencesManagementScreenState._categories.entries.map((e) =>
                     DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontFamily: 'Tajawal')))
                   ).toList(),
                   onChanged: (v) => setState(() => _selectedCategory = v ?? 'manual'),
