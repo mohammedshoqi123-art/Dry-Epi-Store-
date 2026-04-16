@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:epi_shared/epi_shared.dart';
-import 'package:epi_core/epi_core.dart';
 import '../providers/app_providers.dart';
 
 class MapScreen extends ConsumerStatefulWidget {
@@ -23,7 +22,6 @@ class _MapScreenState extends ConsumerState<MapScreen>
   bool _showHeatmap = false;
   bool _showStats = true;
   double _currentZoom = 6.0;
-  String _selectedGovernorate = '';
 
   late AnimationController _fabAnimController;
   late Animation<double> _fabAnimation;
@@ -636,7 +634,7 @@ class _MapScreenState extends ConsumerState<MapScreen>
         minZoom: 4.0,
         maxZoom: 18.0,
         onPositionChanged: (pos, _) {
-          setState(() => _currentZoom = pos.zoom);
+          setState(() => _currentZoom = pos.zoom ?? _currentZoom);
         },
       ),
       children: children,

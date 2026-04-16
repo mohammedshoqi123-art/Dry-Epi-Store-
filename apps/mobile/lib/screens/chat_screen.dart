@@ -21,10 +21,8 @@ class _ChatScreenState extends State<ChatScreen>
   bool _isLoading = true;
   bool _isSending = false;
   bool _isConfigured = false;
-  bool _showEmoji = false;
   String? _currentUserId;
   String? _currentUserName;
-  String? _currentUserAvatar;
   Timer? _pollTimer;
   Timer? _typingTimer;
 
@@ -60,12 +58,8 @@ class _ChatScreenState extends State<ChatScreen>
           client.auth.currentUser?.userMetadata?['full_name'] ??
               client.auth.currentUser?.email?.split('@').first ??
               'مستخدم';
-      _currentUserAvatar = _currentUserName
-          ?.substring(0, math.min(2, _currentUserName!.length))
-          .toUpperCase();
     } catch (_) {
       _currentUserName = 'مستخدم';
-      _currentUserAvatar = 'م';
     }
   }
 
@@ -384,7 +378,7 @@ class _ChatScreenState extends State<ChatScreen>
     final createdAt =
         DateTime.tryParse(msg['created_at'] ?? '') ?? DateTime.now();
     final timeStr = DateFormat('HH:mm').format(createdAt);
-    final senderName = msg['sender_name'] ?? 'مستخدم';
+    final senderName = (msg['sender_name'] ?? 'مستخدم') as String;
     final avatarInitial = senderName.isNotEmpty
         ? senderName.substring(0, math.min(2, senderName.length))
         : '؟';
@@ -992,17 +986,3 @@ class _PulseDotState extends State<_PulseDot>
   }
 }
 
-class AnimatedBuilder extends AnimatedWidget {
-  final Widget Function(BuildContext context, Widget? child) builder;
-
-  const AnimatedBuilder({
-    super.key,
-    required super.listenable,
-    required this.builder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return builder(context, null);
-  }
-}
