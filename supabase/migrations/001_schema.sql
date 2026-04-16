@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   email TEXT NOT NULL UNIQUE, full_name TEXT NOT NULL, phone TEXT,
   role user_role NOT NULL DEFAULT 'data_entry',
   governorate_id UUID REFERENCES governorates(id), district_id UUID REFERENCES districts(id),
-  avatar_url TEXT, is_active BOOLEAN NOT NULL DEFAULT true, last_login TIMESTAMPTZ,
+  avatar_url TEXT, national_id TEXT, is_active BOOLEAN NOT NULL DEFAULT true, last_login TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), deleted_at TIMESTAMPTZ,
   CONSTRAINT profiles_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
   CONSTRAINT profiles_full_name_check CHECK (length(full_name) >= 2)
@@ -513,10 +513,15 @@ DROP POLICY IF EXISTS "Users can upload own submission photos" ON storage.object
 DROP POLICY IF EXISTS "Users can view own submission photos" ON storage.objects;
 DROP POLICY IF EXISTS "Admins can upload references" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated can view references" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Anyone can view avatars" ON storage.objects;
 CREATE POLICY "Users can upload own submission photos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'submission-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
 CREATE POLICY "Users can view own submission photos" ON storage.objects FOR SELECT USING (bucket_id = 'submission-photos' AND auth.uid()::text = (storage.foldername(name))[1]);
 CREATE POLICY "Admins can upload references" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'references' AND public.user_role() = 'admin');
 CREATE POLICY "Authenticated can view references" ON storage.objects FOR SELECT USING (bucket_id = 'references' AND auth.uid() IS NOT NULL);
+CREATE POLICY "Users can upload own avatar" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "Users can update own avatar" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+CREATE POLICY "Anyone can view avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
 
 -- ============================================================
 -- 9. GRANTS

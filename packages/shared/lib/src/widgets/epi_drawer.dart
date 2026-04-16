@@ -66,21 +66,55 @@ class EpiDrawer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-                    child: avatarUrl == null
-                        ? Text(
-                            (userName ?? 'م')[0],
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (onNavigate != null) {
+                        onNavigate!('/profile');
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+                          child: avatarUrl == null
+                              ? Text(
+                                  (userName ?? 'م')[0],
+                                  style: const TextStyle(
+                                    fontFamily: 'Cairo',
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
                               color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.15),
+                                  blurRadius: 4,
+                                ),
+                              ],
                             ),
-                          )
-                        : null,
+                            child: const Icon(
+                              Icons.edit_rounded,
+                              size: 14,
+                              color: AppTheme.primaryDark,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Text(
@@ -174,7 +208,6 @@ class EpiDrawer extends StatelessWidget {
                   _SectionLabel(label: 'التحليلات والذكاء'),
                   _buildItem(context, Icons.bar_chart_rounded, 'التقارير', '/analytics'),
                   _buildItem(context, Icons.smart_toy_rounded, 'المساعد الذكي', '/ai'),
-                  _buildItem(context, Icons.person_rounded, 'البروفايل', '/profile'),
                 ],
               ),
             ),

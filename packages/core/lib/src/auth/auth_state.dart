@@ -70,6 +70,7 @@ class AuthState {
   final String? fullName;
   final String? phone;
   final String? avatarUrl;
+  final String? nationalId;
   final String? error;
 
   const AuthState({
@@ -83,6 +84,7 @@ class AuthState {
     this.fullName,
     this.phone,
     this.avatarUrl,
+    this.nationalId,
     this.error,
   });
 
@@ -97,6 +99,7 @@ class AuthState {
     String? fullName,
     String? phone,
     String? avatarUrl,
+    String? nationalId,
     String? error,
   }) {
     return AuthState(
@@ -110,6 +113,7 @@ class AuthState {
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      nationalId: nationalId ?? this.nationalId,
       error: error ?? this.error,
     );
   }
@@ -124,6 +128,7 @@ class AuthState {
         'full_name': fullName,
         'phone': phone,
         'avatar_url': avatarUrl,
+        'national_id': nationalId,
       };
 
   factory AuthState.fromJson(Map<String, dynamic> json) => AuthState(
@@ -136,6 +141,7 @@ class AuthState {
         fullName: json['full_name'] as String?,
         phone: json['phone'] as String?,
         avatarUrl: json['avatar_url'] as String?,
+        nationalId: json['national_id'] as String?,
       );
 
   static UserRole? _parseRole(String? role) {

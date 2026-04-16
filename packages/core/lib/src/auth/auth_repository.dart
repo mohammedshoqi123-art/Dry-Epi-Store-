@@ -125,6 +125,7 @@ class AuthRepository {
           fullName: response['full_name'],
           phone: response['phone'],
           avatarUrl: response['avatar_url'],
+          nationalId: response['national_id'],
         );
       } else {
         // Profile missing — try to create it
@@ -157,6 +158,7 @@ class AuthRepository {
               fullName: newResponse['full_name'],
               phone: newResponse['phone'],
               avatarUrl: newResponse['avatar_url'],
+              nationalId: newResponse['national_id'],
             );
           }
         } catch (_) {
@@ -223,6 +225,74 @@ class AuthRepository {
   bool get isAuthenticated => _client?.auth.currentUser != null;
   String? get userId => _client?.auth.currentUser?.id;
   String? get accessToken => _client?.auth.currentSession?.accessToken;
+
+  /// Update the current user's profile fields in the database and refresh local state.
+  Future<void> updateProfile({
+    String? fullName,
+    String? phone,
+    String? nationalId,
+    String? avatarUrl,
+  }) async {
+    if (!_isConfigured || _client == null) {
+      throw StateError('Supabase is not configured.');
+    }
+
+    final userId = _client!.auth.currentUser?.id;
+    if (userId == null) throw StateError('Not authenticated.');
+
+    final updates = <String, dynamic>{
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    if (fullName != null) updates['full_name'] = fullName;
+    if (phone != null) updates['phone'] = phone;
+    if (nationalId != null) updates['national_id'] = nationalId;
+    if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
+
+    await _client!
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId)
+        .timeout(const Duration(seconds: 15));
+
+    // Refresh local state
+    _currentState = _currentState.copyWith(
+      fullName: fullName ?? _currentState.fullName,
+      phone: phone ?? _currentState.phone,
+      nationalId: nationalId ?? _currentState.nationalId,
+      avatarUrl: avatarUrl ?? _currentState.avatarUrl,
+    );
+    _authStateController.add(_currentState);
+  }
+
+  /// Upload avatar image to Supabase Storage and return the public URL.
+  Future<String> uploadAvatar(String filePath, List<int> fileBytes) async {
+    if (!_isConfigured || _client == null) {
+      throw StateError('Supabase is not configured.');
+    }
+
+    final userId = _client!.auth.currentUser?.id;
+    if (userId == null) throw StateError('Not authenticated.');
+
+    final ext = filePath.split('.').last.toLowerCase();
+    final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final storagePath = 'avatars/$userId/$fileName';
+
+    await _client!.storage.from('avatars').uploadBinary(
+          storagePath,
+          fileBytes,
+          fileOptions: FileOptions(
+            contentType: 'image/$ext',
+            upsert: true,
+          ),
+        );
+
+    final publicUrl = _client!.storage.from('avatars').getPublicUrl(storagePath);
+
+    // Update profile with new avatar URL
+    await updateProfile(avatarUrl: publicUrl);
+
+    return publicUrl;
+  }
 
   void dispose() {
     _sessionRefreshTimer?.cancel();
