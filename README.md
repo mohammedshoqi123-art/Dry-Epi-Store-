@@ -1,18 +1,20 @@
 <div align="center">
 
+<img src="assets/logo-epi-256.png" alt="EPI Supervisor Logo" width="120">
+
 # 🏥 منصة مشرف EPI
 
 ### نظام إشراف ميداني متكامل لحملات التطعيم
 *Field Supervision System for Immunization Campaigns*
 
-![Flutter](https://img.shields.io/badge/Flutter-3.19+-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-3.27-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-Backend-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/Edge%20Functions-Deno/TS-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-2.1.0-brightgreen?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.2.0-brightgreen?style=for-the-badge)
 
-[📱 تحميل APK](https://github.com/mohammedshoqi123-art/EPI-Supervisor/releases) · [🌐 لوحة الإدارة](https://mohammedshoqi123-art.github.io/EPI-Supervisor/) · [📖 الدليل](docs/user-guide/) · [🐛 الإبلاغ عن مشكلة](https://github.com/mohammedshoqi123-art/EPI-Supervisor/issues)
+[📱 تحميل APK](https://github.com/mohammedshoqi123-art/EPI-Supervisor/releases) · [🌐 لوحة الإدارة](https://mohammedshoqi123-art.github.io/EPI-Supervisor/) · [📖 دليل المستخدم](docs/user-guide/) · [🐛 الإبلاغ عن مشكلة](https://github.com/mohammedshoqi123-art/EPI-Supervisor/issues)
 
 </div>
 
@@ -49,6 +51,77 @@
 
 ---
 
+## 📸 لقطات الشاشة
+
+<div align="center">
+
+### 🏠 لوحة التحكم الرئيسية
+<img src="docs/screenshots/dashboard.png" alt="لوحة التحكم" width="280">
+
+مؤشرات KPI حية — رسوم بيانية — إجراءات سريعة — تصدير PDF
+
+---
+
+<table>
+<tr>
+<td align="center" width="200">
+<img src="docs/screenshots/forms.png" alt="النماذج" width="180"><br/>
+<b>📝 النماذج الذكية</b><br/>
+<sub>نماذج ديناميكية — GPS — صور<br/>حفظ محلي — مزامنة تلقائية</sub>
+</td>
+<td align="center" width="200">
+<img src="docs/screenshots/form-editor.png" alt="محرر النماذج" width="180"><br/>
+<b>🔧 محرر النماذج</b><br/>
+<sub>10 أنواع حقول — أقسام<br/>سحب وإفلات — ترتيب</sub>
+</td>
+<td align="center" width="200">
+<img src="docs/screenshots/map.png" alt="الخريطة" width="180"><br/>
+<b>🗺️ الخرائط التفاعلية</b><br/>
+<sub>OpenStreetMap — clustering<br/>عرض الإرساليات GPS</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="200">
+<img src="docs/screenshots/submissions.png" alt="إرساليات" width="180"><br/>
+<b>📋 حالة الإرساليات</b><br/>
+<sub>موافقة / رفض — فلترة<br/>חיפוש — تفاصيل</sub>
+</td>
+<td align="center" width="200">
+<img src="docs/screenshots/users.png" alt="المستخدمين" width="180"><br/>
+<b>👥 إدارة المستخدمين</b><br/>
+<sub>5 أدوار — بحث — تفعيل<br/>محافظات ومديريات</sub>
+</td>
+<td align="center" width="200">
+<img src="docs/screenshots/ai-chat.png" alt="المساعد الذكي" width="180"><br/>
+<b>🤖 المساعد الذكي</b><br/>
+<sub>MiMo AI — تحليل بالعربي<br/>رؤى وتوصيات</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="200">
+<img src="docs/screenshots/chat.png" alt="المحادثة" width="180"><br/>
+<b>💬 المحادثة الداخلية</b><br/>
+<sub>تواصل بين المستخدمين<br/>إشعارات فورية</sub>
+</td>
+<td align="center" width="200">
+<img src="docs/screenshots/pdf-report.png" alt="PDF" width="180"><br/>
+<b>📄 تقارير PDF</b><br/>
+<sub>5 أنواع تقارير<br/>تصميم احترافي عربي</sub>
+</td>
+<td align="center" width="200">
+<img src="docs/screenshots/references.png" alt="المراجع" width="180"><br/>
+<b>📚 إدارة المراجع</b><br/>
+<sub>إخفاء/إظهار — تصنيف<br/>بحث — ملفات مرفقة</sub>
+</td>
+</tr>
+</table>
+
+> 📷 **ملاحظة:** الصور التوضيحية أعلاه هي أماكن مخصصة. يتم تحديثها عند توفر لقطات الشاشة الفعلية.
+
+</div>
+
+---
+
 ## ✨ المميزات الرئيسية
 
 ### 🔐 نظام الصلاحيات الهرمي (RBAC)
@@ -60,22 +133,31 @@
 | 🟢 مديرية | 2 | رؤية بيانات مديريته + التصدير |
 | ⚪ إدخال بيانات | 1 | إرسال النماذج + رؤية بياناته فقط |
 
-### 📝 نماذج ديناميكية
-- محرك JSON Schema قابل للتخصيص بالكامل
-- دعم الحقول: نص، رقم، اختيار، تاريخ، صورة، GPS
-- إلزامية GPS/صورة حسب النموذج
-- تحديث النماذج عبر السيرفر بدون تحديث التطبيق
+### 📝 نماذج ديناميكية — محرر متكامل
+- **10 أنواع حقول:** نص، رقم، جوال، نص طويل، اختيار، اختيار متعدد، نعم/لا، تاريخ، GPS، صورة
+- **محرر أقسام:** تقسيم النموذج إلى أقسام بعناوين فرعية
+- **سحب وإفلات:** إعادة ترتيب الحقول بسهولة
+- **إعدادات متقدمة:** GPS إلزامي، صورة إلزامية، عدد صور أقصى
+- **تحديث عبر السيرفر:** بدون تحديث التطبيق
 
 ### 📡 Offline First — أهم ميزة
 ```
 الحفظ المحلي أولاً → طابور المزامنة → إعادة المحاولة التلقائية → حل التعارضات
 ```
 - **Always-Save-First**: البيانات تُحفظ في Hive أولاً دائماً
-- **Priority Queue**: إرسالات التطعيم (critical) تُرسل أولاً
+- **Priority Queue**: إرساليات التطعيم (critical) تُرسل أولاً
 - **Exponential Backoff**: 10s → 30s → 90s → 5min → 15min
 - **Dead-Letter Queue**: العناصر الفاشلة تنتقل لمراجعة يدوية
 - **Smart Merge**: حل التعارضات بـ 4 استراتيجيات ذكية
 - **Auto-Sync**: كل 5 دقائق + عند استعادة الاتصال
+
+### 📄 تقارير PDF احترافية
+- 📅 تقرير الإرساليات اليومي
+- 📆 تقرير الإرساليات الأسبوعي
+- ⚠️ تقرير النواقص والاحتياجات
+- 🗺️ تقرير أداء المحافظات
+- 📋 التقرير الشامل (كل البيانات)
+- غلاف مُصمم بAsStringAsync + جداول ملونة + رؤوس وذيول مُmarca
 
 ### 🗺️ خرائط تفاعلية
 - OpenStreetMap مع clustering للنقاط
@@ -121,6 +203,7 @@ EPI-Supervisor/
 │   │       ├── offline/                 نظام Offline-First
 │   │       ├── security/                التشفير و RBAC
 │   │       ├── ai/                      خدمات الذكاء الاصطناعي
+│   │       ├── reports/                 مولدات PDF احترافية
 │   │       └── database/                خدمات قاعدة البيانات
 │   ├── shared/                          🎨 مكونات UI، Theme، Models
 │   └── features/                        ⚡ وحدات الميزات المتقدمة
@@ -133,53 +216,16 @@ EPI-Supervisor/
 │   │   ├── get-analytics/              الإحصائيات
 │   │   ├── get-advanced-reports/        التقارير المتقدمة + PDF
 │   │   ├── admin-actions/              إدارة المستخدمين
-│   │   └── ... (10 أكثر)
+│   │   └── ... (14 إجمالاً)
 │   └── migrations/                      هيكل قاعدة البيانات
 │       ├── 001_schema.sql               الجداول + RLS + المشغلات
-│       └── 002_seed_data.sql            22 محافظة + أحياء + مرافق صحية
+│       ├── 002_seed_data.sql            22 محافظة + أحياء + مرافق صحية
+│       └── 20260416_*.sql               التحديثات التراكمية
 ├── scripts/                             🔧 سكريبتات البناء والنشر
 ├── docs/                                📚 التوثيق
 ├── melos.yaml                           📦 إدارة Monorepo
 └── .github/workflows/ci.yml             🔄 CI/CD Pipeline
 ```
-
----
-
-## 📸 لقطات الشاشة
-
-### لوحة التحكم الرئيسية
-<div align="center">
-<table>
-<tr>
-<td align="center" width="200">
-<b>لوحة التحكم</b><br/>
-<sub>مؤشرات KPI + رسوم بيانية<br/>إجراءات سريعة + تقرير PDF</sub>
-</td>
-<td align="center" width="200">
-<b>تعبئة النماذج</b><br/>
-<sub>نماذج ديناميكية + GPS<br/>رفع صور + حفظ محلي</sub>
-</td>
-<td align="center" width="200">
-<b>الخرائط</b><br/>
-<sub>OpenStreetMap + clustering<br/>عرض الإرساليات على الخريطة</sub>
-</td>
-</tr>
-<tr>
-<td align="center" width="200">
-<b>المحادثة الداخلية</b><br/>
-<sub>تواصل بين المستخدمين<br/>إشعارات فورية</sub>
-</td>
-<td align="center" width="200">
-<b>المساعد الذكي</b><br/>
-<sub>MiMo AI بالعربية<br/>تحليل + رؤى + توصيات</sub>
-</td>
-<td align="center" width="200">
-<b>إدارة المستخدمين</b><br/>
-<sub>بحث + تصفية<br/>تفعيل/تعطيل</sub>
-</td>
-</tr>
-</table>
-</div>
 
 ---
 
@@ -189,8 +235,8 @@ EPI-Supervisor/
 
 | الأداة | الإصدار | ملاحظة |
 |--------|---------|--------|
-| Flutter SDK | 3.19+ | [flutter.dev](https://flutter.dev) |
-| Dart SDK | 3.3+ | مرفق مع Flutter |
+| Flutter SDK | 3.27+ | [flutter.dev](https://flutter.dev) |
+| Dart SDK | 3.6+ | مرفق مع Flutter |
 | Supabase CLI | أحدث | `npm install -g supabase` |
 | حساب Supabase | — | مجاني حتى 50,000 مستخدم |
 
@@ -234,8 +280,6 @@ ALLOWED_ORIGINS=https://your-domain.com,http://localhost:5173
 ENCRYPTION_KEY=your-32-char-minimum-secure-key
 ```
 
-> ⚠️ **لا تضع `*` في `ALLOWED_ORIGINS` في الإنتاج!** حدد النطاقات المسموحة فقط.
-
 ### 4️⃣ تشغيل التطبيق
 
 ```bash
@@ -268,15 +312,16 @@ flutter build apk --release \
 
 | الجدول | الوصف | السجلات الافتراضية |
 |--------|-------|-------------------|
-| `profiles` | المستخدمون + الأدوار | — (إنشاء تلقائي) |
+| `profiles` | المستخدمون + الأدوار + المحافظة | — (إنشاء تلقائي) |
 | `governorates` | المحافظات اليمنية | 22 محافظة |
 | `districts` | المديريات | ~120 مديرية |
 | `health_facilities` | المرافق الصحية | ~50 مرفق |
-| `forms` | تعريفات النماذج | — (من لوحة الإدارة) |
+| `forms` | تعريفات النماذج + Schema | — (من لوحة الإدارة) |
 | `form_submissions` | الإرساليات + GPS + صور | — |
 | `supply_shortages` | نواقص التجهيزات | — |
 | `audit_logs` | سجل تدقيق | تلقائي |
 | `notifications` | الإشعارات | تلقائي |
+| `doc_references` | المراجع والوثائق | — |
 | `app_settings` | إعدادات النظام | 11 إعداد افتراضي |
 
 ---
@@ -295,45 +340,20 @@ flutter build apk --release \
 
 ---
 
-## 🔄 CI/CD Pipeline
-
-```
-push to main
-    ↓
-┌─────────────┐
-│ Analyze     │ → flutter analyze + dart format
-│ & Test      │ → flutter test --coverage
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│ Build APK   │ → flutter build apk --release
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│ Build Web   │ → flutter build web --release
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│ Deploy      │ → GitHub Pages + Supabase Functions
-│ & Release   │ → Automatic release with APK
-└─────────────┘
-```
-
----
-
 ## 📦 التقنيات المستخدمة
 
 **الواجهة الأمامية:**
 | التقنية | الاستخدام |
 |---------|-----------|
-| Flutter 3.19+ | إطار العمل الرئيسي |
+| Flutter 3.27 | إطار العمل الرئيسي |
 | flutter_riverpod | إدارة الحالة |
 | go_router | التوجيه |
 | flutter_map + latlong2 | الخرائط |
 | fl_chart | الرسوم البيانية |
 | hive_flutter | التخزين المحلي |
 | supabase_flutter | الاتصال بالخادم |
-| sentry_flutter | مراقبة الأخطاء |
+| pdf + printing | تقارير PDF |
+| share_plus | مشاركة الملفات |
 
 **الخلفية:**
 | التقنية | الاستخدام |
@@ -350,6 +370,28 @@ push to main
 | Vite | البناء السريع |
 | Tailwind CSS | التصميم |
 | Recharts | الرسوم البيانية |
+
+---
+
+## 🔄 CI/CD Pipeline
+
+```
+push to main
+    ↓
+┌─────────────┐
+│ Analyze     │ → flutter analyze --no-fatal-infos
+│ & Test      │ → flutter test --coverage
+└──────┬──────┘
+       ↓
+┌─────────────┐
+│ Build APK   │ → flutter build apk --release
+└──────┬──────┘
+       ↓
+┌─────────────┐
+│ Deploy      │ → Supabase Functions + GitHub Pages
+│ & Release   │ → Automatic release with APK
+└─────────────┘
+```
 
 ---
 
@@ -386,6 +428,6 @@ push to main
 
 **Built with ❤️ for Yemen's Healthcare**
 
-منصة مشرف EPI v2.1.0
+منصة مشرف EPI v2.2.0
 
 </div>
