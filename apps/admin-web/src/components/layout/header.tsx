@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Bell, Search, RefreshCw, Clock } from 'lucide-react'
+import { Bell, Search, RefreshCw, Clock, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDashboardStats } from '@/hooks/useApi'
+import { useCampaign, CAMPAIGN_OPTIONS } from '@/lib/campaign-context'
 
 interface HeaderProps {
   title: string
@@ -13,6 +14,8 @@ interface HeaderProps {
 export function Header({ title, subtitle, onRefresh }: HeaderProps) {
   const { data: stats } = useDashboardStats()
   const [time, setTime] = useState(new Date())
+  const { campaign, isFiltered, labelAr } = useCampaign()
+  const currentCampaign = CAMPAIGN_OPTIONS.find(o => o.id === campaign)
 
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date()), 60000)
@@ -30,6 +33,13 @@ export function Header({ title, subtitle, onRefresh }: HeaderProps) {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] font-medium text-emerald-700">مباشر</span>
           </div>
+          {/* Campaign Badge */}
+          {isFiltered && currentCampaign && (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200/60">
+              <Filter className="w-3 h-3 text-blue-600" />
+              <span className="text-[10px] font-medium text-blue-700">{currentCampaign.icon} {labelAr}</span>
+            </div>
+          )}
         </div>
         {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>

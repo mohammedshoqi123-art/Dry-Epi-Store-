@@ -25,6 +25,7 @@ import {
   useGovernorates, useDistricts, useDashboardStats, useGovernorateStats, useForms, useSubmissions
 } from '@/hooks/useApi'
 import { formatNumber, formatDate, formatRelativeTime, cn } from '@/lib/utils'
+import { useCampaign } from '@/lib/campaign-context'
 
 // ─── Yemen governorates simplified SVG map paths ───
 const YEMEN_MAP_GOVS: Record<string, { path: string; labelX: number; labelY: number }> = {
@@ -134,6 +135,9 @@ interface EnrichedGov {
 }
 
 export default function GovernoratesPage() {
+  // ── Campaign filter ──
+  const { campaign, labelAr, isFiltered } = useCampaign()
+
   // ── Filter state ──
   const [search, setSearch] = useState('')
   const [selectedForm, setSelectedForm] = useState<string>('all')
@@ -152,15 +156,16 @@ export default function GovernoratesPage() {
   // ── Data fetching ──
   const { data: governorates, isLoading: govLoading } = useGovernorates()
   const { data: districts } = useDistricts(selectedGovForDistricts || undefined)
-  const { data: stats } = useDashboardStats()
-  const { data: govStats } = useGovernorateStats()
-  const { data: formsResult } = useForms()
+  const { data: stats } = useDashboardStats(campaign)
+  const { data: govStats } = useGovernorateStats(campaign)
+  const { data: formsResult } = useForms({ campaignType: campaign })
   const forms = formsResult?.data
   const { data: submissionsData } = useSubmissions({
     formId: selectedForm !== 'all' ? selectedForm : undefined,
     status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
     governorateId: selectedGov || undefined,
     pageSize: 500,
+    campaignType: campaign,
   })
 
   // ── Compute active filters count ──

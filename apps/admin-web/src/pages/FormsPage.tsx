@@ -27,6 +27,7 @@ import { useForms, useCreateForm, useUpdateForm, useDeleteForm, useFormSubmissio
 import { ROLE_LABELS, ROLE_HIERARCHY, type Form, type UserRole } from '@/types/database'
 import { formatDate, formatNumber, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
+import { useCampaign } from '@/lib/campaign-context'
 
 // ==================== Field Types ====================
 
@@ -142,14 +143,15 @@ export default function FormsPage() {
   const [previewForm, setPreviewForm] = useState<Form | null>(null)
   const [deleteConfirmForm, setDeleteConfirmForm] = useState<Form | null>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
+  const { campaign, labelAr, isFiltered } = useCampaign()
 
   useEffect(() => {
     searchTimer.current = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(searchTimer.current)
   }, [search])
 
-  const { data: formsResult, isLoading, refetch } = useForms({ search: debouncedSearch || undefined })
-  const { data: submissionCounts } = useFormSubmissionCounts()
+  const { data: formsResult, isLoading, refetch } = useForms({ search: debouncedSearch || undefined, campaignType: campaign })
+  const { data: submissionCounts } = useFormSubmissionCounts(campaign)
   const { toast } = useToast()
 
   const forms = formsResult?.data
@@ -157,7 +159,7 @@ export default function FormsPage() {
 
   return (
     <div className="page-enter">
-      <Header title="إدارة النماذج" subtitle={`${formatNumber(totalCount)} نموذج`} onRefresh={() => refetch()} />
+      <Header title="إدارة النماذج" subtitle={isFiltered ? `${formatNumber(totalCount)} نموذج — ${labelAr}` : `${formatNumber(totalCount)} نموذج`} onRefresh={() => refetch()} />
 
       <div className="p-6 space-y-6">
         {/* Actions Bar */}
@@ -393,6 +395,16 @@ function FormCard({ form, submissionCount, onEdit, onPreview, onDelete }: FormCa
               انتهاء الموعد
             </Badge>
           )}
+          {form.campaign_type && (
+            <Badge variant="outline" className={cn(
+              'text-[10px] gap-1',
+              form.campaign_type === 'polio_campaign'
+                ? 'text-blue-600 border-blue-300 bg-blue-50'
+                : 'text-emerald-600 border-emerald-300 bg-emerald-50'
+            )}>
+              {form.campaign_type === 'polio_campaign' ? '💉 شلل أطفال' : '🏥 إيصالي'}
+            </Badge>
+          )}
         </div>
 
         {/* Field Types Preview */}
@@ -493,6 +505,9 @@ function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
 
   // Active tab
   const [activeTab, setActiveTab] = useState('basic')
+
+  // Campaign type
+  const [campaignType, setCampaignType] = useState(form?.campaign_type || 'polio_campaign')
 
   // Field being edited inline
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null)
@@ -623,6 +638,7 @@ function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
       max_photos: requiresPhoto ? maxPhotos : 0,
       allowed_roles: allowedRoles,
       is_active: isActive,
+      campaign_type: campaignType,
     }
 
     if (isEdit) {
@@ -730,6 +746,20 @@ function FormDialog({ open, onOpenChange, form, onSuccess }: FormDialogProps) {
                     {Object.entries(CATEGORY_LABELS).map(([key, val]) => (
                       <SelectItem key={key} value={key}>{val.ar}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Campaign Type */}
+              <div>
+                <Label>النشاط / الحملة</Label>
+                <Select value={campaignType} onValueChange={setCampaignType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر النشاط" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="polio_campaign">💉 حملة شلل الأطفال</SelectItem>
+                    <SelectItem value="integrated_activity">🏥 النشاط الإيصالي التكاملي</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

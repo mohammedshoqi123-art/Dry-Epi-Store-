@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, FileText, FileStack, BarChart3, ScrollText,
   MapPin, Shield, ChevronLeft, ChevronRight, Settings, LogOut,
   AlertTriangle, Bell, Moon, Sun, Menu, X, Sparkles, Layout, Clock,
-  MessageSquare, Brain, BookOpen
+  MessageSquare, Brain, BookOpen, Filter
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -16,6 +16,7 @@ import { useTheme } from './theme-provider'
 import { useSignOut, useDashboardStats } from '@/hooks/useApi'
 import { ROLE_LABELS, type UserRole } from '@/types/database'
 import { getInitials } from '@/lib/utils'
+import { useCampaign, CAMPAIGN_OPTIONS, type CampaignType } from '@/lib/campaign-context'
 
 // Helper to get logo URL with base path support
 function getLogoUrl(size: '64' | '128' | '256' = '128') {
@@ -83,6 +84,7 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
   const { theme, setTheme } = useTheme()
   const signOut = useSignOut()
   const { data: stats } = useDashboardStats()
+  const { campaign, setCampaign } = useCampaign()
 
   const filteredItems = navItems.filter(item => {
     if (!item.roles) return true
@@ -158,6 +160,50 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </Button>
       </div>
+
+      <Separator className="bg-white/10" />
+
+      {/* ═══ Campaign Filter ═══ */}
+      {!collapsed && (
+        <div className="px-3 py-3">
+          <div className="flex items-center gap-1.5 px-2 mb-2">
+            <Filter className="w-3.5 h-3.5 text-blue-200" />
+            <span className="text-[11px] font-medium text-blue-200 uppercase tracking-wider">فلتر النشاط</span>
+          </div>
+          <div className="space-y-1">
+            {CAMPAIGN_OPTIONS.map((option) => {
+              const isActive = campaign === option.id
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => setCampaign(option.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 text-right',
+                    isActive
+                      ? 'bg-white/20 text-white shadow-md shadow-black/10'
+                      : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                  )}
+                >
+                  <span className="text-base">{option.icon}</span>
+                  <span className="flex-1 truncate">{option.labelAr}</span>
+                  {isActive && (
+                    <span className="w-2 h-2 rounded-full bg-white shrink-0" />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Collapsed campaign indicator */}
+      {collapsed && (
+        <div className="px-3 py-2 flex justify-center" title={CAMPAIGN_OPTIONS.find(o => o.id === campaign)?.labelAr}>
+          <span className="text-lg">
+            {CAMPAIGN_OPTIONS.find(o => o.id === campaign)?.icon}
+          </span>
+        </div>
+      )}
 
       <Separator className="bg-white/10" />
 
@@ -276,6 +322,7 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
 export function MobileSidebar({ user }: { user?: { full_name: string; email: string; role: UserRole } | null }) {
   const [open, setOpen] = useState(false)
   const location = useLocation()
+  const { campaign, setCampaign } = useCampaign()
 
   // Close on route change
   useEffect(() => {
@@ -311,6 +358,37 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
               <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10">
                 <X className="w-5 h-5" />
               </Button>
+            </div>
+            <Separator className="bg-white/10" />
+            {/* Campaign Filter (Mobile) */}
+            <div className="px-3 pt-3 pb-1">
+              <div className="flex items-center gap-1.5 px-2 mb-2">
+                <Filter className="w-3.5 h-3.5 text-blue-200" />
+                <span className="text-[11px] font-medium text-blue-200 uppercase tracking-wider">فلتر النشاط</span>
+              </div>
+              <div className="space-y-1">
+                {CAMPAIGN_OPTIONS.map((option) => {
+                  const isActive = campaign === option.id
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => setCampaign(option.id)}
+                      className={cn(
+                        'w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 text-right',
+                        isActive
+                          ? 'bg-white/20 text-white shadow-md shadow-black/10'
+                          : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                      )}
+                    >
+                      <span className="text-base">{option.icon}</span>
+                      <span className="flex-1 truncate">{option.labelAr}</span>
+                      {isActive && (
+                        <span className="w-2 h-2 rounded-full bg-white shrink-0" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <Separator className="bg-white/10" />
             <nav className="px-3 py-4 space-y-1">

@@ -24,6 +24,7 @@ import {
 } from '@/hooks/useApi'
 import { formatNumber, cn, generateColor } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
+import { useCampaign } from '@/lib/campaign-context'
 import type { Form, FormSubmission } from '@/types/database'
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
@@ -241,18 +242,21 @@ function getFieldTypeLabel(type: string): string {
 // Main Component
 // ──────────────────────────────────────────────
 export default function AnalyticsPage() {
+  // Campaign filter
+  const { campaign, labelAr, isFiltered } = useCampaign()
+
   // Data hooks
-  const { data: stats, isLoading: statsLoading } = useDashboardStats()
-  const { data: chartData, isLoading: chartLoading } = useSubmissionsChart()
-  const { data: govStats, isLoading: govLoading } = useGovernorateStats()
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(campaign)
+  const { data: chartData, isLoading: chartLoading } = useSubmissionsChart(campaign)
+  const { data: govStats, isLoading: govLoading } = useGovernorateStats(campaign)
   const { data: roleDistribution, isLoading: roleLoading } = useRoleDistribution()
-  const { data: formsResult, isLoading: formsLoading } = useForms()
+  const { data: formsResult, isLoading: formsLoading } = useForms({ campaignType: campaign })
   const forms = formsResult?.data
   const { data: users, isLoading: usersLoading } = useUsers()
   const { data: governorates } = useGovernorates()
 
   // Fetch all submissions for deep analysis (paginated internally, get a large batch)
-  const { data: allSubmissionsData } = useSubmissions({ pageSize: 500 })
+  const { data: allSubmissionsData } = useSubmissions({ pageSize: 500, campaignType: campaign })
 
   // Local state
   const [selectedFormId, setSelectedFormId] = useState<string>('')

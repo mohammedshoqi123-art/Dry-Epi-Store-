@@ -111,6 +111,7 @@ export interface Form {
   requires_photo: boolean
   max_photos: number
   allowed_roles: UserRole[]
+  campaign_type: string
   created_by?: string
   created_at: string
   updated_at: string

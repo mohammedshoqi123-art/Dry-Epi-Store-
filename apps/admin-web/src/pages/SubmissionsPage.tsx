@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase'
 import { STATUS_LABELS, STATUS_COLORS, type SubmissionStatus, type FormSubmission } from '@/types/database'
 import { formatDateTime, formatRelativeTime, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
+import { useCampaign } from '@/lib/campaign-context'
 
 function convertToCSV(data: Record<string, unknown>[], headers: string[]): string {
   const headerRow = headers.join(',')
@@ -75,15 +76,17 @@ export default function SubmissionsPage() {
   const [formFilter, setFormFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null)
+  const { campaign, labelAr, isFiltered } = useCampaign()
 
   const { data, isLoading, isError, error, refetch } = useSubmissions({
     status: statusFilter !== 'all' ? (statusFilter as SubmissionStatus) : undefined,
     formId: formFilter !== 'all' ? formFilter : undefined,
     page,
     pageSize: 20,
+    campaignType: campaign,
   })
 
-  const { data: formsResult } = useForms()
+  const { data: formsResult } = useForms({ campaignType: campaign })
   const forms = formsResult?.data
   const submissions = data?.data || []
   const totalCount = data?.count || 0
@@ -91,7 +94,7 @@ export default function SubmissionsPage() {
 
   return (
     <div className="page-enter">
-      <Header title="الإرساليات" subtitle={`${totalCount} إرسالية`} onRefresh={() => refetch()} />
+      <Header title="الإرساليات" subtitle={isFiltered ? `${totalCount} إرسالية — ${labelAr}` : `${totalCount} إرسالية`} onRefresh={() => refetch()} />
 
       <div className="p-6 space-y-6">
         {/* Error State */}

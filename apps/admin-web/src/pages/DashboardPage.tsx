@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Header } from '@/components/layout/header'
 import { useDashboardStats, useSubmissionsChart, useGovernorateStats, useRoleDistribution } from '@/hooks/useApi'
 import { formatNumber, formatPercent, cn } from '@/lib/utils'
+import { useCampaign } from '@/lib/campaign-context'
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -104,9 +105,10 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function DashboardPage() {
-  const { data: stats, isLoading: statsLoading, refetch, isFetching } = useDashboardStats()
-  const { data: chartData, isLoading: chartLoading } = useSubmissionsChart()
-  const { data: govStats, isLoading: govLoading } = useGovernorateStats()
+  const { campaign, labelAr, isFiltered } = useCampaign()
+  const { data: stats, isLoading: statsLoading, refetch, isFetching } = useDashboardStats(campaign)
+  const { data: chartData, isLoading: chartLoading } = useSubmissionsChart(campaign)
+  const { data: govStats, isLoading: govLoading } = useGovernorateStats(campaign)
   const { data: roleDistribution, isLoading: roleLoading } = useRoleDistribution()
 
   const statCards: StatCardProps[] = stats ? [
@@ -162,7 +164,7 @@ export default function DashboardPage() {
     <div className="page-enter">
       <Header
         title="لوحة التحكم"
-        subtitle="مرحباً بك في لوحة إدارة منصة EPI Supervisor's"
+        subtitle={isFiltered ? `عرض بيانات: ${labelAr}` : 'مرحباً بك في لوحة إدارة منصة EPI Supervisor\'s'}
         onRefresh={() => refetch()}
       />
 

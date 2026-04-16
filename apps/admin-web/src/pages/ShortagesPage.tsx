@@ -18,6 +18,7 @@ import { useShortages, useResolveShortage, useGovernorates, useForms } from '@/h
 import { SEVERITY_LABELS, SEVERITY_COLORS, type ShortageSeverity, type SupplyShortage } from '@/types/database'
 import { formatRelativeTime, formatDateTime, cn, formatNumber } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
+import { useCampaign } from '@/lib/campaign-context'
 
 export default function ShortagesPage() {
   const [severityFilter, setSeverityFilter] = useState<string>('all')
@@ -27,15 +28,16 @@ export default function ShortagesPage() {
   const [formFilter, setFormFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [selectedShortage, setSelectedShortage] = useState<SupplyShortage | null>(null)
-  const { data: shortages, isLoading, isError, error, refetch } = useShortages()
+  const { campaign, labelAr, isFiltered } = useCampaign()
+  const { data: shortages, isLoading, isError, error, refetch } = useShortages(campaign)
   const { data: governorates } = useGovernorates()
-  const { data: formsResult } = useForms()
+  const { data: formsResult } = useForms({ campaignType: campaign })
   const forms = formsResult?.data
   const resolveShortage = useResolveShortage()
   const { toast } = useToast()
 
   const filtered = useMemo(() => {
-    return shortages?.filter(s => {
+    return shortages?.filter((s: any) => {
       if (severityFilter !== 'all' && s.severity !== severityFilter) return false
       if (resolvedFilter === 'resolved' && !s.is_resolved) return false
       if (resolvedFilter === 'pending' && s.is_resolved) return false
@@ -57,17 +59,17 @@ export default function ShortagesPage() {
   }, [shortages, severityFilter, resolvedFilter, categoryFilter, govFilter, formFilter, search])
 
   // Stats
-  const criticalCount = shortages?.filter(s => s.severity === 'critical' && !s.is_resolved).length || 0
-  const highCount = shortages?.filter(s => s.severity === 'high' && !s.is_resolved).length || 0
+  const criticalCount = shortages?.filter((s: any) => s.severity === 'critical' && !s.is_resolved).length || 0
+  const highCount = shortages?.filter((s: any) => s.severity === 'high' && !s.is_resolved).length || 0
   const totalCount = shortages?.length || 0
-  const resolvedCount = shortages?.filter(s => s.is_resolved).length || 0
+  const resolvedCount = shortages?.filter((s: any) => s.is_resolved).length || 0
   const pendingCount = totalCount - resolvedCount
   const resolutionRate = totalCount > 0 ? (resolvedCount / totalCount) * 100 : 0
 
   // Categories
   const categories = useMemo(() => {
     const cats = new Set<string>()
-    shortages?.forEach(s => { if (s.item_category) cats.add(s.item_category) })
+    shortages?.forEach((s: any) => { if (s.item_category) cats.add(s.item_category) })
     return Array.from(cats)
   }, [shortages])
 
@@ -75,7 +77,7 @@ export default function ShortagesPage() {
     <div className="page-enter">
       <Header
         title="تتبع النواقص"
-        subtitle={`${criticalCount} حرج • ${pendingCount} قيد الانتظار`}
+        subtitle={isFiltered ? `${criticalCount} حرج • ${pendingCount} قيد الانتظار — ${labelAr}` : `${criticalCount} حرج • ${pendingCount} قيد الانتظار`}
         onRefresh={() => refetch()}
       />
 

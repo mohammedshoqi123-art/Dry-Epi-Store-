@@ -2,6 +2,72 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, isConfigured } from '@/lib/supabase'
 import type { UserRole, SubmissionStatus } from '@/types/database'
 
+// ═══ CAMPAIGN HELPER ═══
+// form_submissions doesn't have campaign_type — it's on the forms table.
+// To filter submissions by campaign, we first resolve form IDs.
+
+/**
+ * Get form IDs that belong to a specific campaign type.
+ * Returns null if no campaign filter (meaning "all").
+ */
+async function getCampaignFormIds(campaignType?: string): Promise<string[] | null> {
+  if (!campaignType || campaignType === 'all') return null
+
+  const { data, error } = await supabase
+    .from('forms')
+    .select('id')
+    .eq('campaign_type', campaignType)
+    .is('deleted_at', null)
+
+  if (error || !data) return null
+  return data.map(f => f.id)
+}
+
+/**
+ * Apply campaign filter to a Supabase query on form_submissions.
+ * Uses the form_id foreign key to filter by campaign.
+ */
+async function applyCampaignFilter(
+  query: any,
+  campaignType?: string
+): Promise<{ query: any; formIds: string[] | null }> {
+  const formIds = await getCampaignFormIds(campaignType)
+  if (formIds && formIds.length > 0) {
+    return { query: query.in('form_id', formIds), formIds }
+  }
+  return { query, formIds: null }
+}
+
+/**
+ * Apply campaign filter to supply_shortages via form_submissions → forms.
+ * shortages link to submissions, which link to forms with campaign_type.
+ */
+async function applyShortageCampaignFilter(
+  query: any,
+  campaignType?: string
+): Promise<any> {
+  if (!campaignType || campaignType === 'all') return query
+
+  // Get submission IDs that belong to the campaign
+  const formIds = await getCampaignFormIds(campaignType)
+  if (!formIds || formIds.length === 0) return query
+
+  const { data: submissions } = await supabase
+    .from('form_submissions')
+    .select('id')
+    .in('form_id', formIds)
+    .is('deleted_at', null)
+    .limit(10000)
+
+  if (!submissions || submissions.length === 0) {
+    // No submissions for this campaign → return empty result
+    return query.eq('id', '00000000-0000-0000-0000-000000000000')
+  }
+
+  const submissionIds = submissions.map(s => s.id)
+  return query.in('submission_id', submissionIds)
+}
+
 // ==================== AUTH ====================
 
 export function useAuth() {
@@ -54,17 +120,58 @@ export function useSignOut() {
 
 // ==================== DASHBOARD ====================
 
-export function useDashboardStats() {
+export function useDashboardStats(campaignType?: string) {
   return useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', campaignType],
     queryFn: async () => {
       if (!isConfigured) return null
+
+      // Resolve form IDs for campaign filtering
+      const formIds = await getCampaignFormIds(campaignType)
+
+      // Helper to apply campaign filter to form_submissions queries
+      const applyFormFilter = (q: any) => {
+        if (formIds && formIds.length > 0) return q.in('form_id', formIds)
+        return q
+      }
+
+      // Helper to apply campaign filter to forms queries
+      const applyFormsFilter = (q: any) => {
+        if (campaignType && campaignType !== 'all') return q.eq('campaign_type', campaignType)
+        return q
+      }
+
+      // Helper for shortages — filter via submission_id
+      const applyShortageFilter = async (baseQuery: any) => {
+        if (!formIds || formIds.length === 0) return baseQuery
+
+        const { data: submissions } = await supabase
+          .from('form_submissions')
+          .select('id')
+          .in('form_id', formIds)
+          .is('deleted_at', null)
+          .limit(10000)
+
+        if (!submissions || submissions.length === 0) {
+          return baseQuery.eq('id', '00000000-0000-0000-0000-000000000000')
+        }
+
+        return baseQuery.in('submission_id', submissions.map(s => s.id))
+      }
+
       // Use Promise.allSettled to handle individual failures gracefully
       const [usersRes, submissionsRes, formsRes, shortagesRes] = await Promise.allSettled([
         supabase.from('profiles').select('id, is_active, role, created_at', { count: 'exact' }),
-        supabase.from('form_submissions').select('id, status, created_at', { count: 'exact' }),
-        supabase.from('forms').select('id, is_active', { count: 'exact' }),
-        supabase.from('supply_shortages').select('id, severity, is_resolved', { count: 'exact' }),
+        applyFormFilter(
+          supabase.from('form_submissions').select('id, status, created_at', { count: 'exact' })
+        ),
+        applyFormsFilter(
+          supabase.from('forms').select('id, is_active', { count: 'exact' })
+        ),
+        (async () => {
+          let q = supabase.from('supply_shortages').select('id, severity, is_resolved', { count: 'exact' })
+          return applyShortageFilter(q)
+        })(),
       ])
 
       const users = usersRes.status === 'fulfilled' ? (usersRes.value.data || []) : []
@@ -76,23 +183,23 @@ export function useDashboardStats() {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-      const submissionsToday = submissions.filter(s => new Date(s.created_at) >= today).length
-      const submissionsThisWeek = submissions.filter(s => new Date(s.created_at) >= weekAgo).length
-      const approved = submissions.filter(s => s.status === 'approved').length
-      const pending = submissions.filter(s => s.status === 'submitted' || s.status === 'reviewed').length
+      const submissionsToday = submissions.filter((s: any) => new Date(s.created_at) >= today).length
+      const submissionsThisWeek = submissions.filter((s: any) => new Date(s.created_at) >= weekAgo).length
+      const approved = submissions.filter((s: any) => s.status === 'approved').length
+      const pending = submissions.filter((s: any) => s.status === 'submitted' || s.status === 'reviewed').length
 
       return {
         total_users: users.length,
-        active_users: users.filter(u => u.is_active).length,
+        active_users: users.filter((u: any) => u.is_active).length,
         total_submissions: submissions.length,
         pending_submissions: pending,
         approved_submissions: approved,
-        rejected_submissions: submissions.filter(s => s.status === 'rejected').length,
-        draft_submissions: submissions.filter(s => s.status === 'draft').length,
+        rejected_submissions: submissions.filter((s: any) => s.status === 'rejected').length,
+        draft_submissions: submissions.filter((s: any) => s.status === 'draft').length,
         total_forms: forms.length,
-        active_forms: forms.filter(f => f.is_active).length,
+        active_forms: forms.filter((f: any) => f.is_active).length,
         total_shortages: shortages.length,
-        critical_shortages: shortages.filter(s => s.severity === 'critical' && !s.is_resolved).length,
+        critical_shortages: shortages.filter((s: any) => s.severity === 'critical' && !s.is_resolved).length,
         submissions_today: submissionsToday,
         submissions_this_week: submissionsThisWeek,
         submissions_trend: 12.5,
@@ -108,14 +215,22 @@ export function useDashboardStats() {
   })
 }
 
-export function useSubmissionsChart() {
+export function useSubmissionsChart(campaignType?: string) {
   return useQuery({
-    queryKey: ['submissions-chart'],
+    queryKey: ['submissions-chart', campaignType],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('form_submissions')
         .select('status, created_at')
         .order('created_at', { ascending: true })
+
+      // Apply campaign filter
+      const formIds = await getCampaignFormIds(campaignType)
+      if (formIds && formIds.length > 0) {
+        query = query.in('form_id', formIds)
+      }
+
+      const { data } = await query
 
       if (!data) return []
 
@@ -143,9 +258,9 @@ export function useSubmissionsChart() {
   })
 }
 
-export function useGovernorateStats() {
+export function useGovernorateStats(campaignType?: string) {
   return useQuery({
-    queryKey: ['governorate-stats'],
+    queryKey: ['governorate-stats', campaignType],
     queryFn: async () => {
       const { data: governorates } = await supabase
         .from('governorates')
@@ -155,12 +270,21 @@ export function useGovernorateStats() {
 
       if (!governorates) return []
 
+      // Resolve form IDs for campaign filtering
+      const formIds = await getCampaignFormIds(campaignType)
+
       const stats = await Promise.all(
         governorates.map(async (gov) => {
-          const { count } = await supabase
+          let query = supabase
             .from('form_submissions')
             .select('id', { count: 'exact', head: true })
             .eq('governorate_id', gov.id)
+
+          if (formIds && formIds.length > 0) {
+            query = query.in('form_id', formIds)
+          }
+
+          const { count } = await query
 
           return {
             name: gov.name_ar,
@@ -268,7 +392,7 @@ export function useDeleteUser() {
 
 // ==================== FORMS ====================
 
-export function useForms(filters?: { search?: string; page?: number; pageSize?: number }) {
+export function useForms(filters?: { search?: string; page?: number; pageSize?: number; campaignType?: string }) {
   return useQuery({
     queryKey: ['forms', filters],
     queryFn: async () => {
@@ -285,6 +409,9 @@ export function useForms(filters?: { search?: string; page?: number; pageSize?: 
       if (filters?.search) {
         query = query.or(`title_ar.ilike.%${filters.search}%,title_en.ilike.%${filters.search}%`)
       }
+      if (filters?.campaignType && filters.campaignType !== 'all') {
+        query = query.eq('campaign_type', filters.campaignType)
+      }
 
       const { data, error, count } = await query
       if (error) throw error
@@ -297,15 +424,22 @@ export function useForms(filters?: { search?: string; page?: number; pageSize?: 
   })
 }
 
-export function useFormSubmissionCounts() {
+export function useFormSubmissionCounts(campaignType?: string) {
   return useQuery({
-    queryKey: ['form-submission-counts'],
+    queryKey: ['form-submission-counts', campaignType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('form_submissions')
         .select('form_id, status')
         .is('deleted_at', null)
 
+      // Apply campaign filter
+      const formIds = await getCampaignFormIds(campaignType)
+      if (formIds && formIds.length > 0) {
+        query = query.in('form_id', formIds)
+      }
+
+      const { data, error } = await query
       if (error) throw error
 
       const counts: Record<string, { total: number; approved: number; pending: number; rejected: number }> = {}
@@ -331,7 +465,7 @@ export function useCreateForm() {
     mutationFn: async (form: {
       title_ar: string; title_en: string; description_ar?: string; description_en?: string
       schema: Record<string, unknown>; requires_gps?: boolean; requires_photo?: boolean
-      max_photos?: number; allowed_roles?: UserRole[]
+      max_photos?: number; allowed_roles?: UserRole[]; campaign_type?: string; is_active?: boolean
     }) => {
       const { data: { session } } = await supabase.auth.getSession()
       const { data, error } = await supabase
@@ -356,7 +490,7 @@ export function useUpdateForm() {
       title_ar: string; title_en: string; description_ar: string; description_en: string
       schema: Record<string, unknown>; is_active: boolean
       requires_gps: boolean; requires_photo: boolean; max_photos: number
-      allowed_roles: UserRole[]
+      allowed_roles: UserRole[]; campaign_type: string
     }>) => {
       const { data, error } = await supabase
         .from('forms')
@@ -395,7 +529,7 @@ export function useDeleteForm() {
 
 export function useSubmissions(filters?: {
   status?: SubmissionStatus; formId?: string; governorateId?: string; search?: string
-  page?: number; pageSize?: number
+  page?: number; pageSize?: number; campaignType?: string
 }) {
   return useQuery({
     queryKey: ['submissions', filters],
@@ -405,7 +539,7 @@ export function useSubmissions(filters?: {
 
       let query = supabase
         .from('form_submissions')
-        .select('*, forms(title_ar), profiles(full_name, email)', { count: 'exact' })
+        .select('*, forms(title_ar, campaign_type), profiles(full_name, email)', { count: 'exact' })
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .range((page - 1) * pageSize, page * pageSize - 1)
@@ -413,6 +547,17 @@ export function useSubmissions(filters?: {
       if (filters?.status) query = query.eq('status', filters.status)
       if (filters?.formId) query = query.eq('form_id', filters.formId)
       if (filters?.governorateId) query = query.eq('governorate_id', filters.governorateId)
+
+      // Campaign filter via form_id
+      if (filters?.campaignType && filters.campaignType !== 'all') {
+        const formIds = await getCampaignFormIds(filters.campaignType)
+        if (formIds && formIds.length > 0) {
+          query = query.in('form_id', formIds)
+        } else {
+          // No forms for this campaign → return empty
+          return { data: [], count: 0 }
+        }
+      }
 
       const { data, error, count } = await query
       if (error) throw error
@@ -522,15 +667,19 @@ export function useAuditLogs(filters?: { userId?: string; action?: string; page?
 
 // ==================== SHORTAGES ====================
 
-export function useShortages() {
+export function useShortages(campaignType?: string) {
   return useQuery({
-    queryKey: ['shortages'],
+    queryKey: ['shortages', campaignType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('supply_shortages')
         .select('*, governorates(name_ar), districts(name_ar), profiles(full_name), form_submissions(form_id, forms(title_ar))')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
+
+      // Campaign filter via submission_id → form_submissions → forms
+      query = await applyShortageCampaignFilter(query, campaignType)
+      const { data, error } = await query
       if (error) throw error
       return data
     },
