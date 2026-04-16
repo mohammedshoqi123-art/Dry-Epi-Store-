@@ -1,6 +1,26 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
+import { createClient } from 'npm:@supabase/supabase-js'
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { authenticateRequest, createUserClient } from '../_shared/auth.ts'
+
+const ANALYTICS_RATE_LIMIT = 20
+const ANALYTICS_RATE_WINDOW = 60
+
+async function checkRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
+      p_user_id: userId,
+      p_endpoint: 'get-analytics',
+      p_window_seconds: ANALYTICS_RATE_WINDOW,
+      p_max_requests: ANALYTICS_RATE_LIMIT,
+    })
+    if (error) { console.error('Analytics rate limit RPC error (blocking):', error.message); return false }
+    return data?.[0]?.allowed ?? false
+  } catch (e) { console.error('Analytics rate limit failed (blocking):', e); return false }
+}
 
 serve(async (req) => {
   const origin = req.headers.get('Origin')
@@ -10,10 +30,14 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
 
-    // Authenticate — no JWT fallback
     const supabase = createUserClient(authHeader)
     const auth = await authenticateRequest(supabase, authHeader)
     if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
+
+    // Rate limiting (fail-closed)
+    if (!(await checkRateLimit(supabase, auth.userId))) {
+      return jsonResponse({ error: 'Rate limit exceeded' }, 429, origin)
+    }
 
     const body = await req.json().catch(() => ({}))
     const { governorate_id, district_id, start_date, end_date, form_id, campaign_type } = body

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Users, FileText, FileStack, BarChart3, ScrollText,
+  LayoutDashboard, Users, FileText, FileStack, ScrollText,
   MapPin, Shield, ChevronLeft, ChevronRight, Settings, LogOut,
   AlertTriangle, Bell, Moon, Sun, Menu, X, Sparkles, Layout, Clock,
   MessageSquare, Brain, BookOpen, Filter
@@ -45,7 +45,6 @@ const navItems: NavItem[] = [
   { icon: Users, label: 'المستخدمون', href: '/users' },
   { icon: FileText, label: 'النماذج', href: '/forms' },
   { icon: FileStack, label: 'الإرساليات', href: '/submissions' },
-  { icon: BarChart3, label: 'التحليلات', href: '/analytics' },
   { icon: AlertTriangle, label: 'النواقص', href: '/shortages' },
   { icon: ScrollText, label: 'سجل التدقيق', href: '/audit', roles: ['admin', 'central'] },
   { icon: MapPin, label: 'المحافظات', href: '/governorates', roles: ['admin'] },

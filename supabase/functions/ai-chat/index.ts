@@ -1,9 +1,35 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
+import { createClient } from 'npm:@supabase/supabase-js'
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts'
 import { authenticateRequest, createUserClient } from '../_shared/auth.ts'
 
 const MIMO_API_URL = 'https://api.xiaomimimo.com/v1/chat/completions'
 const MIMO_MODEL = 'mimo-v2-pro'
+
+const AI_RATE_LIMIT = 15 // max AI requests per minute
+const AI_RATE_WINDOW = 60 // seconds
+
+async function checkAIRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('check_and_increment_rate_limit', {
+      p_user_id: userId,
+      p_endpoint: 'ai-chat',
+      p_window_seconds: AI_RATE_WINDOW,
+      p_max_requests: AI_RATE_LIMIT,
+    })
+    if (error) {
+      console.error('AI rate limit RPC error (blocking):', error.message)
+      return false
+    }
+    return data?.[0]?.allowed ?? false
+  } catch (e) {
+    console.error('AI rate limit check failed (blocking):', e)
+    return false
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // KNOWLEDGE BASE — EPI Yemen + Platform Reference
@@ -57,6 +83,18 @@ serve(async (req) => {
     const supabase = createUserClient(authHeader)
     const auth = await authenticateRequest(supabase, authHeader)
     if (!auth) return jsonResponse({ error: 'Unauthorized' }, 401, origin)
+
+    // Rate limiting (fail-closed)
+    if (!(await checkAIRateLimit(supabase, auth.userId))) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded. Max 15 AI requests per minute.' }), {
+        status: 429,
+        headers: {
+          ...corsHeaders(origin),
+          'Content-Type': 'application/json',
+          'Retry-After': '60',
+        },
+      })
+    }
 
     const { message, history = [], context, mode, template, stream = false } = await req.json()
     if (!message && !template) return jsonResponse({ error: 'Message required' }, 400, origin)

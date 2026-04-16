@@ -958,7 +958,7 @@ class _FormEditorScreenState extends State<FormEditorScreen> {
     );
   }
 
-  Widget _buildFieldsList(List<Map<String, dynamic>> fields) {
+  Widget _buildFieldsList(List<Map<String, dynamic>> fields, {int? sectionIndex}) {
     if (fields.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(32),
@@ -981,12 +981,12 @@ class _FormEditorScreenState extends State<FormEditorScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: fields.length,
-      onReorder: (oldIndex, newIndex) => _moveField(oldIndex, newIndex),
-      itemBuilder: (context, i) => _buildFieldTile(fields[i], i),
+      onReorder: (oldIndex, newIndex) => _moveField(oldIndex, newIndex, sectionIndex: sectionIndex),
+      itemBuilder: (context, i) => _buildFieldTile(fields[i], i, sectionIndex: sectionIndex),
     );
   }
 
-  Widget _buildFieldTile(Map<String, dynamic> field, int index) {
+  Widget _buildFieldTile(Map<String, dynamic> field, int index, {int? sectionIndex}) {
     final type = field['type'] as String? ?? 'text';
     final typeInfo = _fieldTypes[type] ?? _fieldTypes['text']!;
     final isRequired = field['required'] == true;
@@ -1028,11 +1028,11 @@ class _FormEditorScreenState extends State<FormEditorScreen> {
           children: [
             IconButton(
               icon: const Icon(Icons.edit_rounded, size: 20, color: AppTheme.primaryColor),
-              onPressed: () => _editField(index),
+              onPressed: () => _editField(index, sectionIndex: sectionIndex),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppTheme.errorColor),
-              onPressed: () => _deleteField(index),
+              onPressed: () => _deleteField(index, sectionIndex: sectionIndex),
             ),
             const Icon(Icons.drag_handle_rounded, color: AppTheme.textHint),
           ],
@@ -1085,7 +1085,7 @@ class _FormEditorScreenState extends State<FormEditorScreen> {
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
-                  _buildFieldsList(fields),
+                  _buildFieldsList(fields, sectionIndex: sectionIndex),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () => _addField(sectionIndex: sectionIndex),

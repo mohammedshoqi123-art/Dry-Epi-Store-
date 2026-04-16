@@ -7,8 +7,8 @@ class AppConfig {
   // ─── App Metadata ────────────────────────────────────────────────────────
   static const String appName = "EPI Supervisor's";
   static const String appNameAr = "EPI Supervisor's";
-  static const String appVersion = '2.1.0';
-  static const int buildNumber = 1;
+  static const String appVersion = '2.2.0';
+  static const int buildNumber = 22;
 
   // ─── Pagination ──────────────────────────────────────────────────────────
   static const int defaultPageSize = 20;

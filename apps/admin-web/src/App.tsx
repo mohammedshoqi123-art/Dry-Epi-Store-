@@ -9,7 +9,6 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const UsersPage = lazy(() => import('@/pages/UsersPage'))
 const FormsPage = lazy(() => import('@/pages/FormsPage'))
 const SubmissionsPage = lazy(() => import('@/pages/SubmissionsPage'))
-const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage'))
 const AIInsightsPage = lazy(() => import('@/pages/AIInsightsPage'))
 const AISettingsPage = lazy(() => import('@/pages/AISettingsPage'))
 const AuditPage = lazy(() => import('@/pages/AuditPage'))
@@ -45,7 +44,6 @@ export default function App() {
           <Route path="users" element={<Suspense fallback={<PageLoader />}><UsersPage /></Suspense>} />
           <Route path="forms" element={<Suspense fallback={<PageLoader />}><FormsPage /></Suspense>} />
           <Route path="submissions" element={<Suspense fallback={<PageLoader />}><SubmissionsPage /></Suspense>} />
-          <Route path="analytics" element={<Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense>} />
           <Route path="insights" element={<Suspense fallback={<PageLoader />}><AIInsightsPage /></Suspense>} />
           <Route path="ai-settings" element={<Suspense fallback={<PageLoader />}><AISettingsPage /></Suspense>} />
           <Route path="audit" element={<Suspense fallback={<PageLoader />}><AuditPage /></Suspense>} />

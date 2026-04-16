@@ -65,20 +65,17 @@ jobs:
 
       - name: Check formatting
         working-directory: apps/mobile
-        run: dart format --set-exit-if-changed . || echo "::warning::Code formatting issues found. Run 'dart format .' locally."
+        run: dart format --set-exit-if-changed .
 
       - name: Analyze code
         working-directory: apps/mobile
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: flutter analyze --no-fatal-infos
 
       - name: Run tests with coverage
-        continue-on-error: true  # TODO: fix pre-existing test failures
         working-directory: apps/mobile
         run: |
           echo "=== Running flutter test ==="
-          flutter test --coverage 2>&1 || {
-            echo "::warning::Some tests failed (non-blocking)"
-          }
+          flutter test --coverage 2>&1
 
   # ─── Build APK ───────────────────────────────────────────
   build-apk:
