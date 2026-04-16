@@ -123,6 +123,7 @@ class EpiDrawer extends StatelessWidget {
                   _SectionLabel(label: 'التحليلات والذكاء'),
                   _buildItem(context, Icons.bar_chart_rounded, 'التقارير', '/analytics'),
                   _buildItem(context, Icons.smart_toy_rounded, 'المساعد الذكي', '/ai'),
+                  _buildItem(context, Icons.person_rounded, 'البروفايل', '/profile'),
                 ],
               ),
             ),

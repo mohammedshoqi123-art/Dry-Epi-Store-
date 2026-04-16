@@ -68,6 +68,7 @@ class AuthState {
   final String? governorateId;
   final String? districtId;
   final String? fullName;
+  final String? phone;
   final String? avatarUrl;
   final String? error;
 
@@ -80,6 +81,7 @@ class AuthState {
     this.governorateId,
     this.districtId,
     this.fullName,
+    this.phone,
     this.avatarUrl,
     this.error,
   });
@@ -93,6 +95,7 @@ class AuthState {
     String? governorateId,
     String? districtId,
     String? fullName,
+    String? phone,
     String? avatarUrl,
     String? error,
   }) {
@@ -105,6 +108,7 @@ class AuthState {
       governorateId: governorateId ?? this.governorateId,
       districtId: districtId ?? this.districtId,
       fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       error: error ?? this.error,
     );
@@ -118,6 +122,7 @@ class AuthState {
         'governorate_id': governorateId,
         'district_id': districtId,
         'full_name': fullName,
+        'phone': phone,
         'avatar_url': avatarUrl,
       };
 
@@ -129,6 +134,7 @@ class AuthState {
         governorateId: json['governorate_id'] as String?,
         districtId: json['district_id'] as String?,
         fullName: json['full_name'] as String?,
+        phone: json['phone'] as String?,
         avatarUrl: json['avatar_url'] as String?,
       );
 

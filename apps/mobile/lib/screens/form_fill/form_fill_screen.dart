@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 import 'package:epi_core/epi_core.dart';
 import 'package:epi_shared/epi_shared.dart';
 import '../../providers/app_providers.dart';
@@ -96,6 +97,9 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
         _isLoading = false;
       });
 
+      // ═══ AUTO-FILL: populate fields from user profile ═══
+      _autoFillFromProfile();
+
       await _loadDraft();
     } on TimeoutException {
       setState(() => _isLoading = false);
@@ -157,6 +161,73 @@ class _FormFillScreenState extends ConsumerState<FormFillScreen> {
       // Non-critical
     } catch (_) {
       // Non-critical
+    }
+  }
+
+  /// Auto-fill form fields from the authenticated user's profile.
+  /// Fields are auto-filled ONLY if they are empty (not overwritten by draft).
+  void _autoFillFromProfile() {
+    final authState = ref.read(authStateProvider).valueOrNull;
+    if (authState == null || !authState.isAuthenticated) return;
+
+    for (final field in _allFields) {
+      final key = field['key'] as String? ?? '';
+      final type = field['type'] as String? ?? '';
+
+      // Skip if already has a value (e.g., from draft)
+      if (_formData.containsKey(key) && _formData[key] != null) continue;
+
+      switch (key) {
+        // Submission ID — always generate fresh UUID
+        case 'submission_id':
+        case 'submission_number':
+        case 'form_number':
+        case 'رقم_الاستمارة':
+          _formData[key] = const Uuid().v4();
+          break;
+
+        // Supervisor name — from profile
+        case 'supervisor_name':
+        case 'name':
+        case 'full_name':
+        case 'اسم_المشرف':
+        case 'الاسم':
+          _formData[key] = authState.fullName ?? '';
+          break;
+
+        // Phone — from profile
+        case 'phone':
+        case 'mobile':
+        case 'رقم_الجوال':
+        case 'الهاتف':
+          _formData[key] = authState.phone ?? '';
+          break;
+
+        // Role — from profile
+        case 'role':
+        case 'الصفة':
+        case 'supervisor_role':
+          _formData[key] = authState.role?.nameAr ?? '';
+          break;
+
+        // Email — from profile
+        case 'email':
+        case 'البريد':
+        case 'الايميل':
+          _formData[key] = authState.email ?? '';
+          break;
+      }
+
+      // Governorate — auto-select if field type is governorate
+      if (type == 'governorate' && authState.governorateId != null) {
+        _formData[key] = authState.governorateId;
+      }
+
+      // District — auto-select if field type is district
+      if (type == 'district' && authState.districtId != null) {
+        _formData[key] = authState.districtId;
+        _formData['district_id'] = authState.districtId;
+      }
     }
   }
 

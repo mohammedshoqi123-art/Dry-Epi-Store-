@@ -123,6 +123,7 @@ class AuthRepository {
           governorateId: response['governorate_id'],
           districtId: response['district_id'],
           fullName: response['full_name'],
+          phone: response['phone'],
           avatarUrl: response['avatar_url'],
         );
       } else {
@@ -154,6 +155,7 @@ class AuthRepository {
               governorateId: newResponse['governorate_id'],
               districtId: newResponse['district_id'],
               fullName: newResponse['full_name'],
+              phone: newResponse['phone'],
               avatarUrl: newResponse['avatar_url'],
             );
           }
