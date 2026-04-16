@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:epi_core/epi_core.dart';
-import 'package:epi_shared/epi_shared.dart';
 import 'package:epi_supervisor/screens/login_screen.dart';
 
 void main() {
@@ -127,7 +125,6 @@ void main() {
 
       // If Supabase is not configured in test env, warning should show
       // This test verifies the conditional rendering logic
-      final warningFinder = find.textContaining('Supabase غير مُعدّ');
       // May or may not appear depending on test env config — just verify no crash
       expect(tester.takeException(), isNull);
     });
