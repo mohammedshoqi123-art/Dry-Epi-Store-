@@ -216,6 +216,7 @@ class EpiDrawer extends StatelessWidget {
                     _SectionLabel(label: 'الإدارة'),
                     _buildItem(context, Icons.people_rounded, 'إدارة المستخدمين', '/users'),
                     _buildItem(context, Icons.settings_applications_rounded, 'إدارة النماذج', '/forms-management'),
+                    _buildItem(context, Icons.library_books_rounded, 'إدارة المراجع', '/references-management'),
                   ],
                 ],
               ),

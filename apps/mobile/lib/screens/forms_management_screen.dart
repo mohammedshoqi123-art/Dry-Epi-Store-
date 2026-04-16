@@ -244,8 +244,9 @@ class _FormsManagementScreenState extends ConsumerState<FormsManagementScreen> {
     if (_error != null) return Center(child: EpiErrorWidget(message: _error!, onRetry: _loadData));
     if (_forms.isEmpty) return Center(child: EpiEmptyState(
       icon: Icons.description_outlined,
-      message: 'لا توجد نماذج\nاضغط على "نموذج جديد" للبدء',
-      actionLabel: 'إعادة تحميل',
+      title: 'لا توجد نماذج',
+      subtitle: 'اضغط على "نموذج جديد" للبدء',
+      actionText: 'إعادة تحميل',
       onAction: _loadData,
     ));
 

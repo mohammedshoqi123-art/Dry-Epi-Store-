@@ -22,6 +22,7 @@ import '../screens/chat_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/users_screen.dart';
 import '../screens/forms_management_screen.dart';
+import '../screens/references_management_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authStateProvider);
@@ -145,6 +146,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/forms-management',
             builder: (context, state) => const FormsManagementScreen(),
+          ),
+          GoRoute(
+            path: '/references-management',
+            builder: (context, state) => const ReferencesManagementScreen(),
           ),
         ],
       ),

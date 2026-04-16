@@ -308,8 +308,8 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     if (_error != null) return Center(child: EpiErrorWidget(message: _error!, onRetry: _loadAll));
     if (_users.isEmpty) return Center(child: EpiEmptyState(
       icon: Icons.people_outline_rounded,
-      message: 'لا توجد مستخدمين',
-      actionLabel: 'إعادة تحميل',
+      title: 'لا توجد مستخدمين',
+      actionText: 'إعادة تحميل',
       onAction: _loadAll,
     ));
 
