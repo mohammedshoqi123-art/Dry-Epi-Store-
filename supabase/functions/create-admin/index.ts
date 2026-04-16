@@ -54,7 +54,7 @@ serve(async (req) => {
 
     // ─── Parse Request ─────────────────────────────────────
     const body = await req.json()
-    const { email, password, full_name, role = 'admin' } = body
+    const { email, password, full_name, role = 'admin', governorate_id, district_id, phone, national_id } = body
 
     if (!email || !password || !full_name) {
       return jsonResponse({ error: 'email, password, and full_name are required' }, 400, origin)
@@ -116,11 +116,25 @@ serve(async (req) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name, role },
+      user_metadata: { full_name, role, governorate_id, district_id },
     })
 
     if (createError) {
       return jsonResponse({ error: `Failed to create user: ${createError.message}` }, 400, origin)
+    }
+
+    // ─── Update profile with additional fields ────────────
+    const profileUpdates: Record<string, unknown> = {}
+    if (governorate_id) profileUpdates.governorate_id = governorate_id
+    if (district_id) profileUpdates.district_id = district_id
+    if (phone) profileUpdates.phone = phone
+    if (national_id) profileUpdates.national_id = national_id
+
+    if (Object.keys(profileUpdates).length > 0) {
+      await supabaseAdmin
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('id', newUser.user.id)
     }
 
     return jsonResponse({
@@ -130,6 +144,8 @@ serve(async (req) => {
         id: newUser.user.id,
         email: newUser.user.email,
         role,
+        governorate_id,
+        district_id,
       },
     }, 201, origin)
 
