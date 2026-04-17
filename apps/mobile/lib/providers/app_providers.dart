@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dry_core/epi_core.dart';
+import 'package:dry_core/dry_core.dart';
 
 // ─── Core Services ────────────────────────────────────────────────────────────
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());

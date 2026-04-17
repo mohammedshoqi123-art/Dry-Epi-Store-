@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dry_core/epi_core.dart';
-import 'package:dry_shared/epi_shared.dart';
+import 'package:dry_core/dry_core.dart';
+import 'package:dry_shared/dry_shared.dart';
 import '../providers/app_providers.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
