@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dry_shared/epi_shared.dart';
+import 'package:dry_shared/dry_shared.dart';
 
 /// Wraps a widget with MaterialApp + ProviderScope + RTL for testing.
 Widget testWrapper(Widget child) {

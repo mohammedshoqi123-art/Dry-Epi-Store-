@@ -23,18 +23,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - name: Install dependencies (core)
-        working-directory: packages/core
-        run: flutter pub get
-      - name: Install dependencies (shared)
-        working-directory: packages/shared
-        run: flutter pub get
-      - name: Install dependencies (features)
-        working-directory: packages/features
-        run: flutter pub get
-      - name: Install dependencies (mobile)
-        working-directory: apps/mobile
-        run: flutter pub get
+      - name: Install Melos
+        run: dart pub global activate melos
+      - name: Bootstrap project
+        run: melos bootstrap
       - name: Analyze code
         working-directory: apps/mobile
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -58,12 +50,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - name: Setup project
-        run: |
-          cd packages/core && flutter pub get
-          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get
-          cd $GITHUB_WORKSPACE/packages/features && flutter pub get
-          cd $GITHUB_WORKSPACE/apps/mobile && flutter pub get
+      - name: Install Melos
+        run: dart pub global activate melos
+      - name: Bootstrap project
+        run: melos bootstrap
       - name: Build APK
         working-directory: apps/mobile
         env:
