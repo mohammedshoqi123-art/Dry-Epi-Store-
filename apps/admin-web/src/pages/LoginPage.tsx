@@ -189,7 +189,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center mt-8 animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <p className="text-xs text-gray-400 font-medium">
-            منصة EPI Supervisor's v1.0.0
+            منصة EPI Pulse v1.0.0
           </p>
           <p className="text-[10px] text-gray-300 mt-1.5">
             وزارة الصحة العامة والسكان — برنامج التطعيم الموسع

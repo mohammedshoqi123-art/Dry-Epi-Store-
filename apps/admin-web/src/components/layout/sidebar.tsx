@@ -18,10 +18,10 @@ import { ROLE_LABELS, type UserRole } from '@/types/database'
 import { getInitials } from '@/lib/utils'
 import { useCampaign, CAMPAIGN_OPTIONS, type CampaignType } from '@/lib/campaign-context'
 
-// Helper to get logo URL with base path support
-function getLogoUrl(size: '64' | '128' | '256' = '128') {
+// Helper to get logo URL
+function getLogoUrl() {
   const base = import.meta.env.BASE_URL || '/'
-  return `${base}logo-epi-${size}.png`.replace(/\/+/g, '/')
+  return `${base}logo.svg`.replace(/\/+/g, '/')
 }
 
 interface SidebarProps {
@@ -121,7 +121,7 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
           <>
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50">
               <img
-                src={getLogoUrl('128')}
+                src={getLogoUrl()}
                 alt="EPI"
                 className="w-8 h-8 object-contain"
                 onError={(e) => {
@@ -132,15 +132,15 @@ export function Sidebar({ user, collapsed = false, onToggle }: SidebarProps) {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="font-heading font-bold text-lg text-white truncate">EPI Supervisor's</h1>
-              <p className="text-xs text-blue-100">المشرف — لوحة الإدارة</p>
+              <h1 className="font-heading font-bold text-lg text-white truncate">EPI Pulse</h1>
+              <p className="text-xs text-blue-100">لوحة التحكم</p>
             </div>
           </>
         )}
         {collapsed && (
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50 mx-auto">
             <img
-              src={getLogoUrl('64')}
+              src={getLogoUrl()}
               alt="EPI"
               className="w-8 h-8 object-contain"
               onError={(e) => {
@@ -350,10 +350,10 @@ export function MobileSidebar({ user }: { user?: { full_name: string; email: str
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-sm overflow-hidden border border-blue-100/50">
-                  <img src={getLogoUrl('64')} alt="EPI" className="w-8 h-8 object-contain"
+                  <img src={getLogoUrl()} alt="EPI" className="w-8 h-8 object-contain"
                     onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 </div>
-                <h1 className="font-heading font-bold text-lg text-white">EPI Supervisor's</h1>
+                <h1 className="font-heading font-bold text-lg text-white">EPI Pulse</h1>
               </div>
               <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)} className="text-blue-200 hover:text-white hover:bg-white/10">
                 <X className="w-5 h-5" />

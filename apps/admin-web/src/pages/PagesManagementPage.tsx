@@ -1780,7 +1780,7 @@ function PageEditorDialog({ open, onOpenChange, mode, page }: {
                     <p className="text-xs text-muted-foreground mb-2">معاينة في نتائج البحث:</p>
                     <div dir="ltr" className="space-y-1">
                       <p className="text-blue-600 text-sm font-medium truncate">
-                        {metaTitle || title || 'عنوان الصفحة'} | EPI Supervisor
+                        {metaTitle || title || 'عنوان الصفحة'} | EPI Pulse
                       </p>
                       <p className="text-emerald-700 text-xs">
                         {window.location.origin}/pages/{slug || 'page-slug'}

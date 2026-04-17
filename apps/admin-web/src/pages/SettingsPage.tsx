@@ -168,7 +168,7 @@ export default function SettingsPage() {
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   // ── General Settings ──────────────────────────────────────────────────────
-  const [appName, setAppName] = useState('EPI Supervisor')
+  const [appName, setAppName] = useState('EPI Pulse')
   const [language, setLanguage] = useState('ar')
   const [timezone, setTimezone] = useState('Asia/Aden')
   const [syncInterval, setSyncInterval] = useState('5')
@@ -202,7 +202,7 @@ export default function SettingsPage() {
 
   // SMTP
   const [smtpConfig, setSmtpConfig] = useState<SMTPConfig>({
-    host: '', port: '587', user: '', pass: '', fromAddress: '', fromName: 'EPI Supervisor',
+    host: '', port: '587', user: '', pass: '', fromAddress: '', fromName: 'EPI Pulse',
   })
   const [showSmtpPass, setShowSmtpPass] = useState(false)
 
@@ -1172,7 +1172,7 @@ export default function SettingsPage() {
                             <Input
                               value={smtpConfig.fromName}
                               onChange={(e) => setSmtpConfig(p => ({ ...p, fromName: e.target.value }))}
-                              placeholder="EPI Supervisor"
+                              placeholder="EPI Pulse"
                             />
                           </div>
                         </div>

@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
-    base: '/EPI-Supervisor/',
+    base: '/Dry-Epi-Store-/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import {
   Users, FileText, FileStack, AlertTriangle, TrendingUp, TrendingDown,
-  CheckCircle2, XCircle, Clock, Activity, BarChart3, ArrowUpRight,
-  Shield, Zap, Target, Sparkles, Calendar, RefreshCw
+  CheckCircle2, Clock, Activity, BarChart3, Shield, Zap,
+  Sparkles, Package, ArrowUpDown, Truck, RefreshCw, Eye,
+  CalendarDays, Layers, Database, Globe
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Header } from '@/components/layout/header'
-import { useDashboardStats, useSubmissionsChart, useGovernorateStats, useRoleDistribution } from '@/hooks/useApi'
+import { useDashboardStats, useSubmissionsChart, useGovernorateStats, useRoleDistribution, useWarehouseDashboardStats } from '@/hooks/useApi'
 import { formatNumber, formatPercent, cn } from '@/lib/utils'
 import { useCampaign } from '@/lib/campaign-context'
 import {
@@ -19,316 +20,218 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899']
-
-interface StatCardProps {
-  title: string
-  value: number | string
-  change?: number
-  icon: React.ElementType
-  color: string
-  bgColor: string
-  description?: string
-  gradient?: string
+const COLORS = {
+  blue: '#3b82f6', emerald: '#10b981', amber: '#f59e0b', red: '#ef4444',
+  purple: '#8b5cf6', cyan: '#06b6d4', pink: '#ec4899', indigo: '#6366f1',
+  teal: '#14b8a6', orange: '#f97316'
 }
+const CHART_PALETTE = [COLORS.blue, COLORS.emerald, COLORS.amber, COLORS.red, COLORS.purple, COLORS.cyan, COLORS.pink]
 
-function StatCard({ title, value, change, icon: Icon, color, bgColor, description, gradient }: StatCardProps) {
+/* ─── Animated Stat Card ─────────────────────────────────── */
+interface StatCardProps {
+  title: string; value: number | string; change?: number
+  icon: React.ElementType; color: string; bgFrom: string; bgTo: string
+  description?: string; pulse?: boolean
+}
+function StatCard({ title, value, change, icon: Icon, color, bgFrom, bgTo, description, pulse }: StatCardProps) {
   return (
-    <Card className="group relative overflow-hidden hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5 border-0 shadow-md">
-      {/* Top gradient line */}
-      <div className={cn('absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300', gradient || 'bg-gradient-to-r from-blue-500 to-blue-600')} />
-
-      {/* Subtle background glow on hover */}
-      <div className={cn('absolute -top-12 -right-12 w-32 h-32 rounded-full blur-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-500', bgColor)} />
-
-      <CardContent className="p-6 relative">
+    <Card className={cn(
+      'group relative overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1',
+      pulse && 'ring-2 ring-red-200/60 animate-pulse-gentle'
+    )}>
+      <div className={cn('absolute inset-0 opacity-[0.04] bg-gradient-to-br', bgFrom, bgTo)} />
+      <CardContent className="p-5 relative">
         <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-heading font-bold tabular-nums">{value}</span>
+          <div className="space-y-2 flex-1">
+            <p className="text-[13px] font-medium text-muted-foreground/80 tracking-wide">{title}</p>
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-[28px] font-extrabold tracking-tight font-sans">{value}</span>
               {change !== undefined && (
                 <span className={cn(
-                  'text-xs font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full',
-                  change >= 0 ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'
+                  'text-[11px] font-bold flex items-center gap-0.5 px-2 py-0.5 rounded-full',
+                  change >= 0 ? 'text-emerald-700 bg-emerald-50 border border-emerald-100' : 'text-red-700 bg-red-50 border border-red-100'
                 )}>
                   {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {formatPercent(change)}
                 </span>
               )}
             </div>
-            {description && <p className="text-xs text-muted-foreground">{description}</p>}
+            {description && <p className="text-[11px] text-muted-foreground/60">{description}</p>}
           </div>
-          <div className={cn('p-3 rounded-2xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-3', bgColor)}>
-            <Icon className={cn('w-6 h-6', color)} />
+          <div className={cn(
+            'p-3 rounded-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6',
+            'bg-gradient-to-br shadow-lg', bgFrom, bgTo
+          )} style={{ boxShadow: `0 8px 20px -4px ${color}33` }}>
+            <Icon className="w-5 h-5 text-white" />
           </div>
         </div>
       </CardContent>
     </Card>
   )
 }
-
-function StatCardSkeleton() {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-3 flex-1">
-            <Skeleton className="w-24 h-4" />
-            <Skeleton className="w-16 h-9" />
-            <Skeleton className="w-20 h-3" />
-          </div>
-          <Skeleton className="w-12 h-12 rounded-2xl" />
-        </div>
-      </CardContent>
-    </Card>
-  )
+function StatSkeleton() {
+  return <Card className="border-0 shadow-sm"><CardContent className="p-5"><div className="flex items-start justify-between"><div className="space-y-3 flex-1"><Skeleton className="w-20 h-3"/><Skeleton className="w-14 h-8"/><Skeleton className="w-16 h-2"/></div><Skeleton className="w-11 h-11 rounded-2xl"/></div></CardContent></Card>
 }
 
-// Custom Tooltip for charts
-function CustomTooltip({ active, payload, label }: any) {
+/* ─── Chart Tooltip ─────────────────────────────────────── */
+function ChartTip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-gray-200/60 rounded-xl shadow-xl p-3 min-w-[140px]">
-      <p className="text-xs font-medium text-gray-500 mb-2">{label}</p>
-      {payload.map((entry: any, i: number) => (
-        <div key={i} className="flex items-center justify-between gap-4 text-sm">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="text-gray-600">{entry.name}</span>
+    <div className="bg-white/95 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-2xl p-4 min-w-[160px]">
+      <p className="text-[11px] font-semibold text-gray-400 mb-2.5 tracking-wide">{label}</p>
+      {payload.map((e: any, i: number) => (
+        <div key={i} className="flex items-center justify-between gap-5 py-1">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ backgroundColor: e.color }}/>
+            <span className="text-[12px] text-gray-500">{e.name}</span>
           </div>
-          <span className="font-bold tabular-nums">{entry.value}</span>
+          <span className="text-[13px] font-bold tabular-nums text-gray-800">{formatNumber(e.value)}</span>
         </div>
       ))}
     </div>
   )
 }
 
+/* ─── Page ───────────────────────────────────────────────── */
 export default function DashboardPage() {
   const { campaign, labelAr, isFiltered } = useCampaign()
-  const { data: stats, isLoading: statsLoading, refetch, isFetching } = useDashboardStats(campaign)
-  const { data: chartData, isLoading: chartLoading } = useSubmissionsChart(campaign)
-  const { data: govStats, isLoading: govLoading } = useGovernorateStats(campaign)
-  const { data: roleDistribution, isLoading: roleLoading } = useRoleDistribution()
+  const { data: stats, isLoading: sL, refetch } = useDashboardStats(campaign)
+  const { data: chart, isLoading: cL } = useSubmissionsChart(campaign)
+  const { data: gov, isLoading: gL } = useGovernorateStats(campaign)
+  const { data: roles, isLoading: rL } = useRoleDistribution()
+  const { data: whStats } = useWarehouseDashboardStats()
 
-  const statCards: StatCardProps[] = stats ? [
-    {
-      title: 'إجمالي المستخدمين',
-      value: formatNumber(stats.total_users),
-      change: 8.2,
-      icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      gradient: 'bg-gradient-to-r from-blue-500 to-blue-600',
-      description: `${stats.active_users} نشط من أصل ${stats.total_users}`,
-    },
-    {
-      title: 'إرساليات اليوم',
-      value: formatNumber(stats.submissions_today),
-      change: stats.submissions_trend,
-      icon: FileStack,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-50',
-      gradient: 'bg-gradient-to-r from-emerald-500 to-emerald-600',
-      description: `${formatNumber(stats.total_submissions)} إجمالي`,
-    },
-    {
-      title: 'بانتظار المراجعة',
-      value: formatNumber(stats.pending_submissions),
-      icon: Clock,
-      color: 'text-amber-600',
-      bgColor: 'bg-amber-50',
-      gradient: 'bg-gradient-to-r from-amber-500 to-amber-600',
-      description: `${stats.approval_rate.toFixed(1)}% معدل الاعتماد`,
-    },
-    {
-      title: 'النواقص الحرجة',
-      value: formatNumber(stats.critical_shortages),
-      icon: AlertTriangle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      gradient: 'bg-gradient-to-r from-red-500 to-red-600',
-      description: `من أصل ${stats.total_shortages} ناقص`,
-    },
+  const cards: StatCardProps[] = stats ? [
+    { title: 'المستخدمون', value: formatNumber(stats.total_users), change: 8.2, icon: Users, color: COLORS.blue, bgFrom: 'from-blue-500', bgTo: 'to-blue-600', description: `${stats.active_users} نشط` },
+    { title: 'إرساليات اليوم', value: formatNumber(stats.submissions_today), change: stats.submissions_trend, icon: FileStack, color: COLORS.emerald, bgFrom: 'from-emerald-500', bgTo: 'to-emerald-600', description: `${formatNumber(stats.total_submissions)} إجمالي` },
+    { title: 'بانتظار المراجعة', value: formatNumber(stats.pending_submissions), icon: Clock, color: COLORS.amber, bgFrom: 'from-amber-500', bgTo: 'to-amber-600', description: `${stats.approval_rate.toFixed(1)}% معدل الاعتماد` },
+    { title: 'نواقص حرجة', value: formatNumber(stats.critical_shortages), icon: AlertTriangle, color: COLORS.red, bgFrom: 'from-red-500', bgTo: 'to-red-600', description: `من ${stats.total_shortages} ناقص`, pulse: stats.critical_shortages > 0 },
   ] : []
 
-  // Weekly highlight
-  const weeklyHighlight = stats ? {
-    submissions: stats.submissions_this_week,
-    approvalRate: stats.approval_rate,
-    activeUsers: stats.active_users,
-    totalUsers: stats.total_users,
-  } : null
-
   return (
-    <div className="page-enter">
-      <Header
-        title="لوحة التحكم"
-        subtitle={isFiltered ? `عرض بيانات: ${labelAr}` : 'مرحباً بك في لوحة إدارة منصة EPI Supervisor\'s'}
-        onRefresh={() => refetch()}
-      />
+    <div className="min-h-screen bg-[#f8fafc]">
+      <Header title="لوحة التحكم" subtitle={isFiltered ? labelAr : 'نظرة شاملة على أداء المنصة'} onRefresh={() => refetch()}/>
 
-      <div className="p-6 space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          {statsLoading
-            ? Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
-            : statCards.map((card, i) => (
-                <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 0.08}s` }}>
-                  <StatCard {...card} />
-                </div>
-              ))
-          }
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6 max-w-[1440px] mx-auto">
+
+        {/* ─── Stats Row ─── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {sL ? Array.from({length:4}).map((_,i)=><StatSkeleton key={i}/>)
+            : cards.map((c,i)=><div key={i} className="animate-fade-in" style={{animationDelay:`${i*60}ms`}}><StatCard {...c}/></div>)}
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Submissions Trend Chart */}
-          <Card className="xl:col-span-2 border-0 shadow-md overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+        {/* ─── Warehouse Quick Stats ─── */}
+        {whStats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'المخازن النشطة', val: whStats.active_warehouses, icon: Database, c: COLORS.indigo },
+              { label: 'إجمالي المخزون', val: formatNumber(whStats.total_quantity), icon: Package, c: COLORS.teal },
+              { label: 'حركات اليوم', val: whStats.today_movements, icon: ArrowUpDown, c: COLORS.purple },
+              { label: 'قريب الانتهاء', val: whStats.expiring_soon, icon: CalendarDays, c: COLORS.orange },
+            ].map((s,i)=>(
+              <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow">
+                <div className="p-2 rounded-lg" style={{backgroundColor:`${s.c}15`}}><s.icon className="w-4 h-4" style={{color:s.c}}/></div>
+                <div><p className="text-[11px] text-muted-foreground">{s.label}</p><p className="text-lg font-bold tabular-nums">{s.val}</p></div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ─── Charts ─── */}
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
+          {/* Area Chart — 3 cols */}
+          <Card className="xl:col-span-3 border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
-                <CardTitle className="text-lg font-heading flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-primary" />
-                  حركة الإرساليات
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-blue-500"/>حركة الإرساليات
                 </CardTitle>
-                <CardDescription>آخر 30 يوم — معتمدة، مرفوضة، قيد المراجعة</CardDescription>
+                <CardDescription className="text-[11px]">آخر 30 يوم</CardDescription>
               </div>
               <Tabs defaultValue="30d">
-                <TabsList className="h-8 bg-muted/50">
-                  <TabsTrigger value="7d" className="text-xs px-3 data-[state=active]:bg-white">7 أيام</TabsTrigger>
-                  <TabsTrigger value="30d" className="text-xs px-3 data-[state=active]:bg-white">30 يوم</TabsTrigger>
+                <TabsList className="h-7 bg-gray-50">
+                  <TabsTrigger value="7d" className="text-[10px] px-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">7 أيام</TabsTrigger>
+                  <TabsTrigger value="30d" className="text-[10px] px-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm">30 يوم</TabsTrigger>
                 </TabsList>
               </Tabs>
             </CardHeader>
             <CardContent className="pt-0">
-              {chartLoading ? (
-                <Skeleton className="w-full h-[300px] rounded-xl" />
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={chartData || []}>
+              {cL ? <Skeleton className="w-full h-[280px]"/> : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={chart||[]}>
                     <defs>
-                      <linearGradient id="colorApproved" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorRejected" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorPending" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                      </linearGradient>
+                      <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.emerald} stopOpacity={0.25}/><stop offset="100%" stopColor={COLORS.emerald} stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gP" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.blue} stopOpacity={0.2}/><stop offset="100%" stopColor={COLORS.blue} stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COLORS.red} stopOpacity={0.15}/><stop offset="100%" stopColor={COLORS.red} stopOpacity={0}/></linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11, fill: '#6b7280' }}
-                      tickFormatter={(v) => v.slice(5)}
-                      stroke="#d1d5db"
-                    />
-                    <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} stroke="#d1d5db" />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      formatter={(value) => <span className="text-xs font-medium">{value}</span>}
-                    />
-                    <Area type="monotone" dataKey="approved" name="معتمدة" stroke="#10b981" fill="url(#colorApproved)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 2 }} />
-                    <Area type="monotone" dataKey="pending" name="قيد المراجعة" stroke="#3b82f6" fill="url(#colorPending)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 2 }} />
-                    <Area type="monotone" dataKey="rejected" name="مرفوضة" stroke="#ef4444" fill="url(#colorRejected)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 2 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9"/>
+                    <XAxis dataKey="date" tick={{fontSize:10,fill:'#94a3b8'}} tickFormatter={v=>v.slice(5)} stroke="none"/>
+                    <YAxis tick={{fontSize:10,fill:'#94a3b8'}} stroke="none"/>
+                    <Tooltip content={<ChartTip/>}/>
+                    <Legend formatter={v=><span className="text-[11px] font-medium text-gray-500">{v}</span>}/>
+                    <Area type="monotone" dataKey="approved" name="معتمدة" stroke={COLORS.emerald} fill="url(#gA)" strokeWidth={2.5} dot={false} activeDot={{r:4,strokeWidth:2}}/>
+                    <Area type="monotone" dataKey="pending" name="قيد المراجعة" stroke={COLORS.blue} fill="url(#gP)" strokeWidth={2.5} dot={false} activeDot={{r:4,strokeWidth:2}}/>
+                    <Area type="monotone" dataKey="rejected" name="مرفوضة" stroke={COLORS.red} fill="url(#gR)" strokeWidth={2} dot={false} activeDot={{r:4,strokeWidth:2}}/>
                   </AreaChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
 
-          {/* Role Distribution */}
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-heading flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                توزيع الأدوار
+          {/* Donut — 2 cols */}
+          <Card className="xl:col-span-2 border-0 shadow-sm">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Shield className="w-4 h-4 text-purple-500"/>توزيع الأدوار
               </CardTitle>
-              <CardDescription>عدد المستخدمين حسب المستوى</CardDescription>
+              <CardDescription className="text-[11px]">حسب المستوى الوظيفي</CardDescription>
             </CardHeader>
             <CardContent>
-              {roleLoading ? (
-                <Skeleton className="w-full h-[280px] rounded-xl" />
-              ) : (
-                <>
-                  <ResponsiveContainer width="100%" height={220}>
+              {rL ? <Skeleton className="w-full h-[260px]"/> : (
+                <div className="flex flex-col items-center">
+                  <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
-                      <Pie
-                        data={roleDistribution || []}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={85}
-                        paddingAngle={4}
-                        dataKey="value"
-                        strokeWidth={2}
-                        stroke="#fff"
-                      >
-                        {(roleDistribution || []).map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
+                      <Pie data={roles||[]} cx="50%" cy="50%" innerRadius={52} outerRadius={78} paddingAngle={5} dataKey="value" strokeWidth={0}>
+                        {(roles||[]).map((_,i)=><Cell key={i} fill={CHART_PALETTE[i%CHART_PALETTE.length]}/>)}
                       </Pie>
-                      <Tooltip content={<CustomTooltip />} />
+                      <Tooltip content={<ChartTip/>}/>
                     </PieChart>
                   </ResponsiveContainer>
-                  {/* Legend as list */}
-                  <div className="space-y-2 mt-2">
-                    {(roleDistribution || []).map((item, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                          <span className="text-muted-foreground">{item.name}</span>
-                        </div>
-                        <span className="font-bold tabular-nums">{item.value}</span>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 w-full mt-1">
+                    {(roles||[]).map((r:any,i:number)=>(
+                      <div key={i} className="flex items-center gap-2 text-[12px]">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor:CHART_PALETTE[i%CHART_PALETTE.length]}}/>
+                        <span className="text-gray-500 flex-1 truncate">{r.name}</span>
+                        <span className="font-bold tabular-nums text-gray-700">{r.value}</span>
                       </div>
                     ))}
                   </div>
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Governorate Stats & Quick Actions */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Governorate Stats */}
-          <Card className="xl:col-span-2 border-0 shadow-md overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-heading flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                الإرساليات حسب المحافظة
+        {/* ─── Governorate + Quick Stats ─── */}
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
+          {/* Governorate Bar Chart */}
+          <Card className="xl:col-span-3 border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-blue-500"/>الإرساليات حسب المحافظة
               </CardTitle>
-              <CardDescription>أعلى المحافظات نشاطاً</CardDescription>
+              <CardDescription className="text-[11px]">أعلى المحافظات نشاطاً</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              {govLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="w-full h-10 rounded-lg" />)}
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={(govStats || []).slice(0, 10)} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: '#6b7280' }} stroke="#d1d5db" />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      tick={{ fontSize: 11, fill: '#6b7280' }}
-                      stroke="#d1d5db"
-                      width={80}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="submissions" name="إرساليات" radius={[0, 8, 8, 0]} fill="url(#barGradient)">
-                      <defs>
-                        <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#6366f1" />
-                        </linearGradient>
-                      </defs>
+              {gL ? <div className="space-y-2">{Array.from({length:5}).map((_,i)=><Skeleton key={i} className="w-full h-8"/>)}</div> : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={(gov||[]).slice(0,10)} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false}/>
+                    <XAxis type="number" tick={{fontSize:10,fill:'#94a3b8'}} stroke="none"/>
+                    <YAxis dataKey="name" type="category" tick={{fontSize:10,fill:'#64748b'}} stroke="none" width={80}/>
+                    <Tooltip content={<ChartTip/>}/>
+                    <Bar dataKey="submissions" name="إرساليات" radius={[0,6,6,0]} fill="url(#govGrad)">
+                      <defs><linearGradient id="govGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor={COLORS.blue}/><stop offset="100%" stopColor={COLORS.indigo}/></linearGradient></defs>
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -336,78 +239,42 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Stats */}
-          <Card className="border-0 shadow-md overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-heading flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-500" />
-                إحصائيات سريعة
+          {/* KPI Sidebar */}
+          <Card className="xl:col-span-2 border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-500"/>مؤشرات الأداء
               </CardTitle>
-              <CardDescription>نظرة عامة على الأداء</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5">
-              {statsLoading ? (
-                <div className="space-y-4">
-                  {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="w-full h-12 rounded-lg" />)}
-                </div>
-              ) : stats ? (
+            <CardContent className="space-y-4">
+              {sL ? Array.from({length:3}).map((_,i)=><Skeleton key={i} className="w-full h-10"/>) : stats ? (
                 <>
-                  {/* Approval Rate */}
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        معدل الاعتماد
-                      </span>
-                      <span className="font-bold tabular-nums">{stats.approval_rate.toFixed(1)}%</span>
+                  {[
+                    { label: 'معدل الاعتماد', val: `${stats.approval_rate.toFixed(1)}%`, pct: stats.approval_rate, icon: CheckCircle2, grad: 'from-emerald-400 to-emerald-600' },
+                    { label: 'النماذج النشطة', val: `${stats.active_forms}/${stats.total_forms}`, pct: stats.total_forms ? (stats.active_forms/stats.total_forms)*100 : 0, icon: FileText, grad: 'from-blue-400 to-blue-600' },
+                    { label: 'المستخدمون النشطون', val: `${stats.active_users}/${stats.total_users}`, pct: stats.total_users ? (stats.active_users/stats.total_users)*100 : 0, icon: Users, grad: 'from-purple-400 to-purple-600' },
+                  ].map((k,i)=>(
+                    <div key={i} className="p-3.5 rounded-xl bg-gray-50/80 border border-gray-100/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[12px] text-gray-500 flex items-center gap-1.5">
+                          <k.icon className="w-3.5 h-3.5 text-gray-400"/>{k.label}
+                        </span>
+                        <span className="text-[14px] font-bold tabular-nums">{k.val}</span>
+                      </div>
+                      <Progress value={k.pct} className="h-1.5" indicatorClassName={cn('bg-gradient-to-r', k.grad)}/>
                     </div>
-                    <div className="relative">
-                      <Progress value={stats.approval_rate} indicatorClassName="bg-gradient-to-r from-emerald-500 to-emerald-600" />
-                    </div>
-                  </div>
+                  ))}
 
-                  {/* Active Forms */}
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <FileText className="w-4 h-4 text-blue-500" />
-                        النماذج النشطة
-                      </span>
-                      <span className="font-bold tabular-nums">{stats.active_forms} / {stats.total_forms}</span>
-                    </div>
-                    <Progress
-                      value={stats.total_forms > 0 ? (stats.active_forms / stats.total_forms) * 100 : 0}
-                      indicatorClassName="bg-gradient-to-r from-blue-500 to-blue-600"
-                    />
-                  </div>
-
-                  {/* Active Users */}
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <Activity className="w-4 h-4 text-purple-500" />
-                        المستخدمون النشطون
-                      </span>
-                      <span className="font-bold tabular-nums">{stats.active_users} / {stats.total_users}</span>
-                    </div>
-                    <Progress
-                      value={stats.total_users > 0 ? (stats.active_users / stats.total_users) * 100 : 0}
-                      indicatorClassName="bg-gradient-to-r from-purple-500 to-purple-600"
-                    />
-                  </div>
-
-                  {/* Weekly Summary Card */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 border border-blue-200/30 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-400/10 rounded-full blur-2xl" />
+                  {/* Weekly highlight */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMC41IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDgpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2cpIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')] opacity-50"/>
                     <div className="relative flex items-center gap-4">
-                      <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
-                        <Sparkles className="w-6 h-6 text-white" />
+                      <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+                        <Sparkles className="w-6 h-6"/>
                       </div>
                       <div>
-                        <p className="text-3xl font-heading font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                          {formatNumber(stats.submissions_this_week)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">إرسالية هذا الأسبوع</p>
+                        <p className="text-3xl font-extrabold tracking-tight">{formatNumber(stats.submissions_this_week)}</p>
+                        <p className="text-[11px] opacity-80">إرسالية هذا الأسبوع</p>
                       </div>
                     </div>
                   </div>
@@ -416,6 +283,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
       </div>
     </div>
   )
