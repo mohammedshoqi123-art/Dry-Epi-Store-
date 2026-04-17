@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dry_core/dry_core.dart';
-import 'package:dry_shared/dry_shared.dart';
 import 'package:dry_epi_store/screens/login_screen.dart';
 
 void main() {

@@ -26,7 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final auth = ref.read(authRepositoryProvider);
-      await auth.signInWithEmail(_emailController.text.trim(), _passwordController.text);
+      await auth.signIn(_emailController.text.trim(), _passwordController.text);
       if (mounted) context.go('/dashboard');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل تسجيل الدخول: $e', style: const TextStyle(fontFamily: 'Tajawal'))));
