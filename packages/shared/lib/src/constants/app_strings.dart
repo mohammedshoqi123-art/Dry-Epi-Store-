@@ -1,10 +1,10 @@
-/// EPI Supervisor Platform — Arabic String Constants
+/// Dry EPI Store — Arabic String Constants
 class AppStrings {
   AppStrings._();
 
   // ─── App ──────────────────────────────────────────────────────────────────
-  static const String appName = "EPI Supervisor's";
-  static const String appTagline = 'نظام الإشراف الميداني لحملات التطعيم';
+  static const String appName = "مخزن EPI الجاف";
+  static const String appTagline = 'إدارة المخازن الجافة للبرنامج الوطني للتحصين';
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
   static const String login = 'تسجيل الدخول';

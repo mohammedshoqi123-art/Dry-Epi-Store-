@@ -1,5 +1,5 @@
-name: epi_features
-description: Feature modules for EPI Supervisor Platform
+name: dry_features
+description: Feature modules for Dry EPI Store
 version: 1.0.0
 publish_to: none
 
@@ -10,9 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  epi_core:
+  dry_core:
     path: ../core
-  epi_shared:
+  dry_shared:
     path: ../shared
   flutter_riverpod: ^2.5.1
   flutter_form_builder: ^9.2.1

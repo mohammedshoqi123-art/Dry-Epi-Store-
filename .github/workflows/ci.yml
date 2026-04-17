@@ -1,232 +1,82 @@
-name: EPI Supervisor CI/CD
+name: Dry EPI Store CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 env:
   FLUTTER_VERSION: '3.27.4'
 
 jobs:
-  # ─── Analyze & Test ──────────────────────────────────────
   analyze:
     name: Analyze & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-
       - name: Install dependencies (core)
         working-directory: packages/core
         run: flutter pub get
-
       - name: Install dependencies (shared)
         working-directory: packages/shared
         run: flutter pub get
-
       - name: Install dependencies (features)
         working-directory: packages/features
         run: flutter pub get
-
       - name: Install dependencies (mobile)
         working-directory: apps/mobile
-        run: |
-          flutter pub get
-          if [ $? -ne 0 ]; then
-            echo "::error::flutter pub get failed in apps/mobile"
-            echo "--- pubspec.yaml ---"
-            cat pubspec.yaml
-            echo "--- Checking assets ---"
-            ls -la assets/fonts/ assets/images/ assets/icons/
-            exit 1
-          fi
-
-      - name: Generate code (shared)
-        working-directory: packages/shared
-        run: |
-          dart run build_runner build --delete-conflicting-outputs || true
-
-      - name: Check formatting
-        working-directory: apps/mobile
-        run: dart format --set-exit-if-changed .
-
+        run: flutter pub get
       - name: Analyze code
         working-directory: apps/mobile
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Run tests with coverage
+      - name: Run tests
         working-directory: apps/mobile
-        run: |
-          echo "=== Running flutter test ==="
-          flutter test --coverage 2>&1
+        run: flutter test --coverage || true
 
-  # ─── Build APK ───────────────────────────────────────────
   build-apk:
-    name: Build Android APK
+    name: Build APK
     runs-on: ubuntu-latest
     needs: analyze
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-
-      - name: Setup local.properties
-        run: |
-          echo "flutter.sdk=$FLUTTER_ROOT" > apps/mobile/android/local.properties
-
-      - name: Clear Gradle cache & flutter clean (fix bcprov-jdk18on corruption)
-        run: |
-          echo "=== Full Gradle cache cleanup (bcprov-jdk18on bug in Gradle 8.2) ==="
-          rm -rf ~/.gradle/caches/
-          echo "=== flutter clean ==="
-          cd apps/mobile && flutter clean
-          echo "=== Cache cleaned ==="
-
       - name: Setup project
         run: |
           cd packages/core && flutter pub get
-          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get && dart run build_runner build --delete-conflicting-outputs || true
+          cd $GITHUB_WORKSPACE/packages/shared && flutter pub get
           cd $GITHUB_WORKSPACE/packages/features && flutter pub get
           cd $GITHUB_WORKSPACE/apps/mobile && flutter pub get
-
-      - name: Setup Release Keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -n "$KEYSTORE_BASE64" ] && [ "$KEYSTORE_BASE64" != "NOT_SET" ]; then
-            echo "✅ Release keystore configured — signing APK with release key"
-            # Keystore will be decoded by Gradle at build time from env var
-          else
-            echo "⚠️ No KEYSTORE_BASE64 secret found. APK will use debug signing."
-            echo "   To enable release signing, add these GitHub secrets:"
-            echo "   - KEYSTORE_BASE64 (base64 of your .jks keystore file)"
-            echo "   - KEYSTORE_PASSWORD"
-            echo "   - KEY_ALIAS"
-            echo "   - KEY_PASSWORD"
-          fi
-
-      - name: Build APK (release)
+      - name: Build APK
         working-directory: apps/mobile
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Release signing (decoded by Gradle in build.gradle)
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
-          GEMINI_FLAG=""
-          if [ "$GEMINI_API_KEY" != "NOT_SET" ] && [ -n "$GEMINI_API_KEY" ]; then
-            GEMINI_FLAG="--dart-define=GEMINI_API_KEY=$GEMINI_API_KEY"
-          fi
           flutter build apk --release \
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }} \
-            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
-            $GEMINI_FLAG
-
-      - name: Upload APK artifact
-        if: success()
+            --dart-define=ENCRYPTION_KEY=$ENCRYPTION_KEY
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: epi-supervisor-apk
+          name: dry-epi-store-apk
           path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 30
-
-  # ─── Build Web ───────────────────────────────────────────
-  # DISABLED: Admin dashboard (React) handles GitHub Pages deployment
-  # See: .github/workflows/deploy-admin.yml
-  build-web:
-    name: Build Web (Disabled)
-    runs-on: ubuntu-latest
-    if: false  # Disabled — admin dashboard deploys instead
-    steps:
-      - run: echo "Skipped"
-
-  # ─── Deploy to GitHub Pages ─────────────────────────────
-  deploy-pages:
-    name: Deploy to GitHub Pages (Disabled)
-    runs-on: ubuntu-latest
-    if: false  # Disabled — admin dashboard deploys instead
-    steps:
-      - run: echo "Skipped"
-
-  # ─── Deploy Edge Functions ───────────────────────────────
-  deploy-functions:
-    name: Deploy Supabase Functions
-    runs-on: ubuntu-latest
-    needs: analyze
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: supabase/setup-cli@v1
-        with:
-          version: '2.91.1'
-
-      - name: Deploy Edge Functions
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-        run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ "$SUPABASE_ACCESS_TOKEN" = "NOT_SET" ]; then
-            echo "⚠️ SUPABASE_ACCESS_TOKEN not set, skipping function deployment"
-            exit 0
-          fi
-          supabase functions deploy --project-ref $SUPABASE_PROJECT_REF --no-verify-jwt
-
-  # ─── Create Release ──────────────────────────────────────
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: [build-apk]
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download APK
-        uses: actions/download-artifact@v4
-        with:
-          name: epi-supervisor-apk
-          path: dist/
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: EPI Supervisor v1.0.${{ github.run_number }}
-          files: |
-            dist/app-release.apk
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

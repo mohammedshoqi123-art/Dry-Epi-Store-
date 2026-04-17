@@ -1,5 +1,5 @@
-name: epi_core
-description: Core business logic package for EPI Supervisor Platform
+name: dry_core
+description: Core business logic for Dry EPI Store
 version: 1.0.0
 publish_to: none
 

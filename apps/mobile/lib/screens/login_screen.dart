@@ -1,71 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:epi_shared/epi_shared.dart';
-import 'package:epi_core/epi_core.dart';
-
-import '../providers/app_providers.dart';
+import 'package:go_router/go_router.dart';
+import 'package:dry_shared/dry_shared.dart';
+import 'package:dry_core/dry_core.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
-
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
-    _animController.forward();
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _animController.dispose();
-    super.dispose();
-  }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يرجى إدخال البريد وكلمة المرور', style: TextStyle(fontFamily: 'Tajawal'))));
+      return;
+    }
     setState(() => _isLoading = true);
-
     try {
       final auth = ref.read(authRepositoryProvider);
-      await auth.signIn(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      // FIX: Don't manually navigate — let GoRouter handle the redirect
-      // when authStateProvider emits the new authenticated state.
-      // Manual context.go('/dashboard') caused redirect loops.
-      // The router's redirect logic will move user to /dashboard automatically.
+      await auth.signInWithEmail(_emailController.text.trim(), _passwordController.text);
+      if (mounted) context.go('/dashboard');
     } catch (e) {
-      if (mounted) {
-        context.showError('فشل تسجيل الدخول: ${e.toString()}');
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('فشل تسجيل الدخول: $e', style: const TextStyle(fontFamily: 'Tajawal'))));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -74,271 +36,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.primaryColor,
-              AppTheme.primaryDark,
-              Color(0xFF004D40)
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: [0.0, 0.6, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: SlideTransition(
-                  position: _slideAnim,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Logo image
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: AppTheme.glassmorphism,
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 100,
-                            height: 100,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.assignment_outlined,
-                              size: 56,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        "EPI Supervisor's",
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'نظام الاشراف الالكتروني لبرنامج التحصين الصحي الموسع',
-                        style: TextStyle(
-                          fontFamily: 'Tajawal',
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.75),
-                        ),
-                      ),
-                      const SizedBox(height: 48),
-
-                      // Supabase not configured warning
-                      if (!SupabaseConfig.isConfigured)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: Colors.orange.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.warning_amber,
-                                  color: Colors.orange, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Supabase غير مُعدّ.\n• تأكد من ملف .env أو مرر --dart-define=SUPABASE_URL=... و SUPABASE_ANON_KEY=...',
-                                  style: TextStyle(
-                                    fontFamily: 'Tajawal',
-                                    fontSize: 11,
-                                    color: Colors.orange.shade100,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Login Form Card
-                      Container(
-                        padding: const EdgeInsets.all(28),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const Text(
-                                'تسجيل الدخول',
-                                style: TextStyle(
-                                  fontFamily: 'Cairo',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textPrimary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'مرحباً بعودتك! أدخل بياناتك للمتابعة',
-                                style: TextStyle(
-                                  fontFamily: 'Tajawal',
-                                  fontSize: 13,
-                                  color: AppTheme.textSecondary,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 28),
-
-                              // Email Field
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                child: EpiTextField(
-                                  label: 'البريد الإلكتروني',
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  prefixIcon: Icons.email_outlined,
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty)
-                                      return 'البريد مطلوب';
-                                    if (!v.isValidEmail) return 'بريد غير صالح';
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-
-                              // Password Field
-                              EpiTextField(
-                                label: 'كلمة المرور',
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                prefixIcon: Icons.lock_outlined,
-                                suffix: IconButton(
-                                  icon: AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 200),
-                                    child: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                      key: ValueKey(_obscurePassword),
-                                    ),
-                                  ),
-                                  onPressed: () => setState(() =>
-                                      _obscurePassword = !_obscurePassword),
-                                ),
-                                validator: (v) {
-                                  if (v == null || v.isEmpty)
-                                    return 'كلمة المرور مطلوبة';
-                                  if (v.length < 6)
-                                    return 'قصيرة جداً (6 أحرف على الأقل)';
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Login Button
-                              SizedBox(
-                                height: 52,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        AppTheme.primaryColor,
-                                        AppTheme.primaryDark
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppTheme.primaryColor
-                                            .withValues(alpha: 0.35),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _login,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(14)),
-                                    ),
-                                    child: _isLoading
-                                        ? const SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2.5,
-                                                color: Colors.white),
-                                          )
-                                        : const Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                'دخول',
-                                                style: TextStyle(
-                                                  fontFamily: 'Cairo',
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                              SizedBox(width: 8),
-                                              Icon(Icons.arrow_forward,
-                                                  color: Colors.white,
-                                                  size: 20),
-                                            ],
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 32),
-                      // Footer
-                      Text(
-                        'الإصدار ${AppConfig.appVersion}',
-                        style: TextStyle(
-                          fontFamily: 'Tajawal',
-                          fontSize: 11,
-                          color: Colors.white.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(32), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.warehouse_rounded, size: 80, color: Color(0xFF0D7C66)),
+        const SizedBox(height: 16),
+        const Text('مخزن EPI الجاف', style: TextStyle(fontFamily: 'Cairo', fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0D7C66))),
+        const SizedBox(height: 8),
+        const Text('تسجيل الدخول', style: TextStyle(fontFamily: 'Tajawal', fontSize: 16, color: Colors.grey)),
+        const SizedBox(height: 32),
+        TextField(controller: _emailController, decoration: const InputDecoration(labelText: 'البريد الإلكتروني', prefixIcon: Icon(Icons.email), border: OutlineInputBorder()), keyboardType: TextInputType.emailAddress),
+        const SizedBox(height: 16),
+        TextField(controller: _passwordController, obscureText: _obscurePassword,
+          decoration: InputDecoration(labelText: 'كلمة المرور', prefixIcon: const Icon(Icons.lock),
+            suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
+            border: const OutlineInputBorder())),
+        const SizedBox(height: 24),
+        SizedBox(width: double.infinity, height: 48,
+          child: ElevatedButton(onPressed: _isLoading ? null : _login,
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D7C66)),
+            child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('تسجيل الدخول', style: TextStyle(fontFamily: 'Cairo', color: Colors.white)))),
+      ]))),
     );
   }
 }

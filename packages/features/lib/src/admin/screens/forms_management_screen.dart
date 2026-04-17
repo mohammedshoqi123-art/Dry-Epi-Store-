@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:epi_shared/epi_shared.dart';
+import 'package:dry_shared/epi_shared.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // إدارة النماذج — Forms Management Screen

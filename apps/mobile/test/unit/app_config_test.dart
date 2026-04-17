@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:epi_core/src/config/app_config.dart';
+import 'package:dry_core/src/config/app_config.dart';
 
 void main() {
   group('AppConfig', () {

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:epi_core/epi_core.dart';
+import 'package:dry_core/epi_core.dart';
 import 'app_providers.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════

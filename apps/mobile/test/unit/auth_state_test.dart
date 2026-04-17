@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:epi_core/src/auth/auth_state.dart';
+import 'package:dry_core/src/auth/auth_state.dart';
 
 void main() {
   group('UserRole', () {

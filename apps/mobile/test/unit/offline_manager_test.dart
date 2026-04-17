@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:epi_core/src/offline/sync_models.dart';
-import 'package:epi_core/src/errors/app_exceptions.dart';
+import 'package:dry_core/src/offline/sync_models.dart';
+import 'package:dry_core/src/errors/app_exceptions.dart';
 
 void main() {
   group('OfflineSyncResult', () {

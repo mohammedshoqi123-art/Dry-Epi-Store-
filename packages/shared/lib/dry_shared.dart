@@ -1,5 +1,5 @@
-/// EPI Supervisor Shared Package — Public API
-library epi_shared;
+/// Dry EPI Store Shared Package — Public API
+library dry_shared;
 
 // ─── Theme ────────────────────────────────────────────────────────────────
 export 'src/theme/app_theme.dart';

@@ -1,5 +1,5 @@
-name: epi_supervisor
-repository: https://github.com/mohammedshoqi123-art/EPI-Supervisor
+name: dry_epi_store
+repository: https://github.com/mohammedshoqi123-art/Dry-Epi-Store-
 
 packages:
   - packages/*

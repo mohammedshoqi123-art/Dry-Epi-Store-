@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart' hide TextDirection;
-import 'package:epi_core/epi_core.dart';
+import 'package:dry_core/epi_core.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});

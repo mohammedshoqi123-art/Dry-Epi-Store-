@@ -1,5 +1,5 @@
-name: epi_supervisor
-description: EPI Supervisor Platform - Mobile App
+name: dry_epi_store
+description: Dry EPI Store - Warehouse Management
 version: 2.2.0+22
 publish_to: none
 
@@ -12,9 +12,9 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  epi_core:
+  dry_core:
     path: ../../packages/core
-  epi_shared:
+  dry_shared:
     path: ../../packages/shared
 
   # State Management

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// EPI Supervisor Design System — Teal + Glassmorphism + RTL
+/// Dry EPI Store Design System — Teal + Glassmorphism + RTL
 class AppTheme {
   AppTheme._();
 
