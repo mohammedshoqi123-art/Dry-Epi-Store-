@@ -27,6 +27,8 @@ jobs:
         run: dart pub global activate melos 2.9.0
       - name: Bootstrap project
         run: melos bootstrap
+      - name: Run code generation
+        run: melos run build_runner || true
       - name: Analyze code
         working-directory: apps/mobile
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -54,6 +56,8 @@ jobs:
         run: dart pub global activate melos 2.9.0
       - name: Bootstrap project
         run: melos bootstrap
+      - name: Run code generation
+        run: melos run build_runner || true
       - name: Build APK
         working-directory: apps/mobile
         env:
