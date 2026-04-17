@@ -4,13 +4,13 @@ import 'package:dry_core/dry_core.dart';
 void main() {
   group('AppConfig', () {
     test('app name is set correctly', () {
-      expect(AppConfig.appName, equals("EPI Supervisor's"));
-      expect(AppConfig.appNameAr, equals("EPI Supervisor's"));
+      expect(AppConfig.appName, equals('Dry EPI Store'));
+      expect(AppConfig.appNameAr, equals('مخزن EPI الجاف'));
     });
 
     test('app version is set correctly', () {
-      expect(AppConfig.appVersion, equals('2.2.0'));
-      expect(AppConfig.buildNumber, equals(22));
+      expect(AppConfig.appVersion, equals('1.0.0'));
+      expect(AppConfig.buildNumber, equals(1));
     });
 
     test('sync interval is reasonable', () {
@@ -36,7 +36,7 @@ void main() {
 
     test('photo settings are reasonable', () {
       expect(AppConfig.maxPhotoSizeMb, greaterThan(0));
-      expect(AppConfig.maxPhotosPerSubmission, equals(1));
+      expect(AppConfig.maxPhotosPerMovement, greaterThanOrEqualTo(1));
     });
 
     test('environment defaults to production', () {

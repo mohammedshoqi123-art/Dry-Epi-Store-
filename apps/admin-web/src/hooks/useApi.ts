@@ -1037,3 +1037,287 @@ export function useRoleDistribution() {
     enabled: isConfigured,
   })
 }
+
+// ==================== WAREHOUSES ====================
+
+export function useWarehouses(filters?: { governorateId?: string; search?: string }) {
+  return useQuery({
+    queryKey: ['warehouses', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('warehouses')
+        .select('*, governorates(name_ar), districts(name_ar), profiles:manager_id(full_name)')
+        .is('deleted_at', null)
+        .order('name_ar')
+
+      if (filters?.governorateId) query = query.eq('governorate_id', filters.governorateId)
+      if (filters?.search) {
+        query = query.or(`name_ar.ilike.%${filters.search}%,code.ilike.%${filters.search}%,name_en.ilike.%${filters.search}%`)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: isConfigured,
+    retry: 3,
+    staleTime: 15000,
+  })
+}
+
+export function useWarehouseStock(warehouseId?: string) {
+  return useQuery({
+    queryKey: ['warehouse-stock', warehouseId],
+    queryFn: async () => {
+      let query = supabase
+        .from('stock_levels')
+        .select('*, warehouses(name_ar, code), items(name_ar, code, unit, is_vaccine)')
+        .is('deleted_at', null)
+        .order('expiry_date', { ascending: true, nullsFirst: false })
+
+      if (warehouseId) query = query.eq('warehouse_id', warehouseId)
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: isConfigured,
+    retry: 3,
+    staleTime: 10000,
+  })
+}
+
+export function useAllStockLevels() {
+  return useQuery({
+    queryKey: ['all-stock-levels'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stock_levels')
+        .select('*, warehouses(name_ar, code), items(name_ar, code, unit, is_vaccine, min_stock_level)')
+        .is('deleted_at', null)
+        .order('updated_at', { ascending: false })
+
+      if (error) throw error
+      return data
+    },
+    enabled: isConfigured,
+    retry: 3,
+    staleTime: 10000,
+  })
+}
+
+// ==================== STOCK MOVEMENTS ====================
+
+export function useStockMovements(filters?: {
+  type?: string; status?: string; warehouseId?: string; page?: number; pageSize?: number
+}) {
+  return useQuery({
+    queryKey: ['stock-movements', filters],
+    queryFn: async () => {
+      const page = filters?.page || 1
+      const pageSize = filters?.pageSize || 30
+
+      let query = supabase
+        .from('stock_movements')
+        .select('*, items(name_ar, code), source_warehouse:source_warehouse_id(name_ar), dest_warehouse:destination_warehouse_id(name_ar), requester:requested_by(full_name)', { count: 'exact' })
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .range((page - 1) * pageSize, page * pageSize - 1)
+
+      if (filters?.type) query = query.eq('movement_type', filters.type)
+      if (filters?.status) query = query.eq('status', filters.status)
+      if (filters?.warehouseId) {
+        query = query.or(`source_warehouse_id.eq.${filters.warehouseId},destination_warehouse_id.eq.${filters.warehouseId}`)
+      }
+
+      const { data, error, count } = await query
+      if (error) throw error
+      return { data: data || [], count: count || 0 }
+    },
+    enabled: isConfigured,
+    retry: 3,
+    staleTime: 10000,
+  })
+}
+
+export function useUpdateMovementStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const updates: Record<string, unknown> = {
+        status,
+        updated_at: new Date().toISOString(),
+      }
+      if (status === 'approved') {
+        updates.approved_by = session?.user.id
+        updates.approved_at = new Date().toISOString()
+      }
+      if (status === 'completed') {
+        updates.completed_at = new Date().toISOString()
+      }
+
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] })
+      queryClient.invalidateQueries({ queryKey: ['warehouse-stock'] })
+      queryClient.invalidateQueries({ queryKey: ['all-stock-levels'] })
+    },
+  })
+}
+
+// ==================== WAREHOUSE ALERTS ====================
+
+export function useWarehouseAlerts(filters?: { resolved?: boolean }) {
+  return useQuery({
+    queryKey: ['warehouse-alerts', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('alerts')
+        .select('*, warehouses(name_ar), items(name_ar)')
+        .order('created_at', { ascending: false })
+
+      if (filters?.resolved !== undefined) {
+        query = query.eq('is_resolved', filters.resolved)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: isConfigured,
+    retry: 3,
+    staleTime: 10000,
+  })
+}
+
+export function useResolveWarehouseAlert() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (alertId: string) => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data, error } = await supabase
+        .from('alerts')
+        .update({
+          is_resolved: true,
+          resolved_by: session?.user.id,
+          resolved_at: new Date().toISOString(),
+        })
+        .eq('id', alertId)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['warehouse-alerts'] }),
+  })
+}
+
+// ==================== ITEMS ====================
+
+export function useItems(filters?: { categoryId?: string; search?: string }) {
+  return useQuery({
+    queryKey: ['items', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('items')
+        .select('*, item_categories(name_ar, code)')
+        .is('deleted_at', null)
+        .eq('is_active', true)
+        .order('name_ar')
+
+      if (filters?.categoryId) query = query.eq('category_id', filters.categoryId)
+      if (filters?.search) {
+        query = query.or(`name_ar.ilike.%${filters.search}%,code.ilike.%${filters.search}%`)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: isConfigured,
+    retry: 3,
+    staleTime: 30000,
+  })
+}
+
+export function useItemCategories() {
+  return useQuery({
+    queryKey: ['item-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('item_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('name_ar')
+      if (error) throw error
+      return data
+    },
+    enabled: isConfigured,
+    staleTime: 60000,
+  })
+}
+
+// ==================== WAREHOUSE DASHBOARD STATS ====================
+
+export function useWarehouseDashboardStats() {
+  return useQuery({
+    queryKey: ['warehouse-dashboard-stats'],
+    queryFn: async () => {
+      if (!isConfigured) return null
+
+      const [warehousesRes, stockRes, movementsRes, alertsRes] = await Promise.allSettled([
+        supabase.from('warehouses').select('id, is_active', { count: 'exact' }).is('deleted_at', null),
+        supabase.from('stock_levels').select('id, quantity, expiry_date', { count: 'exact' }).is('deleted_at', null),
+        supabase.from('stock_movements').select('id, status, created_at', { count: 'exact' }).is('deleted_at', null),
+        supabase.from('alerts').select('id, severity, is_resolved', { count: 'exact' }),
+      ])
+
+      const warehouses = warehousesRes.status === 'fulfilled' ? (warehousesRes.value.data || []) : []
+      const stock = stockRes.status === 'fulfilled' ? (stockRes.value.data || []) : []
+      const movements = movementsRes.status === 'fulfilled' ? (movementsRes.value.data || []) : []
+      const alerts = alertsRes.status === 'fulfilled' ? (alertsRes.value.data || []) : []
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const soon = new Date()
+      soon.setDate(soon.getDate() + 30)
+
+      const totalStock = stock.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0)
+      const expiringSoon = stock.filter((s: any) => s.expiry_date && new Date(s.expiry_date) <= soon && new Date(s.expiry_date) > today).length
+      const expired = stock.filter((s: any) => s.expiry_date && new Date(s.expiry_date) <= today).length
+
+      const pendingMovements = movements.filter((m: any) => m.status === 'pending').length
+      const todayMovements = movements.filter((m: any) => new Date(m.created_at) >= today).length
+
+      const criticalAlerts = alerts.filter((a: any) => a.severity === 'critical' && !a.is_resolved).length
+      const unresolvedAlerts = alerts.filter((a: any) => !a.is_resolved).length
+
+      return {
+        total_warehouses: warehouses.length,
+        active_warehouses: warehouses.filter((w: any) => w.is_active).length,
+        total_stock_items: stock.length,
+        total_quantity: totalStock,
+        expiring_soon: expiringSoon,
+        expired_items: expired,
+        total_movements: movements.length,
+        pending_movements: pendingMovements,
+        today_movements: todayMovements,
+        total_alerts: alerts.length,
+        critical_alerts: criticalAlerts,
+        unresolved_alerts: unresolvedAlerts,
+      }
+    },
+    enabled: isConfigured,
+    refetchInterval: isConfigured ? 30000 : false,
+    staleTime: 15000,
+  })
+}

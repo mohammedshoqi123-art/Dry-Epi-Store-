@@ -19,6 +19,7 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const ChatPage = lazy(() => import('@/pages/ChatPage'))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
 const ReferencesPage = lazy(() => import('@/pages/ReferencesPage'))
+const WarehouseDashboardPage = lazy(() => import('@/pages/WarehouseDashboardPage'))
 
 function PageLoader() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="chat" element={<Suspense fallback={<PageLoader />}><ChatPage /></Suspense>} />
           <Route path="notifications" element={<Suspense fallback={<PageLoader />}><NotificationsPage /></Suspense>} />
           <Route path="references" element={<Suspense fallback={<PageLoader />}><ReferencesPage /></Suspense>} />
+          <Route path="warehouse" element={<Suspense fallback={<PageLoader />}><WarehouseDashboardPage /></Suspense>} />
         </Route>
         {/* Root redirects to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />

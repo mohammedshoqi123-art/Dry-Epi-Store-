@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:dry_shared/dry_shared.dart';
 import 'package:dry_core/dry_core.dart';
 
+import '../providers/app_providers.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
   @override

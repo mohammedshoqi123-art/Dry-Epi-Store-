@@ -216,6 +216,173 @@ export interface SupplyShortage {
   profiles?: { full_name: string }
 }
 
+// ═══ WAREHOUSE TYPES ═══
+
+export interface Warehouse {
+  id: string
+  name_ar: string
+  name_en: string
+  code: string
+  warehouse_type: string
+  governorate_id?: string
+  district_id?: string
+  address?: string
+  capacity_sqm?: number
+  manager_id?: string
+  center_lat?: number
+  center_lng?: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  governorates?: { name_ar: string }
+  districts?: { name_ar: string }
+  profiles?: { full_name: string }
+}
+
+export interface ItemCategory {
+  id: string
+  name_ar: string
+  name_en: string
+  code: string
+  description?: string
+  is_active: boolean
+}
+
+export interface Item {
+  id: string
+  name_ar: string
+  name_en: string
+  code: string
+  category_id?: string
+  unit: string
+  description?: string
+  min_stock_level: number
+  max_stock_level: number
+  requires_expiry: boolean
+  requires_batch: boolean
+  is_vaccine: boolean
+  storage_temp_min?: number
+  storage_temp_max?: number
+  qr_code?: string
+  is_active: boolean
+  item_categories?: { name_ar: string; code: string }
+}
+
+export type MovementType = 'receipt' | 'issue' | 'transfer_out' | 'transfer_in' | 'adjustment' | 'return' | 'damage' | 'expired'
+export type MovementStatus = 'pending' | 'approved' | 'completed' | 'cancelled' | 'rejected'
+
+export interface StockLevel {
+  id: string
+  warehouse_id: string
+  item_id: string
+  quantity: number
+  batch_number?: string
+  expiry_date?: string
+  manufacturing_date?: string
+  supplier?: string
+  notes?: string
+  qr_code?: string
+  last_counted_at?: string
+  created_at: string
+  updated_at: string
+  warehouses?: { name_ar: string; code: string }
+  items?: { name_ar: string; code: string; unit: string; is_vaccine: boolean }
+}
+
+export interface StockMovement {
+  id: string
+  movement_number: string
+  movement_type: MovementType
+  status: MovementStatus
+  source_warehouse_id?: string
+  destination_warehouse_id?: string
+  item_id: string
+  quantity: number
+  batch_number?: string
+  expiry_date?: string
+  unit_cost: number
+  total_cost: number
+  reference_number?: string
+  notes?: string
+  requested_by: string
+  approved_by?: string
+  approved_at?: string
+  completed_at?: string
+  created_at: string
+  updated_at: string
+  items?: { name_ar: string; code: string }
+  source_warehouse?: { name_ar: string }
+  dest_warehouse?: { name_ar: string }
+  requester?: { full_name: string }
+}
+
+export type AlertTypeWH = 'low_stock' | 'expiry_warning' | 'expired' | 'overstock' | 'transfer_pending'
+export type AlertSeverityWH = 'critical' | 'high' | 'medium' | 'low' | 'info'
+
+export interface WarehouseAlert {
+  id: string
+  alert_type: AlertTypeWH
+  severity: AlertSeverityWH
+  title: string
+  message: string
+  warehouse_id?: string
+  item_id?: string
+  movement_id?: string
+  quantity?: number
+  threshold_value?: number
+  is_read: boolean
+  is_resolved: boolean
+  resolved_by?: string
+  resolved_at?: string
+  data: Record<string, unknown>
+  created_at: string
+  warehouses?: { name_ar: string }
+  items?: { name_ar: string }
+}
+
+export const MOVEMENT_TYPE_LABELS: Record<MovementType, string> = {
+  receipt: 'استلام',
+  issue: 'صرف',
+  transfer_out: 'تحويل صادر',
+  transfer_in: 'تحويل وارد',
+  adjustment: 'تسوية',
+  return: 'إرجاع',
+  damage: 'تالف',
+  expired: 'منتهي الصلاحية',
+}
+
+export const MOVEMENT_STATUS_LABELS: Record<MovementStatus, string> = {
+  pending: 'قيد الانتظار',
+  approved: 'معتمد',
+  completed: 'مكتمل',
+  cancelled: 'ملغي',
+  rejected: 'مرفوض',
+}
+
+export const MOVEMENT_STATUS_COLORS: Record<MovementStatus, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  approved: 'bg-blue-100 text-blue-800',
+  completed: 'bg-emerald-100 text-emerald-800',
+  cancelled: 'bg-gray-100 text-gray-700',
+  rejected: 'bg-red-100 text-red-800',
+}
+
+export const ALERT_TYPE_WH_LABELS: Record<AlertTypeWH, string> = {
+  low_stock: 'نقص مخزون',
+  expiry_warning: 'تحذير انتهاء صلاحية',
+  expired: 'منتهي الصلاحية',
+  overstock: 'فائض مخزون',
+  transfer_pending: 'تحويل معلق',
+}
+
+export const ALERT_SEVERITY_WH_COLORS: Record<AlertSeverityWH, string> = {
+  critical: 'bg-red-100 text-red-800 border-red-200',
+  high: 'bg-orange-100 text-orange-800 border-orange-200',
+  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  low: 'bg-blue-100 text-blue-800 border-blue-200',
+  info: 'bg-gray-100 text-gray-700 border-gray-200',
+}
+
 // Database type for Supabase client
 export interface Database {
   public: {

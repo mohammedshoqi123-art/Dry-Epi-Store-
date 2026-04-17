@@ -46,7 +46,7 @@ scripts:
     exec:
       concurrency: 1
     packageFilters:
-      scope: epi_supervisor
+      scope: dry_epi_store
 
   build_web:
     description: Build Flutter Web
@@ -54,7 +54,7 @@ scripts:
     exec:
       concurrency: 1
     packageFilters:
-      scope: epi_supervisor
+      scope: dry_epi_store
 
   clean:
     description: Clean all packages
